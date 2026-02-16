@@ -13,13 +13,10 @@ class VehicleListCreateView(generics.ListCreateAPIView):
     filterset_fields = ['model', 'manufacturer', 'year', 'status']
     pagination_class = None
     http_method_names = ['get', 'post']
-    def perform_create(self, serializer):
-        serializer.save()
-    
+
 
 class VehicleRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Vehicle.objects.all()
     serializer_class = VehicleSerializer
     permission_classes = [IsAuthenticated]
     http_method_names = ['get', 'put', 'patch', 'delete']
-    lookup_field = 'id'

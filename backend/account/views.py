@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.conf import settings
 from .serializers import UserSerializer
 
 class LoginView(TokenObtainPairView):
@@ -14,12 +15,14 @@ class LoginView(TokenObtainPairView):
                 "access_token",
                 response.data["access"],
                 httponly=True,
+                secure=settings.SECURE_COOKIES,
                 samesite="Lax",
             )
             response.set_cookie(
                 "refresh_token",
                 response.data["refresh"],
                 httponly=True,
+                secure=settings.SECURE_COOKIES,
                 samesite="Lax",
             )
             response.data = {"detail": "ok"}
@@ -39,7 +42,8 @@ class RefreshView(TokenRefreshView):
                 "access_token",
                 response.data["access"],
                 httponly=True,
-                samesite="Lax",
+                secure=settings.SECURE_COOKIES,
+                samesite="Lax", 
             )
             response.data = {"detail": "refreshed"}
 
