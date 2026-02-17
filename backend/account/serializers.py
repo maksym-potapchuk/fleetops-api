@@ -19,14 +19,12 @@ class UserSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = (
-            "id", 
-            "created_at", 
-            "updated_at", 
-            "is_blocked", 
-            "is_email_verified", 
-            "role", 
-            "email", 
-            "username"
+            "id",
+            "created_at",
+            "updated_at",
+            "is_blocked",
+            "is_email_verified",
+            "role",
+            "email",
+            "username",
         )
-
-

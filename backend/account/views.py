@@ -6,6 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
 from .serializers import UserSerializer
 
+
 class LoginView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
@@ -43,7 +44,7 @@ class RefreshView(TokenRefreshView):
                 response.data["access"],
                 httponly=True,
                 secure=settings.SECURE_COOKIES,
-                samesite="Lax", 
+                samesite="Lax",
             )
             response.data = {"detail": "refreshed"}
 
@@ -65,18 +66,14 @@ class LogoutView(APIView):
 
 
 class UserMeAPIView(APIView):
-    permission_classes=[IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        serializer=UserSerializer(request.user)
+        serializer = UserSerializer(request.user)
         return Response(serializer.data)
-    
+
     def patch(self, request):
-        serializer=UserSerializer(
-            request.user,
-            data=request.data,
-            partial=True
-        )
+        serializer = UserSerializer(request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)

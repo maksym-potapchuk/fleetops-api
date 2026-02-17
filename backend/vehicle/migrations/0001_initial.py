@@ -6,49 +6,116 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('driver', '0001_initial'),
+        ("driver", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='VehicleStatus',
+            name="VehicleStatus",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('status_name', models.CharField(max_length=50)),
-                ('description', models.TextField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("status_name", models.CharField(max_length=50)),
+                ("description", models.TextField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
             ],
         ),
         migrations.CreateModel(
-            name='Vehicle',
+            name="Vehicle",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('model', models.CharField(max_length=50)),
-                ('manufacturer', models.CharField(choices=[('Toyota', 'Toyota'), ('Ford', 'Ford'), ('Honda', 'Honda'), ('Chevrolet', 'Chevrolet'), ('BMW', 'BMW'), ('Lexus', 'Lexus'), ('Audi', 'Audi')], max_length=50)),
-                ('year', models.PositiveIntegerField()),
-                ('cost', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('vin_number', models.CharField(max_length=17, unique=True)),
-                ('car_number', models.CharField(max_length=10, unique=True)),
-                ('is_selected', models.BooleanField(default=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('driver', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='vehicle_driver', to='driver.driver')),
-                ('status', models.ForeignKey(on_delete=django.db.models.deletion.RESTRICT, related_name='vehicles', to='vehicle.vehiclestatus')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("model", models.CharField(max_length=50)),
+                (
+                    "manufacturer",
+                    models.CharField(
+                        choices=[
+                            ("Toyota", "Toyota"),
+                            ("Ford", "Ford"),
+                            ("Honda", "Honda"),
+                            ("Chevrolet", "Chevrolet"),
+                            ("BMW", "BMW"),
+                            ("Lexus", "Lexus"),
+                            ("Audi", "Audi"),
+                        ],
+                        max_length=50,
+                    ),
+                ),
+                ("year", models.PositiveIntegerField()),
+                ("cost", models.DecimalField(decimal_places=2, max_digits=10)),
+                ("vin_number", models.CharField(max_length=17, unique=True)),
+                ("car_number", models.CharField(max_length=10, unique=True)),
+                ("is_selected", models.BooleanField(default=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "driver",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="vehicle_driver",
+                        to="driver.driver",
+                    ),
+                ),
+                (
+                    "status",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.RESTRICT,
+                        related_name="vehicles",
+                        to="vehicle.vehiclestatus",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='VehicleDriverHistory',
+            name="VehicleDriverHistory",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('assigned_at', models.DateTimeField(auto_now_add=True)),
-                ('unassigned_at', models.DateTimeField(blank=True, null=True)),
-                ('driver', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='driver_vehicles', to='driver.driver')),
-                ('vehicle', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='vehicle_drivers', to='vehicle.vehicle')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("assigned_at", models.DateTimeField(auto_now_add=True)),
+                ("unassigned_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "driver",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="driver_vehicles",
+                        to="driver.driver",
+                    ),
+                ),
+                (
+                    "vehicle",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="vehicle_drivers",
+                        to="vehicle.vehicle",
+                    ),
+                ),
             ],
         ),
     ]

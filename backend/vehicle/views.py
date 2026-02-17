@@ -10,13 +10,13 @@ class VehicleListCreateView(generics.ListCreateAPIView):
     serializer_class = VehicleSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['model', 'manufacturer', 'year', 'status']
+    filterset_fields = ["model", "manufacturer", "year", "status"]
     pagination_class = None
-    http_method_names = ['get', 'post']
+    http_method_names = ["get", "post"]
 
 
 class VehicleRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Vehicle.objects.all()
     serializer_class = VehicleSerializer
     permission_classes = [IsAuthenticated]
-    http_method_names = ['get', 'put', 'patch', 'delete']
+    http_method_names = ["get", "put", "patch", "delete"]
