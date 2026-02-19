@@ -122,12 +122,26 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "account.authentication.CookieJWTAuthentication",
     ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
+    "DEFAULT_FILTER_BACKENDS": [
+        "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.SearchFilter",
+        "rest_framework.filters.OrderingFilter",
+    ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
-}
 
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
+        # "rest_framework.renderers.BrowsableAPIRenderer",  # disable in production
+    ],
+}
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+
+_pg_host = os.getenv("POSTGRES_HOST", "localhost")
 
 DATABASES = {
     "default": {
@@ -135,8 +149,9 @@ DATABASES = {
         "NAME": os.getenv("POSTGRES_DB"),
         "USER": os.getenv("POSTGRES_USER"),
         "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
-        "HOST": os.getenv("POSTGRES_HOST", "localhost"),
+        "HOST": _pg_host,
         "PORT": os.getenv("POSTGRES_PORT", "5432"),
+        "OPTIONS": {"sslmode": "require"} if "neon.tech" in _pg_host else {},
     }
 }
 

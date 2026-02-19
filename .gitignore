@@ -1,2 +1,6 @@
 .claude*
 .claude\worktrees\awesome-gates
+
+# Environment secrets
+.env
+backend/.env

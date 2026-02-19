@@ -4,18 +4,31 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('vehicle', '0001_initial'),
+        ("vehicle", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='vehicle',
-            name='status',
-            field=models.CharField(choices=[('CTO', 'CTO'), ('FOCUS', 'Focus'), ('CLEANING', 'Cleaning'), ('PREPARATION', 'Preparation'), ('READY', 'Ready'), ('LEASING', 'Leasing'), ('RENT', 'Rent'), ('SELLING', 'Selling'), ('SOLD', 'Sold')], default='PREPARATION', max_length=20),
+            model_name="vehicle",
+            name="status",
+            field=models.CharField(
+                choices=[
+                    ("CTO", "CTO"),
+                    ("FOCUS", "Focus"),
+                    ("CLEANING", "Cleaning"),
+                    ("PREPARATION", "Preparation"),
+                    ("READY", "Ready"),
+                    ("LEASING", "Leasing"),
+                    ("RENT", "Rent"),
+                    ("SELLING", "Selling"),
+                    ("SOLD", "Sold"),
+                ],
+                default="PREPARATION",
+                max_length=20,
+            ),
         ),
         migrations.DeleteModel(
-            name='VehicleStatus',
+            name="VehicleStatus",
         ),
     ]

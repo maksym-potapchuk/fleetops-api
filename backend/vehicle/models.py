@@ -1,6 +1,7 @@
 from django.db import models
 import uuid
 
+
 # TODO:: Add Model to manual adding Manufactures
 class ManufacturerChoices(models.TextChoices):
     TOYOTA = "Toyota", "Toyota"
@@ -11,16 +12,17 @@ class ManufacturerChoices(models.TextChoices):
     LEXUS = "Lexus", "Lexus"
     AUDI = "Audi", "Audi"
 
+
 class VehicleStatus(models.TextChoices):
-    CTO= "CTO", "CTO"
-    FOCUS="FOCUS", "Focus"
-    CLEANING="CLEANING", "Cleaning"
-    PREPARATION="PREPARATION", "Preparation"
-    READY="READY", "Ready"
-    LEASING="LEASING", "Leasing"
-    RENT="RENT", "Rent"
-    SELLING="SELLING", "Selling"
-    SOLD="SOLD", "Sold"
+    CTO = "CTO", "CTO"
+    FOCUS = "FOCUS", "Focus"
+    CLEANING = "CLEANING", "Cleaning"
+    PREPARATION = "PREPARATION", "Preparation"
+    READY = "READY", "Ready"
+    LEASING = "LEASING", "Leasing"
+    RENT = "RENT", "Rent"
+    SELLING = "SELLING", "Selling"
+    SOLD = "SOLD", "Sold"
 
 
 # class VehicleStatus(models.Model):
@@ -42,9 +44,7 @@ class Vehicle(models.Model):
     car_number = models.CharField(max_length=10, unique=True)
     is_selected = models.BooleanField(default=True)
     status = models.CharField(
-        max_length=20,
-        choices=VehicleStatus.choices,
-        default=VehicleStatus.PREPARATION
+        max_length=20, choices=VehicleStatus.choices, default=VehicleStatus.PREPARATION
     )
     driver = models.ForeignKey(
         "driver.Driver",
