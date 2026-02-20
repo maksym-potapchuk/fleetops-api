@@ -5,15 +5,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fleet_management', '0002_fleetvehicleregulationitem_and_more'),
+        ("fleet_management", "0002_fleetvehicleregulationitem_and_more"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddConstraint(
-            model_name='fleetvehicleregulationschema',
-            constraint=models.UniqueConstraint(condition=models.Q(('is_default', True)), fields=('is_default',), name='unique_default_schema'),
+            model_name="fleetvehicleregulationschema",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("is_default", True)),
+                fields=("is_default",),
+                name="unique_default_schema",
+            ),
         ),
     ]

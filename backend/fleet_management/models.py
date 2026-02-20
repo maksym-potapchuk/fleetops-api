@@ -8,20 +8,27 @@ class FleetService(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self) -> str:
+        return self.name
+
 
 class RegulationNotificationStatus(models.TextChoices):
     PENDING = "Pending", "Pending"
     SENT = "Sent", "Sent"
     FAILED = "Failed", "Failed"
 
+
 class EventType(models.TextChoices):
     PERFORMED = "performed", "Service Performed"
     KM_UPDATED = "km_updated", "KM Updated"
     NOTIFIED = "notified", "Notification Sent"
 
+
 class ServiceHistory(models.Model):
     vehicle = models.ForeignKey(
-        "vehicle.Vehicle", on_delete=models.CASCADE, related_name="service_history"
+        "vehicle.Vehicle",
+        on_delete=models.CASCADE,
+        related_name="service_history",
     )
     service_date = models.DateField()
     service_type = models.CharField(max_length=100)
@@ -31,6 +38,9 @@ class ServiceHistory(models.Model):
     status = models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return f"{self.vehicle} — {self.service_type} ({self.service_date})"
 
 
 class FleetVehicleRegulationSchema(models.Model):
@@ -46,21 +56,24 @@ class FleetVehicleRegulationSchema(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return self.title
-    
+    # DJ012: Meta → __str__ → custom methods
     class Meta:
-        constraints=[
+        constraints = [
             models.UniqueConstraint(
                 fields=["is_default"],
                 condition=models.Q(is_default=True),
-                name='unique_default_schema'
-            )
+                name="unique_default_schema",
+            ),
         ]
+
+    def __str__(self) -> str:
+        return self.title
 
     def save(self, *args, **kwargs):
         if self.is_default:
-            FleetVehicleRegulationSchema.objects.filter(is_default=True).update(is_default=False)
+            FleetVehicleRegulationSchema.objects.filter(is_default=True).update(
+                is_default=False,
+            )
         super().save(*args, **kwargs)
 
 
@@ -68,9 +81,9 @@ class FleetVehicleRegulationItem(models.Model):
     """A single regulation related to schema"""
 
     schema = models.ForeignKey(
-        FleetVehicleRegulationSchema, 
-        on_delete=models.CASCADE, 
-        related_name="items"
+        FleetVehicleRegulationSchema,
+        on_delete=models.CASCADE,
+        related_name="items",
     )
     title = models.CharField(max_length=155)
     every_km = models.PositiveIntegerField()
@@ -79,13 +92,15 @@ class FleetVehicleRegulationItem(models.Model):
     class Meta:
         unique_together = ("schema", "title")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.title} every {self.every_km}"
 
 
 class FleetVehicleRegulation(models.Model):
     vehicle = models.ForeignKey(
-        "vehicle.Vehicle", on_delete=models.CASCADE, related_name="regulations"
+        "vehicle.Vehicle",
+        on_delete=models.CASCADE,
+        related_name="regulations",
     )
     schema = models.ForeignKey(
         FleetVehicleRegulationSchema,
@@ -94,10 +109,11 @@ class FleetVehicleRegulation(models.Model):
     )
 
     assigned_at = models.DateTimeField(auto_now_add=True)
+
     class Meta:
         unique_together = ("schema", "vehicle")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.vehicle} → {self.schema.title}"
 
 
@@ -105,16 +121,24 @@ class FleetVehicleRegulationEntry(models.Model):
     """Current state - what's due next for this vehicle item."""
 
     regulation = models.ForeignKey(
-        FleetVehicleRegulation, on_delete=models.CASCADE, related_name="entries"
+        FleetVehicleRegulation,
+        on_delete=models.CASCADE,
+        related_name="entries",
     )
     item = models.ForeignKey(
-        FleetVehicleRegulationItem, on_delete=models.PROTECT, related_name="entries"
+        FleetVehicleRegulationItem,
+        on_delete=models.PROTECT,
+        related_name="entries",
     )
     last_done_km = models.PositiveIntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = [("regulation", "item")]
+
+    # DJ012: __str__ before custom methods
+    def __str__(self) -> str:
+        return f"{self.item.title} → next at {self.next_due_km} km"
 
     @property
     def next_due_km(self):
@@ -126,17 +150,14 @@ class FleetVehicleRegulationEntry(models.Model):
     def km_remaining(self, current_km: int) -> int:
         return self.next_due_km - current_km
 
-    def __str__(self):
-        return f"{self.item.title} → next at {self.next_due_km} km"
-
 
 class FleetVehicleRegulationHistory(models.Model):
     """Immutable log - every time a regulation item was performed or a km update triggered a check."""
 
     entry = models.ForeignKey(
         FleetVehicleRegulationEntry,
-        on_delete=models.CASCADE, 
-        related_name="history"
+        on_delete=models.CASCADE,
+        related_name="history",
     )
     event_type = models.CharField(max_length=20, choices=EventType.choices)
     km_at_event = models.PositiveIntegerField()
@@ -153,7 +174,7 @@ class FleetVehicleRegulationHistory(models.Model):
     class Meta:
         ordering = ["-created_at"]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.entry.item.title} [{self.event_type}] at {self.km_at_event} km"
 
 
@@ -174,14 +195,17 @@ class FleetVehicleRegulationNotification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self) -> str:
+        return f"{self.regulation_name} — {self.status}"
+
 
 class ServicePlan(models.Model):
     vehicle = models.ForeignKey(
         "vehicle.Vehicle",
         on_delete=models.CASCADE,
-        related_name="service_plans"
+        related_name="service_plans",
     )
-    title = models.CharField(max_length=255) 
+    title = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
     planned_at = models.DateField()
     is_done = models.BooleanField(default=False)
@@ -190,23 +214,32 @@ class ServicePlan(models.Model):
     class Meta:
         unique_together = ("vehicle", "title")
 
+    def __str__(self) -> str:
+        return f"{self.vehicle} — {self.title}"
+
 
 class EquipmentDefaultItem(models.Model):
-    equipment=models.CharField(max_length=55)
-    created_at=models.DateTimeField(auto_now_add=True)
+    equipment = models.CharField(max_length=55)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return self.equipment
 
 
 class EquipmentList(models.Model):
     vehicle = models.ForeignKey(
         "vehicle.Vehicle",
         on_delete=models.CASCADE,
-        related_name="service_plans"
+        related_name="equipment_list",
     )
-    equipment=models.CharField(max_length=55)
-    is_equipped=models.BooleanField(default=False)
+    equipment = models.CharField(max_length=55)
+    is_equipped = models.BooleanField(default=False)
     approved_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("vehicle", "name")
+        unique_together = ("vehicle", "equipment")
 
+    def __str__(self) -> str:
+        status = "✓" if self.is_equipped else "✗"
+        return f"{self.vehicle} — {self.equipment} [{status}]"

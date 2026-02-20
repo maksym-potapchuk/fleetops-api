@@ -1,5 +1,6 @@
-from django.db import models
 import uuid
+
+from django.db import models
 
 
 # TODO:: Add Model to manual adding Manufactures
@@ -44,7 +45,9 @@ class Vehicle(models.Model):
     car_number = models.CharField(max_length=10, unique=True)
     is_selected = models.BooleanField(default=True)
     status = models.CharField(
-        max_length=20, choices=VehicleStatus.choices, default=VehicleStatus.PREPARATION
+        max_length=20,
+        choices=VehicleStatus.choices,
+        default=VehicleStatus.PREPARATION,
     )
     driver = models.ForeignKey(
         "driver.Driver",
@@ -56,16 +59,26 @@ class Vehicle(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self) -> str:
+        return f"{self.car_number} ({self.manufacturer} {self.model})"
+
 
 class VehicleDriverHistory(models.Model):
     vehicle = models.ForeignKey(
-        "vehicle.Vehicle", on_delete=models.CASCADE, related_name="vehicle_drivers"
+        "vehicle.Vehicle",
+        on_delete=models.CASCADE,
+        related_name="vehicle_drivers",
     )
     driver = models.ForeignKey(
-        "driver.Driver", on_delete=models.CASCADE, related_name="driver_vehicles"
+        "driver.Driver",
+        on_delete=models.CASCADE,
+        related_name="driver_vehicles",
     )
     assigned_at = models.DateTimeField(auto_now_add=True)
     unassigned_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self) -> str:
+        return f"{self.vehicle} ← {self.driver}"
 
 
 # Think about VehicleService and ServiceHistory models

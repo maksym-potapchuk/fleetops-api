@@ -3,10 +3,9 @@
 from django.core.management.base import BaseCommand
 
 from fleet_management.models import (
-    FleetVehicleRegulationSchema,
     FleetVehicleRegulationItem,
+    FleetVehicleRegulationSchema,
 )
-
 
 DEFAULT_SERVICE_SCHEMA = {
     "regulation_name": "РЕГЛАМЕНТ ОБСЛУГОВУВАННЯ",
@@ -95,21 +94,22 @@ class Command(BaseCommand):
 
         if options["force"]:
             deleted, _ = FleetVehicleRegulationSchema.objects.filter(
-                title=title
+                title=title,
             ).delete()
             self.stdout.write(
-                self.style.WARNING(f"Deleted existing schema: {deleted} record(s)")
+                self.style.WARNING(f"Deleted existing schema: {deleted} record(s)"),
             )
 
         schema, created = FleetVehicleRegulationSchema.objects.get_or_create(
-            title=title, defaults={"is_default": True}
+            title=title,
+            defaults={"is_default": True},
         )
 
         if not created:
             self.stdout.write(
                 self.style.WARNING(
-                    f'Schema "{title}" already exists. Use --force to recreate it.'
-                )
+                    f'Schema "{title}" already exists. Use --force to recreate it.',
+                ),
             )
             return
 
@@ -126,5 +126,5 @@ class Command(BaseCommand):
         FleetVehicleRegulationItem.objects.bulk_create(items)
 
         self.stdout.write(
-            self.style.SUCCESS(f'Created schema "{title}" with {len(items)} items.')
+            self.style.SUCCESS(f'Created schema "{title}" with {len(items)} items.'),
         )

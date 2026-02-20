@@ -1,31 +1,34 @@
-from django.urls import path, include
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
+
 from .views import (
+    EquipmentDefaultItemViewSet,
+    EquipmentListDetailAPIView,
+    EquipmentListListAPIView,
     FleetServiceViewSet,
     FleetVehicleRegulationSchemaListAPIView,
-    ServicePlanListCreateAPIView,
-    ServicePlanDetailAPIView,
-    ServicePlanMarkDoneAPIView,
-    EquipmentDefaultItemViewSet,
-    EquipmentListListCreateAPIView,
-    EquipmentListDetailAPIView,
     GrantDefaultEquipmentAPIView,
+    ServicePlanDetailAPIView,
+    ServicePlanListCreateAPIView,
+    ServicePlanMarkDoneAPIView,
 )
 
 router = DefaultRouter()
 router.register(r"services", FleetServiceViewSet, basename="service")
-router.register(r"equipment/defaults", EquipmentDefaultItemViewSet, basename="equipment-default")
+router.register(
+    r"equipment/defaults",
+    EquipmentDefaultItemViewSet,
+    basename="equipment-default",
+)
 
 urlpatterns = [
     path("", include(router.urls)),
-
     # Regulation schemas
     path(
         "regulation/schemas/",
         FleetVehicleRegulationSchemaListAPIView.as_view(),
         name="regulation-schema-list",
     ),
-
     # Service plans  (scoped to a vehicle)
     path(
         "vehicles/<uuid:vehicle_pk>/service-plans/",
@@ -42,11 +45,10 @@ urlpatterns = [
         ServicePlanMarkDoneAPIView.as_view(),
         name="service-plan-mark-done",
     ),
-
     # Equipment lists (scoped to a vehicle)
     path(
         "vehicles/<uuid:vehicle_pk>/equipment/",
-        EquipmentListListCreateAPIView.as_view(),
+        EquipmentListListAPIView.as_view(),
         name="equipment-list",
     ),
     path(
