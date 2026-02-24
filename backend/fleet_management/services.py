@@ -1,6 +1,13 @@
 import logging
-
-from .models import EquipmentDefaultItem, EquipmentList
+from django.db import transaction
+from .models import (
+    EventType,
+    EquipmentDefaultItem, 
+    EquipmentList, 
+    FleetVehicleRegulation, 
+    FleetVehicleRegulationHistory,
+    FleetVehicleRegulationEntry
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -50,3 +57,38 @@ def grant_equipment_to_vehicle(vehicle_id):
             exc_info=True,
         )
         raise
+
+@transaction.atomic
+def assign_regulation_to_vehicle(vehicle_pk, schema_id, entires_data, user):
+    if FleetVehicleRegulation.objects.filter(
+        vehicle_pk=vehicle_pk,
+        schema_id=schema_id
+    ).exists():
+        raise ValueError("Schema already assigned to this vehicle")
+    
+    regulation=FleetVehicleRegulation.objects.create(
+        vehicle_pk=vehicle_pk,
+        schema_id=schema_id
+    )
+
+    created_entries=[]
+    for entry_data in entires_data:
+        entry=FleetVehicleRegulationEntry.objects.create(
+            regulation=regulation,
+            item_id=entry_data["item_id"],
+            last_done_km=entry_data["last_done_km"]
+        )
+        FleetVehicleRegulationHistory.objects.create(
+                entry=entry,
+                event_type=EventType.KM_UPDATED,
+                km_at_event=entry_data["last_done_km"],
+                km_remaining=entry.next_due_km - entry_data["last_done_km"],
+                note="Initial assignment",
+                created_by=user,
+            )
+        created_entries.append(entry)
+    return {
+        "regulation_id": regulation.id,
+        "schema": regulation.schema.title,
+        "entries_created": len(created_entries)
+    }

@@ -136,7 +136,6 @@ class FleetVehicleRegulationEntry(models.Model):
     class Meta:
         unique_together = [("regulation", "item")]
 
-    # DJ012: __str__ before custom methods
     def __str__(self) -> str:
         return f"{self.item.title} → next at {self.next_due_km} km"
 

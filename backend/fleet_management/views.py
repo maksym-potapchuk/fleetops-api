@@ -6,7 +6,7 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
+from .services import assign_regulation_to_vehicle
 from .filters import FleetVehicleRegulationSchemaFilter
 from .models import (
     EquipmentDefaultItem,
@@ -21,6 +21,7 @@ from .serializers import (
     FleetServiceSerializer,
     FleetVehicleRegulationSchemaSerializer,
     ServicePlanSerializer,
+    AssignRegulationSerializer,
 )
 from .services import grant_equipment_to_vehicle
 
@@ -77,7 +78,7 @@ class FleetServiceViewSet(viewsets.ModelViewSet):
         instance.delete()
 
 
-class FleetVehicleRegulationSchemaListAPIView(generics.ListCreateAPIView):
+class FleetVehicleRegulationSchemaListCreateAPIView(generics.ListCreateAPIView):
     queryset = FleetVehicleRegulationSchema.objects.prefetch_related("items").all()
     serializer_class = FleetVehicleRegulationSchemaSerializer
     permission_classes = [IsAuthenticated]
@@ -115,6 +116,33 @@ class FleetVehicleRegulationSchemaListAPIView(generics.ListCreateAPIView):
             )
             raise
 
+class AssignRegulationView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, vehicle_pk):
+        serializer=AssignRegulationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            result=assign_regulation_to_vehicle(
+                vehicle_pk=vehicle_pk,
+                schema_id=serializer.validated_data["schema_id"],
+                entires_data=serializer.validated_data["entires"],
+                user=request.user
+            )
+        except Exception as e:
+            return Response({"detail": str(e)}, status=400)
+
+        logger.info(
+            "Regulation assigned to vehicle",
+            extra={
+                "vehicle_id": str(vehicle_pk),
+                "schema_id": serializer.validated_data["schema_id"],
+                "user_id": str(request.user.id)
+            }
+        )
+        return Response(result, status=status.HTTP_201_CREATED)
+    
 
 class ServicePlanListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = ServicePlanSerializer

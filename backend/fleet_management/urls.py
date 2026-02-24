@@ -6,11 +6,12 @@ from .views import (
     EquipmentListDetailAPIView,
     EquipmentListListAPIView,
     FleetServiceViewSet,
-    FleetVehicleRegulationSchemaListAPIView,
+    FleetVehicleRegulationSchemaListCreateAPIView,
     GrantDefaultEquipmentAPIView,
     ServicePlanDetailAPIView,
     ServicePlanListCreateAPIView,
     ServicePlanMarkDoneAPIView,
+    AssignRegulationView,
 )
 
 router = DefaultRouter()
@@ -26,10 +27,14 @@ urlpatterns = [
     # Regulation schemas
     path(
         "regulation/schemas/",
-        FleetVehicleRegulationSchemaListAPIView.as_view(),
+        FleetVehicleRegulationSchemaListCreateAPIView.as_view(),
         name="regulation-schema-list",
     ),
-    # Service plans  (scoped to a vehicle)
+    path(
+        "regulation/<uuid:vehicle_pk/>/assign/",
+        AssignRegulationView.as_view(),
+        name="regulation-assign-entry"
+    ),
     path(
         "vehicles/<uuid:vehicle_pk>/service-plans/",
         ServicePlanListCreateAPIView.as_view(),
@@ -45,7 +50,6 @@ urlpatterns = [
         ServicePlanMarkDoneAPIView.as_view(),
         name="service-plan-mark-done",
     ),
-    # Equipment lists (scoped to a vehicle)
     path(
         "vehicles/<uuid:vehicle_pk>/equipment/",
         EquipmentListListAPIView.as_view(),
