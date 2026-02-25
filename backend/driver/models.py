@@ -9,6 +9,7 @@ class Driver(models.Model):
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     phone_number = models.CharField(max_length=15, unique=True)
+    telegram_id = models.BigIntegerField(null=True, blank=True, unique=True)
     has_vehicle = models.BooleanField(default=False)
     is_active_driver = models.BooleanField(default=False)
     last_active_at = models.DateTimeField(null=True, blank=True)

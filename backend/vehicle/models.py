@@ -43,6 +43,7 @@ class Vehicle(models.Model):
     cost = models.DecimalField(max_digits=10, decimal_places=2)
     vin_number = models.CharField(max_length=17, unique=True)
     car_number = models.CharField(max_length=10, unique=True)
+    initial_km = models.PositiveIntegerField(default=0)
     is_selected = models.BooleanField(default=True)
     status = models.CharField(
         max_length=20,

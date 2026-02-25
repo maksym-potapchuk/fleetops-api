@@ -14,6 +14,7 @@ class VehicleSerializer(serializers.ModelSerializer):
             "cost",
             "vin_number",
             "car_number",
+            "initial_km",
             "is_selected",
             "status",
             "driver",

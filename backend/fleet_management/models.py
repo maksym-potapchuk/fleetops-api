@@ -47,6 +47,8 @@ class FleetVehicleRegulationSchema(models.Model):
     """A named package of regulation. for example (Basic Regulation)"""
 
     title = models.CharField(max_length=155, unique=True)
+    title_pl = models.CharField(max_length=155, blank=True)
+    title_uk = models.CharField(max_length=155, blank=True)
     is_default = models.BooleanField(default=False)
     created_by = models.ForeignKey(
         "account.User",
@@ -86,6 +88,8 @@ class FleetVehicleRegulationItem(models.Model):
         related_name="items",
     )
     title = models.CharField(max_length=155)
+    title_pl = models.CharField(max_length=155, blank=True)
+    title_uk = models.CharField(max_length=155, blank=True)
     every_km = models.PositiveIntegerField()
     notify_before_km = models.PositiveIntegerField(default=500)
 
