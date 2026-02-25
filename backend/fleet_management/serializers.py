@@ -1,4 +1,3 @@
-from django.utils import timezone
 from rest_framework import serializers
 
 from .models import (
@@ -47,6 +46,8 @@ class FleetVehicleRegulationItemSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "title",
+            "title_pl",
+            "title_uk",
             "every_km",
             "notify_before_km",
         ]
@@ -60,6 +61,8 @@ class FleetVehicleRegulationSchemaSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "title",
+            "title_pl",
+            "title_uk",
             "items",
             "is_default",
             "created_by",
@@ -92,7 +95,7 @@ class AssignRegulationSerializer(serializers.Serializer):
     entries=RegulationEntryInitialSerializer(many=True)
 
     def validate_schema_id(self, value):
-        if not FleetVehicleRegulationSchema.objects.filter(pk=value).exists:
+        if not FleetVehicleRegulationSchema.objects.filter(pk=value).exists():
             raise serializers.ValidationError(f"Schema {value} does not exist")
         return value
 
@@ -101,21 +104,30 @@ class AssignRegulationSerializer(serializers.Serializer):
             "items"
         ).get(pk=data["schema_id"])
         schema_item_ids=set(schema.items.values_list("id", flat=True))
-        provided_items_ids=[item["item_id"] for item in data["entires"]]
+        provided_items_ids=set(item["item_id"] for item in data["entries"])
 
         invalid=provided_items_ids-schema_item_ids
         if invalid:
             raise serializers.ValidationError(
-                F"Items {invalid} does not exist to schema"
+                f"Items {invalid} do not belong to schema"
             )
 
         missing=schema_item_ids-provided_items_ids
         if missing:
             raise serializers.ValidationError(
-                F"Does not exist last_km_done for every items: {missing}"
+                f"Missing last_done_km for items: {missing}"
             )
         return data
-    
+
+class FleetVehicleRegulationSchemaUpdateSerializer(serializers.ModelSerializer):
+    """Used for PATCH/PUT on an existing schema — no nested items."""
+
+    class Meta:
+        model = FleetVehicleRegulationSchema
+        fields = ["id", "title", "title_pl", "title_uk", "is_default"]
+        read_only_fields = ["id"]
+
+
 class ServicePlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = ServicePlan
@@ -130,8 +142,27 @@ class ServicePlanSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "id",
+            "vehicle",
             "created_at",
         ]
+
+
+class ServicePlanWithVehicleSerializer(serializers.ModelSerializer):
+    vehicle_car_number = serializers.CharField(source="vehicle.car_number", read_only=True)
+
+    class Meta:
+        model = ServicePlan
+        fields = [
+            "id",
+            "vehicle",
+            "vehicle_car_number",
+            "title",
+            "description",
+            "planned_at",
+            "is_done",
+            "created_at",
+        ]
+        read_only_fields = ["id", "vehicle", "vehicle_car_number", "created_at"]
 
 
 class EquipmentDefaultItemSerializer(serializers.ModelSerializer):
@@ -156,16 +187,56 @@ class EquipmentListSerializer(serializers.ModelSerializer):
             "vehicle",
             "equipment",
             "is_equipped",
-            "approved_at",
             "created_at",
         ]
         read_only_fields = [
             "id",
-            "approved_at",
+            "vehicle",
             "created_at",
         ]
 
-    def update(self, instance, validated_data):
-        if validated_data.get("is_equipped") and not instance.is_equipped:
-            validated_data["approved_at"] = timezone.now()
-        return super().update(instance, validated_data)
+
+class VehicleRegulationPlanEntrySerializer(serializers.ModelSerializer):
+    item = FleetVehicleRegulationItemSerializer(read_only=True)
+    next_due_km = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = FleetVehicleRegulationEntry
+        fields = ["id", "item", "last_done_km", "next_due_km", "updated_at"]
+
+
+class _RegulationSchemaShortSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FleetVehicleRegulationSchema
+        fields = ["id", "title", "title_pl", "title_uk"]
+
+
+class VehicleRegulationPlanSerializer(serializers.ModelSerializer):
+    schema = _RegulationSchemaShortSerializer(read_only=True)
+    entries = VehicleRegulationPlanEntrySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = FleetVehicleRegulation
+        fields = ["id", "schema", "assigned_at", "entries"]
+
+
+class VehicleRegulationHistorySerializer(serializers.ModelSerializer):
+    item_title = serializers.CharField(source="entry.item.title", read_only=True)
+    item_title_pl = serializers.CharField(source="entry.item.title_pl", read_only=True)
+    item_title_uk = serializers.CharField(source="entry.item.title_uk", read_only=True)
+
+    class Meta:
+        model = FleetVehicleRegulationHistory
+        fields = [
+            "id",
+            "item_title",
+            "item_title_pl",
+            "item_title_uk",
+            "event_type",
+            "km_at_event",
+            "km_remaining",
+            "note",
+            "created_by",
+            "created_at",
+        ]
+        read_only_fields = fields

@@ -2,16 +2,22 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    AllServicePlansAPIView,
     EquipmentDefaultItemViewSet,
-    EquipmentListDetailAPIView,
-    EquipmentListListAPIView,
+    EquipmentItemDestroyAPIView,
+    EquipmentItemToggleAPIView,
+    EquipmentListAPIView,
     FleetServiceViewSet,
+    FleetVehicleRegulationItemDetailAPIView,
+    FleetVehicleRegulationSchemaDetailAPIView,
     FleetVehicleRegulationSchemaListCreateAPIView,
-    GrantDefaultEquipmentAPIView,
     ServicePlanDetailAPIView,
     ServicePlanListCreateAPIView,
     ServicePlanMarkDoneAPIView,
     AssignRegulationView,
+    VehicleRegulationEntryUpdate,
+    VehicleRegulationPlanView,
+    VehicleRegulationHistoryView,
 )
 
 router = DefaultRouter()
@@ -24,6 +30,7 @@ router.register(
 
 urlpatterns = [
     path("", include(router.urls)),
+    path("service-plans/", AllServicePlansAPIView.as_view(), name="all-service-plans"),
     # Regulation schemas
     path(
         "regulation/schemas/",
@@ -31,9 +38,34 @@ urlpatterns = [
         name="regulation-schema-list",
     ),
     path(
-        "regulation/<uuid:vehicle_pk/>/assign/",
+        "regulation/schemas/<int:pk>/",
+        FleetVehicleRegulationSchemaDetailAPIView.as_view(),
+        name="regulation-schema-detail",
+    ),
+    path(
+        "regulation/items/<int:pk>/",
+        FleetVehicleRegulationItemDetailAPIView.as_view(),
+        name="regulation-item-detail",
+    ),
+    path(
+        "vehicles/<uuid:vehicle_pk>/regulation/",
+        VehicleRegulationPlanView.as_view(),
+        name="vehicle-regulation-plan",
+    ),
+    path(
+        "regulation/<uuid:vehicle_pk>/assign/",
         AssignRegulationView.as_view(),
-        name="regulation-assign-entry"
+        name="regulation-assign-entry",
+    ),
+    path(
+        "vehicles/<uuid:vehicle_pk>/regulation/history/",
+        VehicleRegulationHistoryView.as_view(),
+        name="vehicle-regulation-history",
+    ),
+    path(
+        "vehicles/<uuid:vehicle_pk>/regulation/entries/<int:entry_pk>/",
+        VehicleRegulationEntryUpdate.as_view(),
+        name="regulation-entry-update",
     ),
     path(
         "vehicles/<uuid:vehicle_pk>/service-plans/",
@@ -52,17 +84,17 @@ urlpatterns = [
     ),
     path(
         "vehicles/<uuid:vehicle_pk>/equipment/",
-        EquipmentListListAPIView.as_view(),
+        EquipmentListAPIView.as_view(),
         name="equipment-list",
     ),
     path(
         "vehicles/<uuid:vehicle_pk>/equipment/<int:pk>/",
-        EquipmentListDetailAPIView.as_view(),
+        EquipmentItemDestroyAPIView.as_view(),
         name="equipment-detail",
     ),
     path(
-        "vehicles/<uuid:vehicle_pk>/equipment/grant-defaults/",
-        GrantDefaultEquipmentAPIView.as_view(),
-        name="equipment-grant-defaults",
+        "vehicles/<uuid:vehicle_pk>/equipment/<int:pk>/toggle/",
+        EquipmentItemToggleAPIView.as_view(),
+        name="equipment-toggle",
     ),
 ]

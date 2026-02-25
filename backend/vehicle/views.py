@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from .models import Vehicle
 from .serializers import VehicleSerializer
+from .services import create_vehicle
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,8 @@ class VehicleListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         try:
-            instance = serializer.save()
+            instance = create_vehicle(serializer.validated_data)
+            serializer.instance = instance  # allow DRF to serialize the response correctly
             logger.info(
                 "Vehicle created successfully",
                 extra={

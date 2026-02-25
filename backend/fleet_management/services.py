@@ -59,20 +59,20 @@ def grant_equipment_to_vehicle(vehicle_id):
         raise
 
 @transaction.atomic
-def assign_regulation_to_vehicle(vehicle_pk, schema_id, entires_data, user):
+def assign_regulation_to_vehicle(vehicle_pk, schema_id, entries_data, user):
     if FleetVehicleRegulation.objects.filter(
-        vehicle_pk=vehicle_pk,
+        vehicle_id=vehicle_pk,
         schema_id=schema_id
     ).exists():
         raise ValueError("Schema already assigned to this vehicle")
-    
+
     regulation=FleetVehicleRegulation.objects.create(
-        vehicle_pk=vehicle_pk,
+        vehicle_id=vehicle_pk,
         schema_id=schema_id
     )
 
     created_entries=[]
-    for entry_data in entires_data:
+    for entry_data in entries_data:
         entry=FleetVehicleRegulationEntry.objects.create(
             regulation=regulation,
             item_id=entry_data["item_id"],

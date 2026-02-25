@@ -1,7 +1,7 @@
 # filters.py
 import django_filters
 
-from .models import FleetVehicleRegulationSchema
+from .models import EventType, FleetVehicleRegulationHistory, FleetVehicleRegulationSchema
 
 
 class FleetVehicleRegulationSchemaFilter(django_filters.FilterSet):
@@ -19,3 +19,13 @@ class FleetVehicleRegulationSchemaFilter(django_filters.FilterSet):
     class Meta:
         model = FleetVehicleRegulationSchema
         fields = ["title", "is_default", "min_km", "max_km"]
+
+
+class RegulationHistoryFilter(django_filters.FilterSet):
+    created_after = django_filters.DateTimeFilter(field_name="created_at", lookup_expr="gte")
+    created_before = django_filters.DateTimeFilter(field_name="created_at", lookup_expr="lte")
+    event_type = django_filters.ChoiceFilter(choices=EventType.choices)
+
+    class Meta:
+        model = FleetVehicleRegulationHistory
+        fields = ["event_type"]
