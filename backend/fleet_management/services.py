@@ -1,5 +1,8 @@
 import logging
+
 from django.db import transaction
+
+from config import cache_utils
 from .models import (
     EventType,
     EquipmentDefaultItem, 
@@ -32,6 +35,7 @@ def grant_equipment_to_vehicle(vehicle_id):
             for d in defaults
         ]
         result = EquipmentList.objects.bulk_create(items, ignore_conflicts=True)
+        cache_utils.invalidate_equipment(vehicle_id)
         logger.info(
             "Default equipment granted to vehicle successfully",
             extra={
@@ -87,8 +91,9 @@ def assign_regulation_to_vehicle(vehicle_pk, schema_id, entries_data, user):
                 created_by=user,
             )
         created_entries.append(entry)
+    transaction.on_commit(lambda: cache_utils.invalidate_regulation_plan(vehicle_pk))
     return {
         "regulation_id": regulation.id,
         "schema": regulation.schema.title,
-        "entries_created": len(created_entries)
+        "entries_created": len(created_entries),
     }

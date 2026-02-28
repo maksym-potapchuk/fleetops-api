@@ -3,6 +3,7 @@ import logging
 from django.conf import settings
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -14,6 +15,9 @@ logger = logging.getLogger(__name__)
 
 
 class LoginView(TokenObtainPairView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
     def post(self, request, *args, **kwargs):
         logger.info(
             "Login attempt",
@@ -42,9 +46,12 @@ class LoginView(TokenObtainPairView):
             raise
 
         if response.status_code == 200:
+            access_max_age = int(settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds())
+            refresh_max_age = int(settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds())
             response.set_cookie(
                 "access_token",
                 response.data["access"],
+                max_age=access_max_age,
                 httponly=True,
                 secure=settings.SECURE_COOKIES,
                 samesite="Lax",
@@ -52,6 +59,7 @@ class LoginView(TokenObtainPairView):
             response.set_cookie(
                 "refresh_token",
                 response.data["refresh"],
+                max_age=refresh_max_age,
                 httponly=True,
                 secure=settings.SECURE_COOKIES,
                 samesite="Lax",
@@ -72,6 +80,9 @@ class LoginView(TokenObtainPairView):
 
 
 class RefreshView(TokenRefreshView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "auth"
+
     def post(self, request, *args, **kwargs):
         logger.info(
             "Token refresh attempt",
@@ -101,13 +112,29 @@ class RefreshView(TokenRefreshView):
             raise
 
         if response.status_code == 200:
+            access_max_age = int(settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds())
             response.set_cookie(
                 "access_token",
                 response.data["access"],
+                max_age=access_max_age,
                 httponly=True,
                 secure=settings.SECURE_COOKIES,
                 samesite="Lax",
             )
+            # ROTATE_REFRESH_TOKENS=True: SimpleJWT issues a new refresh token on every
+            # refresh call and blacklists the old one. We MUST update the cookie with the
+            # rotated token, otherwise the next refresh attempt sends a blacklisted token
+            # and the user gets kicked out after the first access-token expiry.
+            if "refresh" in response.data:
+                refresh_max_age = int(settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds())
+                response.set_cookie(
+                    "refresh_token",
+                    response.data["refresh"],
+                    max_age=refresh_max_age,
+                    httponly=True,
+                    secure=settings.SECURE_COOKIES,
+                    samesite="Lax",
+                )
             response.data = {"detail": "refreshed"}
             logger.info(
                 "Token refresh successful",
@@ -226,3 +253,25 @@ class UserMeAPIView(APIView):
             },
         )
         return Response(serializer.data)
+
+
+class UnsetSessionView(APIView):
+    """
+    Clears auth cookies without requiring a valid token.
+
+    Called by the frontend interceptor when token refresh fails — the access_token
+    cookie may still exist (JWT expired but session cookie alive), which would
+    cause the Next.js middleware to redirect away from /login in an infinite loop.
+    Deleting the cookies here lets the middleware see an unauthenticated request
+    and serve the login page normally.
+    """
+
+    permission_classes = []
+    authentication_classes = []
+    throttle_classes = []  # no throttle — this is a safety valve, not a data endpoint
+
+    def post(self, request):
+        response = Response({"detail": "session cleared"})
+        response.delete_cookie("access_token")
+        response.delete_cookie("refresh_token")
+        return response

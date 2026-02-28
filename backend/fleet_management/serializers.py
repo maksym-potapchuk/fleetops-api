@@ -68,10 +68,6 @@ class FleetVehicleRegulationSchemaSerializer(serializers.ModelSerializer):
             "created_by",
         ]
 
-    def validate_is_default(self, value):
-        """Only one schema can be default"""
-        return value
-
     def create(self, validated_data):
         items_data = validated_data.pop("items", [])
         schema = FleetVehicleRegulationSchema.objects.create(**validated_data)

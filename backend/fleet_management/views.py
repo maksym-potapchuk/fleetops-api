@@ -6,6 +6,8 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from config import cache_utils
 from .services import assign_regulation_to_vehicle
 from .filters import FleetVehicleRegulationSchemaFilter, RegulationHistoryFilter
 from .models import (
@@ -97,9 +99,18 @@ class FleetVehicleRegulationSchemaListCreateAPIView(generics.ListCreateAPIView):
     search_fields = ["title"]
     ordering_fields = ["created_at", "title"]
 
+    def list(self, request, *args, **kwargs):
+        cached = cache_utils.get_schema_list(request.query_params)
+        if cached is not None:
+            return Response(cached)
+        response = super().list(request, *args, **kwargs)
+        cache_utils.set_schema_list(request.query_params, response.data)
+        return response
+
     def perform_create(self, serializer):
         try:
             instance = serializer.save(created_by=self.request.user)
+            cache_utils.invalidate_schema()
             logger.info(
                 "Regulation schema created successfully",
                 extra={
@@ -126,6 +137,7 @@ class FleetVehicleRegulationSchemaListCreateAPIView(generics.ListCreateAPIView):
             )
             raise
 
+
 class FleetVehicleRegulationSchemaDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     """GET / PATCH / DELETE a single regulation schema."""
 
@@ -137,6 +149,64 @@ class FleetVehicleRegulationSchemaDetailAPIView(generics.RetrieveUpdateDestroyAP
             return FleetVehicleRegulationSchemaUpdateSerializer
         return FleetVehicleRegulationSchemaSerializer
 
+    def retrieve(self, request, *args, **kwargs):
+        schema_id = self.kwargs["pk"]
+        cached = cache_utils.get_schema_detail(schema_id)
+        if cached is not None:
+            return Response(cached)
+        response = super().retrieve(request, *args, **kwargs)
+        cache_utils.set_schema_detail(schema_id, response.data)
+        return response
+
+    def perform_update(self, serializer):
+        try:
+            instance = serializer.save()
+            cache_utils.invalidate_schema(instance.id)
+            logger.info(
+                "Regulation schema updated successfully",
+                extra={
+                    "status_code": 200,
+                    "status_message": "OK",
+                    "operation_type": "REGULATION_SCHEMA_UPDATE",
+                    "service": "DJANGO",
+                    "schema_id": instance.id,
+                    "schema_title": instance.title,
+                    "user_id": str(self.request.user.id),
+                },
+            )
+        except Exception:
+            logger.error(
+                "Regulation schema update failed",
+                extra={
+                    "status_code": 500,
+                    "status_message": "Internal Server Error",
+                    "operation_type": "REGULATION_SCHEMA_UPDATE_FAILED",
+                    "service": "DJANGO",
+                    "schema_id": str(self.kwargs.get("pk", "")),
+                    "user_id": str(self.request.user.id),
+                },
+                exc_info=True,
+            )
+            raise
+
+    def perform_destroy(self, instance):
+        schema_id = instance.id
+        schema_title = instance.title
+        instance.delete()
+        cache_utils.invalidate_schema(schema_id)
+        logger.info(
+            "Regulation schema deleted",
+            extra={
+                "status_code": 200,
+                "status_message": "OK",
+                "operation_type": "REGULATION_SCHEMA_DELETE",
+                "service": "DJANGO",
+                "schema_id": schema_id,
+                "schema_title": schema_title,
+                "user_id": str(self.request.user.id),
+            },
+        )
+
 
 class FleetVehicleRegulationItemDetailAPIView(generics.RetrieveUpdateAPIView):
     """GET / PATCH a single regulation item (title_pl, title_uk, etc.)."""
@@ -145,33 +215,40 @@ class FleetVehicleRegulationItemDetailAPIView(generics.RetrieveUpdateAPIView):
     serializer_class = FleetVehicleRegulationItemSerializer
     permission_classes = [IsAuthenticated]
 
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        # Item belongs to a schema — bust the schema caches so detail reflects change.
+        cache_utils.invalidate_schema(instance.schema_id)
+
 
 class AssignRegulationView(APIView):
     permission_classes = [IsAuthenticated]
-    
+
     def post(self, request, vehicle_pk):
-        serializer=AssignRegulationSerializer(data=request.data)
+        serializer = AssignRegulationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         try:
-            result=assign_regulation_to_vehicle(
+            result = assign_regulation_to_vehicle(
                 vehicle_pk=vehicle_pk,
                 schema_id=serializer.validated_data["schema_id"],
                 entries_data=serializer.validated_data["entries"],
-                user=request.user
+                user=request.user,
             )
-        except Exception as e:
+        except ValueError as e:
             return Response({"detail": str(e)}, status=400)
 
+        cache_utils.invalidate_regulation_plan(vehicle_pk)
         logger.info(
             "Regulation assigned to vehicle",
             extra={
                 "vehicle_id": str(vehicle_pk),
                 "schema_id": serializer.validated_data["schema_id"],
-                "user_id": str(request.user.id)
-            }
+                "user_id": str(request.user.id),
+            },
         )
         return Response(result, status=status.HTTP_201_CREATED)
+
 
 class VehicleRegulationEntryUpdate(APIView):
     permission_classes = [IsAuthenticated]
@@ -184,7 +261,10 @@ class VehicleRegulationEntryUpdate(APIView):
         )
         km = request.data.get("last_done_km")
         if km is None or not str(km).isdigit():
-            return Response({"detail": "last_done_km is required and must be a non-negative integer."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "last_done_km is required and must be a non-negative integer."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         km = int(km)
         entry.last_done_km = km
@@ -199,6 +279,7 @@ class VehicleRegulationEntryUpdate(APIView):
             created_by=request.user,
         )
 
+        cache_utils.invalidate_regulation_plan(vehicle_pk)
         logger.info(
             "Regulation entry updated",
             extra={
@@ -219,6 +300,10 @@ class VehicleRegulationPlanView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, vehicle_pk):
+        cached = cache_utils.get_regulation_plan(vehicle_pk)
+        if cached is not None:
+            return Response(cached)
+
         regulation = (
             FleetVehicleRegulation.objects
             .filter(vehicle_id=vehicle_pk)
@@ -226,9 +311,12 @@ class VehicleRegulationPlanView(APIView):
             .first()
         )
         if not regulation:
-            return Response({"assigned": False})
-        data = VehicleRegulationPlanSerializer(regulation).data
-        return Response({"assigned": True, **data})
+            data = {"assigned": False}
+        else:
+            data = {"assigned": True, **VehicleRegulationPlanSerializer(regulation).data}
+
+        cache_utils.set_regulation_plan(vehicle_pk, data)
+        return Response(data)
 
 
 class VehicleRegulationHistoryView(generics.ListAPIView):
@@ -427,9 +515,19 @@ class EquipmentListAPIView(generics.ListCreateAPIView):
             vehicle_id=self.kwargs["vehicle_pk"],
         ).order_by("equipment")
 
+    def list(self, request, *args, **kwargs):
+        vehicle_pk = self.kwargs["vehicle_pk"]
+        cached = cache_utils.get_equipment_list(vehicle_pk)
+        if cached is not None:
+            return Response(cached)
+        response = super().list(request, *args, **kwargs)
+        cache_utils.set_equipment_list(vehicle_pk, response.data)
+        return response
+
     def perform_create(self, serializer):
         try:
             instance = serializer.save(vehicle_id=self.kwargs["vehicle_pk"])
+            cache_utils.invalidate_equipment(self.kwargs["vehicle_pk"])
             logger.info(
                 "Equipment item created for vehicle",
                 extra={
@@ -465,6 +563,22 @@ class EquipmentItemDestroyAPIView(generics.DestroyAPIView):
     def get_queryset(self):
         return EquipmentList.objects.filter(vehicle_id=self.kwargs["vehicle_pk"])
 
+    def perform_destroy(self, instance):
+        vehicle_pk = self.kwargs["vehicle_pk"]
+        instance.delete()
+        cache_utils.invalidate_equipment(vehicle_pk)
+        logger.info(
+            "Equipment item deleted",
+            extra={
+                "status_code": 200,
+                "status_message": "OK",
+                "operation_type": "EQUIPMENT_ITEM_DELETE",
+                "service": "DJANGO",
+                "vehicle_id": str(vehicle_pk),
+                "user_id": str(self.request.user.id),
+            },
+        )
+
 
 class EquipmentItemToggleAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -473,6 +587,7 @@ class EquipmentItemToggleAPIView(APIView):
         item = generics.get_object_or_404(EquipmentList, pk=pk, vehicle_id=vehicle_pk)
         item.is_equipped = not item.is_equipped
         item.save(update_fields=["is_equipped"])
+        cache_utils.invalidate_equipment(vehicle_pk)
         logger.info(
             "Equipment item toggled",
             extra={
