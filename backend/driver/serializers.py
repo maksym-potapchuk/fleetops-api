@@ -35,6 +35,6 @@ class DriverSerializer(serializers.ModelSerializer):
             )
         if not values.startswith("48"):
             raise serializers.ValidationError(
-                "Phone number must  start with 48, for example +4823456789.",
+                "Phone number must start with 48, for example +4823456789.",
             )
         return values

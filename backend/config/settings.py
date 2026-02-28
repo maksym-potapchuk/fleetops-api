@@ -135,6 +135,21 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.JSONRenderer",
         # "rest_framework.renderers.BrowsableAPIRenderer",  # disable in production
     ],
+    # ── Throttling ────────────────────────────────────────────────────────────
+    # DRF reads throttle counters from the DEFAULT cache — already Redis.
+    # Scopes:
+    #   anon  → AnonRateThrottle (IP-based)   — anonymous requests
+    #   user  → UserRateThrottle (user-based) — authenticated API calls
+    #   auth  → ScopedRateThrottle            — login/refresh (brute-force guard)
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": os.getenv("THROTTLE_ANON", "30/minute"),
+        "user": os.getenv("THROTTLE_USER", "300/minute"),
+        "auth": os.getenv("THROTTLE_AUTH", "5/minute"),
+    },
 }
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -189,7 +204,33 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
+# ── Media (vehicle photos etc.) ───────────────────────────────────────────────
+# Local storage for development; swap DEFAULT_FILE_STORAGE for S3 in production.
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# ── Cache (Redis) ─────────────────────────────────────────────────────────────
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/1")
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
+        "TIMEOUT": 300,
+        "KEY_PREFIX": "fleet",
+    }
+}
+
+# Per-entity TTLs (seconds) — consumed by config.cache_utils
+CACHE_TTL_VEHICLE_LIST    = int(os.getenv("CACHE_TTL_VEHICLE_LIST",    "30"))
+CACHE_TTL_VEHICLE_DETAIL  = int(os.getenv("CACHE_TTL_VEHICLE_DETAIL",  "60"))
+CACHE_TTL_DRIVER_LIST     = int(os.getenv("CACHE_TTL_DRIVER_LIST",     "300"))
+CACHE_TTL_SCHEMA_LIST     = int(os.getenv("CACHE_TTL_SCHEMA_LIST",     "600"))
+CACHE_TTL_SCHEMA_DETAIL   = int(os.getenv("CACHE_TTL_SCHEMA_DETAIL",   "600"))
+CACHE_TTL_REGULATION_PLAN = int(os.getenv("CACHE_TTL_REGULATION_PLAN", "300"))
+CACHE_TTL_EQUIPMENT       = int(os.getenv("CACHE_TTL_EQUIPMENT",       "300"))

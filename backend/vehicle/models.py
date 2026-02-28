@@ -3,7 +3,6 @@ import uuid
 from django.db import models
 
 
-# TODO:: Add Model to manual adding Manufactures
 class ManufacturerChoices(models.TextChoices):
     TOYOTA = "Toyota", "Toyota"
     FORD = "Ford", "Ford"
@@ -26,15 +25,6 @@ class VehicleStatus(models.TextChoices):
     SOLD = "SOLD", "Sold"
 
 
-# class VehicleStatus(models.Model):
-#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-#     status_name = models.CharField(max_length=50)
-#     description = models.TextField(null=True, blank=True)
-#     created_at = models.DateTimeField(auto_now_add=True)
-#     updated_at = models.DateTimeField(auto_now=True)
-
-
-# Create your models here.
 class Vehicle(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     model = models.CharField(max_length=50)
@@ -82,4 +72,40 @@ class VehicleDriverHistory(models.Model):
         return f"{self.vehicle} ← {self.driver}"
 
 
-# Think about VehicleService and ServiceHistory models
+class VehiclePhoto(models.Model):
+    vehicle = models.ForeignKey(
+        "vehicle.Vehicle",
+        on_delete=models.CASCADE,
+        related_name="photos",
+    )
+    image = models.ImageField(upload_to="vehicles/photos/")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["uploaded_at"]
+
+    def __str__(self) -> str:
+        return f"Photo for {self.vehicle}"
+
+
+class VehicleOwnerHistory(models.Model):
+    """Tracks who owns the vehicle and under what agreement."""
+    vehicle = models.ForeignKey(
+        "vehicle.Vehicle",
+        on_delete=models.CASCADE,
+        related_name="owner_history",
+    )
+    driver = models.ForeignKey(
+        "driver.Driver",
+        on_delete=models.PROTECT,
+        related_name="owned_vehicles",
+    )
+    agreement_number = models.CharField(max_length=100, blank=True)
+    acquired_at = models.DateTimeField(auto_now_add=True)
+    released_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-acquired_at"]
+
+    def __str__(self) -> str:
+        return f"{self.vehicle} ← {self.driver}"

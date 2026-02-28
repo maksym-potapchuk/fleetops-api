@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 
 
 # Create your models here.
@@ -73,10 +73,15 @@ class FleetVehicleRegulationSchema(models.Model):
 
     def save(self, *args, **kwargs):
         if self.is_default:
-            FleetVehicleRegulationSchema.objects.filter(is_default=True).update(
-                is_default=False,
-            )
-        super().save(*args, **kwargs)
+            with transaction.atomic():
+                # Lock competing rows so two concurrent "set default" saves
+                # don't both see is_default=False and then both persist True.
+                FleetVehicleRegulationSchema.objects.select_for_update().filter(
+                    is_default=True,
+                ).exclude(pk=self.pk).update(is_default=False)
+                super().save(*args, **kwargs)
+        else:
+            super().save(*args, **kwargs)
 
 
 class FleetVehicleRegulationItem(models.Model):
@@ -244,5 +249,5 @@ class EquipmentList(models.Model):
         unique_together = ("vehicle", "equipment")
 
     def __str__(self) -> str:
-        status = "✓" if self.is_equipped else "✗"
-        return f"{self.vehicle} — {self.equipment} [{status}]"
+        status = "yes" if self.is_equipped else "no"
+        return f"{self.vehicle} - {self.equipment} [{status}]"
