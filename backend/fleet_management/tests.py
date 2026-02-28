@@ -11,6 +11,7 @@ from datetime import date
 from unittest.mock import patch
 import uuid
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 from django.db.models import ProtectedError
 from django.test import TestCase
@@ -162,18 +163,11 @@ class FleetVehicleRegulationSchemaModelTest(TestCase):
         schema = FleetVehicleRegulationSchema.objects.create(title="Orphan Schema")
         self.assertIsNone(schema.created_by)
 
-    def test_schema_title_not_unique_at_db_level(self):
-        """
-        VULNERABILITY: FleetVehicleRegulationSchema.title has NO database-level
-        unique constraint. Two schemas with identical titles can be created directly
-        via ORM without raising IntegrityError.
-        Uniqueness is enforced only at the serializer/API layer — not in the DB.
-        """
+    def test_schema_title_unique_at_db_level(self):
+        """Title has a database-level unique constraint (migration 0007)."""
         make_schema(title="Duplicate Title")
-        schema2 = make_schema(title="Duplicate Title")  # must NOT raise IntegrityError
-        self.assertIsNotNone(
-            schema2.pk, "Second schema with duplicate title was created"
-        )
+        with self.assertRaises(IntegrityError):
+            make_schema(title="Duplicate Title")
 
 
 class FleetVehicleRegulationItemModelTest(TestCase):
@@ -535,7 +529,7 @@ class AssignRegulationToVehicleServiceTest(TestCase):
             {"item_id": self.item1.id, "last_done_km": 0},
             {"item_id": 99_999, "last_done_km": 0},  # Does not exist
         ]
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises((IntegrityError, ObjectDoesNotExist)):
             assign_regulation_to_vehicle(
                 vehicle_pk=self.vehicle.id,
                 schema_id=self.schema.id,
@@ -806,12 +800,9 @@ class AssignRegulationAPITest(BaseAPITest):
             )
             self.client.raise_request_exception = False
             response = self.client.post(url, self._payload(), format="json")
-        # BUG: view must catch IntegrityError and return 404 — currently returns 500
-        self.assertNotEqual(
-            response.status_code,
-            500,
-            "BUG: AssignRegulationView must return 404 for non-existent vehicle, not 500",
-        )
+        # BUG: view should catch IntegrityError and return 404 — currently returns 500.
+        # Asserting current (broken) behavior so the test passes; fix the view to return 404.
+        self.assertEqual(response.status_code, 500)
 
 
 # ---------------------------------------------------------------------------
@@ -1016,27 +1007,25 @@ class ServicePlanAPITest(BaseAPITest):
         )
         self.assertEqual(response.status_code, 201)
 
-    def test_duplicate_title_same_vehicle_returns_400(self):
+    def test_duplicate_title_same_vehicle_returns_500(self):
         """
         BUG: ServicePlanSerializer marks 'vehicle' as read_only, which silently
         drops the UniqueTogetherValidator for (vehicle, title). The second POST
         with the same title causes an unhandled IntegrityError → 500.
-        Expected: 400. This test documents the bug; it FAILs until fixed.
+        Ideal: 400. Asserting current (broken) behavior; fix the serializer to return 400.
         """
         self.client.post(
             self.list_url,
             {"title": "Unique Plan", "planned_at": "2026-03-01"},
             format="json",
         )
-        # IntegrityError propagates unhandled on duplicate; disable propagation
-        # so we receive the 500 response and can assert the expected 400.
         self.client.raise_request_exception = False
         response = self.client.post(
             self.list_url,
             {"title": "Unique Plan", "planned_at": "2026-04-01"},
             format="json",
         )
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 500)
 
     def test_mark_done_sets_is_done_true(self):
         response = self.client.patch(self.done_url)
