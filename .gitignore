@@ -4,3 +4,6 @@
 # Environment secrets
 .env
 backend/.env
+
+# Media uploads
+backend/media/

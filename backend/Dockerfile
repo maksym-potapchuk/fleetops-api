@@ -1,20 +1,23 @@
+# syntax=docker/dockerfile:1
 FROM python:3.12-slim
 
-# Set env vars
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-ENV POETRY_VIRTUALENVS_CREATE=false
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    POETRY_VIRTUALENVS_CREATE=false
 
 WORKDIR /app
 
-RUN apt-get update \
-    && apt-get install -y build-essential libpq-dev curl
+# Install poetry (latest 2.x — matches lock-version 2.1 from poetry 2.3+)
+# Cache pip downloads across rebuilds
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install "poetry>=2.3.0,<3.0.0"
 
-RUN curl -sSL https://install.python-poetry.org | python3 - && \
-    ln -s /root/.local/bin/poetry /usr/local/bin/poetry
-
-COPY pyproject.toml poetry.lock* ./
-RUN poetry install --no-root --only main
+# Dependency layer — cached unless pyproject.toml / poetry.lock change
+# poetry's default cache on Linux (root) = /root/.cache/pypoetry
+COPY pyproject.toml poetry.lock ./
+# If this fails with "pyproject.toml changed", run `poetry lock` locally and rebuild
+RUN --mount=type=cache,target=/root/.cache/pypoetry \
+    poetry install --no-root
 
 COPY . .
 
