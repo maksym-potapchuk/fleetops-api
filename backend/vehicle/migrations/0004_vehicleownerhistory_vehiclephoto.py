@@ -5,37 +5,73 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('driver', '0002_add_telegram_id_to_driver'),
-        ('vehicle', '0003_vehicle_initial_km'),
+        ("driver", "0002_add_telegram_id_to_driver"),
+        ("vehicle", "0003_vehicle_initial_km"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='VehicleOwnerHistory',
+            name="VehicleOwnerHistory",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('agreement_number', models.CharField(blank=True, max_length=100)),
-                ('acquired_at', models.DateTimeField(auto_now_add=True)),
-                ('released_at', models.DateTimeField(blank=True, null=True)),
-                ('driver', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='owned_vehicles', to='driver.driver')),
-                ('vehicle', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='owner_history', to='vehicle.vehicle')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("agreement_number", models.CharField(blank=True, max_length=100)),
+                ("acquired_at", models.DateTimeField(auto_now_add=True)),
+                ("released_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "driver",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="owned_vehicles",
+                        to="driver.driver",
+                    ),
+                ),
+                (
+                    "vehicle",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="owner_history",
+                        to="vehicle.vehicle",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-acquired_at'],
+                "ordering": ["-acquired_at"],
             },
         ),
         migrations.CreateModel(
-            name='VehiclePhoto',
+            name="VehiclePhoto",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('image', models.ImageField(upload_to='vehicles/photos/')),
-                ('uploaded_at', models.DateTimeField(auto_now_add=True)),
-                ('vehicle', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='photos', to='vehicle.vehicle')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("image", models.ImageField(upload_to="vehicles/photos/")),
+                ("uploaded_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "vehicle",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="photos",
+                        to="vehicle.vehicle",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['uploaded_at'],
+                "ordering": ["uploaded_at"],
             },
         ),
     ]

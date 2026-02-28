@@ -5,7 +5,8 @@ Overrides:
 - Cache: LocMemCache instead of Redis (redis package not required)
 - Throttling: disabled to prevent rate-limit failures during automated tests
 """
-from config.settings import *  # noqa: F401, F403
+
+from config.settings import *  # noqa: F403
 
 # Use in-memory cache — no Redis required for tests
 CACHES = {

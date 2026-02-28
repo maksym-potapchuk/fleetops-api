@@ -10,6 +10,8 @@ Focus areas:
 - Proper 401 for unauthenticated requests
 - Security: users cannot self-elevate permissions
 """
+
+from django.db import IntegrityError
 from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -89,7 +91,8 @@ class LoginViewTest(TestCase):
 
     def test_wrong_password_returns_401(self):
         response = self.client.post(
-            "/api/v1/auth/login/", {"email": "test@example.com", "password": "wrongpass"}
+            "/api/v1/auth/login/",
+            {"email": "test@example.com", "password": "wrongpass"},
         )
         self.assertEqual(response.status_code, 401)
 
@@ -226,11 +229,6 @@ class LogoutViewTest(TestCase):
             self.assertEqual(response.cookies["access_token"].value, "")
 
 
-# ===========================================================================
-# 4. UserMeAPIView Tests
-# ===========================================================================
-
-
 class UserMeAPITest(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -242,8 +240,6 @@ class UserMeAPITest(TestCase):
             last_name="Kowalski",
         )
         authenticate(self.client, self.user)
-
-    # --- GET ---
 
     def test_get_profile_returns_200(self):
         response = self.client.get("/api/v1/auth/me/")
@@ -391,12 +387,12 @@ class UserModelTest(TestCase):
 
     def test_email_must_be_unique(self):
         make_user()
-        with self.assertRaises(Exception):
+        with self.assertRaises(IntegrityError):
             make_user(username="other")  # same email, different username
 
     def test_username_must_be_unique(self):
         make_user()
-        with self.assertRaises(Exception):
+        with self.assertRaises(IntegrityError):
             make_user(email="other@example.com")  # different email, same username
 
     def test_create_user_without_email_raises_value_error(self):

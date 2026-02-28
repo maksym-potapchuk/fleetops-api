@@ -7,15 +7,24 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from config import cache_utils
+
 from .models import Vehicle, VehicleOwnerHistory, VehiclePhoto
-from .serializers import VehicleOwnerHistorySerializer, VehiclePhotoSerializer, VehicleSerializer
+from .serializers import (
+    VehicleOwnerHistorySerializer,
+    VehiclePhotoSerializer,
+    VehicleSerializer,
+)
 from .services import create_vehicle
 
 logger = logging.getLogger(__name__)
 
 
 class VehicleListCreateView(generics.ListCreateAPIView):
-    queryset = Vehicle.objects.select_related("driver").prefetch_related("photos").order_by("-created_at")
+    queryset = (
+        Vehicle.objects.select_related("driver")
+        .prefetch_related("photos")
+        .order_by("-created_at")
+    )
     serializer_class = VehicleSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
@@ -34,7 +43,9 @@ class VehicleListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         try:
             instance = create_vehicle(serializer.validated_data)
-            serializer.instance = instance  # allow DRF to serialize the response correctly
+            serializer.instance = (
+                instance  # allow DRF to serialize the response correctly
+            )
             cache_utils.invalidate_vehicle()
             logger.info(
                 "Vehicle created successfully",
@@ -134,6 +145,7 @@ class VehiclePhotoListCreateView(generics.ListCreateAPIView):
     POST /vehicle/<pk>/photos/  — upload a new photo (multipart/form-data, field: image).
                                   Max 10 photos per vehicle.
     """
+
     serializer_class = VehiclePhotoSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser]
@@ -148,13 +160,16 @@ class VehiclePhotoListCreateView(generics.ListCreateAPIView):
 
 class VehiclePhotoDestroyView(generics.DestroyAPIView):
     """DELETE /vehicle/<pk>/photos/<photo_pk>/ — remove a photo."""
+
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return VehiclePhoto.objects.filter(vehicle_id=self.kwargs["pk"])
 
     def get_object(self):
-        return generics.get_object_or_404(self.get_queryset(), pk=self.kwargs["photo_pk"])
+        return generics.get_object_or_404(
+            self.get_queryset(), pk=self.kwargs["photo_pk"]
+        )
 
     def perform_destroy(self, instance):
         instance.delete()
@@ -166,14 +181,14 @@ class VehicleOwnerHistoryListCreateView(generics.ListCreateAPIView):
     GET  /vehicle/<pk>/owner-history/  — list all ownership records for a vehicle.
     POST /vehicle/<pk>/owner-history/  — assign a new owner (driver) to the vehicle.
     """
+
     serializer_class = VehicleOwnerHistorySerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return (
-            VehicleOwnerHistory.objects.filter(vehicle_id=self.kwargs["pk"])
-            .select_related("driver")
-        )
+        return VehicleOwnerHistory.objects.filter(
+            vehicle_id=self.kwargs["pk"]
+        ).select_related("driver")
 
     def perform_create(self, serializer):
         serializer.save(vehicle_id=self.kwargs["pk"])
@@ -184,6 +199,7 @@ class VehicleOwnerHistoryUpdateView(generics.UpdateAPIView):
     PATCH /vehicle/<pk>/owner-history/<history_pk>/
     Allows updating agreement_number or closing ownership (released_at).
     """
+
     serializer_class = VehicleOwnerHistorySerializer
     permission_classes = [IsAuthenticated]
     http_method_names = ["patch"]

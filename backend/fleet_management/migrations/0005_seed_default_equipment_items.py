@@ -26,7 +26,6 @@ def remove_default_equipment(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("fleet_management", "0004_add_title_translations_to_regulation"),
     ]

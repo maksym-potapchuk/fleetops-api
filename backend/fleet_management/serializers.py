@@ -5,10 +5,10 @@ from .models import (
     EquipmentList,
     FleetService,
     FleetVehicleRegulation,
-    FleetVehicleRegulationItem,
-    FleetVehicleRegulationSchema,
     FleetVehicleRegulationEntry,
     FleetVehicleRegulationHistory,
+    FleetVehicleRegulationItem,
+    FleetVehicleRegulationSchema,
     ServicePlan,
 )
 
@@ -78,17 +78,18 @@ class FleetVehicleRegulationSchemaSerializer(serializers.ModelSerializer):
 
 
 class RegulationEntryInitialSerializer(serializers.Serializer):
-    item_id=serializers.IntegerField()
-    last_done_km=serializers.IntegerField(min_value=0)
+    item_id = serializers.IntegerField()
+    last_done_km = serializers.IntegerField(min_value=0)
 
     def validate_item_id(self, value):
         if not FleetVehicleRegulationItem.objects.filter(pk=value).exists():
             raise serializers.ValidationError(f"Item {value} does not exist")
-        return value 
+        return value
+
 
 class AssignRegulationSerializer(serializers.Serializer):
-    schema_id=serializers.IntegerField()
-    entries=RegulationEntryInitialSerializer(many=True)
+    schema_id = serializers.IntegerField()
+    entries = RegulationEntryInitialSerializer(many=True)
 
     def validate_schema_id(self, value):
         if not FleetVehicleRegulationSchema.objects.filter(pk=value).exists():
@@ -96,24 +97,25 @@ class AssignRegulationSerializer(serializers.Serializer):
         return value
 
     def validate(self, data):
-        schema=FleetVehicleRegulationSchema.objects.prefetch_related(
-            "items"
-        ).get(pk=data["schema_id"])
-        schema_item_ids=set(schema.items.values_list("id", flat=True))
-        provided_items_ids=set(item["item_id"] for item in data["entries"])
+        schema = FleetVehicleRegulationSchema.objects.prefetch_related("items").get(
+            pk=data["schema_id"]
+        )
+        schema_item_ids = set(schema.items.values_list("id", flat=True))
+        provided_items_ids = set(item["item_id"] for item in data["entries"])
 
-        invalid=provided_items_ids-schema_item_ids
+        invalid = provided_items_ids - schema_item_ids
         if invalid:
             raise serializers.ValidationError(
                 f"Items {invalid} do not belong to schema"
             )
 
-        missing=schema_item_ids-provided_items_ids
+        missing = schema_item_ids - provided_items_ids
         if missing:
             raise serializers.ValidationError(
                 f"Missing last_done_km for items: {missing}"
             )
         return data
+
 
 class FleetVehicleRegulationSchemaUpdateSerializer(serializers.ModelSerializer):
     """Used for PATCH/PUT on an existing schema — no nested items."""
@@ -144,7 +146,9 @@ class ServicePlanSerializer(serializers.ModelSerializer):
 
 
 class ServicePlanWithVehicleSerializer(serializers.ModelSerializer):
-    vehicle_car_number = serializers.CharField(source="vehicle.car_number", read_only=True)
+    vehicle_car_number = serializers.CharField(
+        source="vehicle.car_number", read_only=True
+    )
 
     class Meta:
         model = ServicePlan

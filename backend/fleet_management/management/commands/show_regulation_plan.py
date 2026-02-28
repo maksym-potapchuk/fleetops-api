@@ -4,7 +4,6 @@ from django.db.models import Prefetch
 from fleet_management.models import (
     FleetVehicleRegulation,
     FleetVehicleRegulationEntry,
-    FleetVehicleRegulationItem,
     FleetVehicleRegulationSchema,
 )
 from vehicle.models import Vehicle
@@ -57,7 +56,9 @@ class Command(BaseCommand):
         )
 
         self.stdout.write(
-            self.style.SUCCESS(f"Регламент для авто {car_number} (vehicle_id={vehicle.id})")
+            self.style.SUCCESS(
+                f"Регламент для авто {car_number} (vehicle_id={vehicle.id})"
+            )
         )
         self.stdout.write("")
 
@@ -76,12 +77,16 @@ class Command(BaseCommand):
             )
             return
 
-        default_schema = FleetVehicleRegulationSchema.objects.filter(
-            is_default=True
-        ).prefetch_related("items").first()
+        default_schema = (
+            FleetVehicleRegulationSchema.objects.filter(is_default=True)
+            .prefetch_related("items")
+            .first()
+        )
         if not default_schema:
             self.stdout.write(
-                self.style.WARNING("No regulation assigned and no default schema. Run create-reg-schema.")
+                self.style.WARNING(
+                    "No regulation assigned and no default schema. Run create-reg-schema."
+                )
             )
             return
 

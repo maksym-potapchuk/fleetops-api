@@ -5,7 +5,9 @@ from django.db import migrations, models
 
 def deduplicate_schema_titles(apps, schema_editor):
     """Keep the first (lowest pk) schema for each title, delete the rest."""
-    FleetVehicleRegulationSchema = apps.get_model("fleet_management", "FleetVehicleRegulationSchema")
+    FleetVehicleRegulationSchema = apps.get_model(
+        "fleet_management", "FleetVehicleRegulationSchema"
+    )
     seen = {}
     for schema in FleetVehicleRegulationSchema.objects.order_by("id"):
         if schema.title in seen:
@@ -20,14 +22,14 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ('fleet_management', '0006_seed_default_regulation_schema'),
+        ("fleet_management", "0006_seed_default_regulation_schema"),
     ]
 
     operations = [
         migrations.RunPython(deduplicate_schema_titles, migrations.RunPython.noop),
         migrations.AlterField(
-            model_name='fleetvehicleregulationschema',
-            name='title',
+            model_name="fleetvehicleregulationschema",
+            name="title",
             field=models.CharField(max_length=155, unique=True),
         ),
     ]

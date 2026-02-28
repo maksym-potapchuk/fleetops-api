@@ -3,14 +3,15 @@ import logging
 from django.db import transaction
 
 from config import cache_utils
+
 from .models import (
+    EquipmentDefaultItem,
+    EquipmentList,
     EventType,
-    EquipmentDefaultItem, 
-    EquipmentList, 
-    FleetVehicleRegulation, 
+    FleetVehicleRegulation,
+    FleetVehicleRegulationEntry,
     FleetVehicleRegulationHistory,
-    FleetVehicleRegulationEntry
-    )
+)
 
 logger = logging.getLogger(__name__)
 
@@ -62,34 +63,33 @@ def grant_equipment_to_vehicle(vehicle_id):
         )
         raise
 
+
 @transaction.atomic
 def assign_regulation_to_vehicle(vehicle_pk, schema_id, entries_data, user):
     if FleetVehicleRegulation.objects.filter(
-        vehicle_id=vehicle_pk,
-        schema_id=schema_id
+        vehicle_id=vehicle_pk, schema_id=schema_id
     ).exists():
         raise ValueError("Schema already assigned to this vehicle")
 
-    regulation=FleetVehicleRegulation.objects.create(
-        vehicle_id=vehicle_pk,
-        schema_id=schema_id
+    regulation = FleetVehicleRegulation.objects.create(
+        vehicle_id=vehicle_pk, schema_id=schema_id
     )
 
-    created_entries=[]
+    created_entries = []
     for entry_data in entries_data:
-        entry=FleetVehicleRegulationEntry.objects.create(
+        entry = FleetVehicleRegulationEntry.objects.create(
             regulation=regulation,
             item_id=entry_data["item_id"],
-            last_done_km=entry_data["last_done_km"]
+            last_done_km=entry_data["last_done_km"],
         )
         FleetVehicleRegulationHistory.objects.create(
-                entry=entry,
-                event_type=EventType.KM_UPDATED,
-                km_at_event=entry_data["last_done_km"],
-                km_remaining=entry.next_due_km - entry_data["last_done_km"],
-                note="Initial assignment",
-                created_by=user,
-            )
+            entry=entry,
+            event_type=EventType.KM_UPDATED,
+            km_at_event=entry_data["last_done_km"],
+            km_remaining=entry.next_due_km - entry_data["last_done_km"],
+            note="Initial assignment",
+            created_by=user,
+        )
         created_entries.append(entry)
     transaction.on_commit(lambda: cache_utils.invalidate_regulation_plan(vehicle_pk))
     return {

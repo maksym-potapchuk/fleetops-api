@@ -22,6 +22,7 @@ class VehiclePhotoSerializer(serializers.ModelSerializer):
         image_url = rep.get("image") or ""
         if image_url:
             from urllib.parse import urlparse
+
             rep["image"] = urlparse(image_url).path
         return rep
 

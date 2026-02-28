@@ -5,6 +5,7 @@ Covers: Vehicle model, VehicleDriverHistory model, Vehicle API endpoints.
 
 BUG / VULNERABILITY markers document known flaws that tests expose.
 """
+
 import uuid
 
 from django.db import IntegrityError
@@ -15,7 +16,12 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from account.models import User
 from driver.models import Driver
-from vehicle.models import ManufacturerChoices, Vehicle, VehicleDriverHistory, VehicleStatus
+from vehicle.models import (
+    ManufacturerChoices,
+    Vehicle,
+    VehicleDriverHistory,
+    VehicleStatus,
+)
 
 # ---------------------------------------------------------------------------
 # Shared factory helpers
@@ -70,7 +76,9 @@ class VehicleModelTest(TestCase):
     def test_car_number_unique_constraint(self):
         make_vehicle()
         with self.assertRaises(IntegrityError):
-            make_vehicle(vin_number="2HGBH41JXMN109187")  # different vin, same car_number
+            make_vehicle(
+                vin_number="2HGBH41JXMN109187"
+            )  # different vin, same car_number
 
     def test_default_status_is_preparation(self):
         vehicle = make_vehicle()
@@ -138,7 +146,10 @@ class VehicleModelTest(TestCase):
             driver.delete()
 
     def test_vehicle_deletion_cascades_to_regulations(self):
-        from fleet_management.models import FleetVehicleRegulation, FleetVehicleRegulationSchema
+        from fleet_management.models import (
+            FleetVehicleRegulation,
+            FleetVehicleRegulationSchema,
+        )
 
         schema = FleetVehicleRegulationSchema.objects.create(title="Test")
         vehicle = make_vehicle()
@@ -160,10 +171,13 @@ class VehicleModelTest(TestCase):
 
     def test_vehicle_deletion_cascades_to_service_plans(self):
         from datetime import date
+
         from fleet_management.models import ServicePlan
 
         vehicle = make_vehicle()
-        ServicePlan.objects.create(vehicle=vehicle, title="Plan", planned_at=date.today())
+        ServicePlan.objects.create(
+            vehicle=vehicle, title="Plan", planned_at=date.today()
+        )
         vehicle.delete()
         self.assertEqual(ServicePlan.objects.count(), 0)
 
@@ -246,6 +260,7 @@ class VehicleAPITest(TestCase):
 
     def setUp(self):
         from fleet_management.models import EquipmentDefaultItem
+
         # Migration 0005 seeds 7 default equipment items; clear them so
         # equipment-count assertions reflect only what this test creates.
         EquipmentDefaultItem.objects.all().delete()
@@ -341,7 +356,9 @@ class VehicleAPITest(TestCase):
         """PositiveIntegerField — negative year values must not be accepted."""
         response = self.client.post(
             self.BASE_URL,
-            self._payload(year=-1, vin_number="5HGBH41JXMN109190", car_number="EE0005FF"),
+            self._payload(
+                year=-1, vin_number="5HGBH41JXMN109190", car_number="EE0005FF"
+            ),
             format="json",
         )
         self.assertNotEqual(response.status_code, 201)
@@ -366,8 +383,16 @@ class VehicleAPITest(TestCase):
         self.assertEqual(response.data[0]["status"], "READY")
 
     def test_list_filters_by_manufacturer(self):
-        make_vehicle(manufacturer=ManufacturerChoices.BMW, vin_number="BVIN001", car_number="BMW001")
-        make_vehicle(manufacturer=ManufacturerChoices.AUDI, vin_number="AVIN001", car_number="AUDI001")
+        make_vehicle(
+            manufacturer=ManufacturerChoices.BMW,
+            vin_number="BVIN001",
+            car_number="BMW001",
+        )
+        make_vehicle(
+            manufacturer=ManufacturerChoices.AUDI,
+            vin_number="AVIN001",
+            car_number="AUDI001",
+        )
         response = self.client.get(self.BASE_URL + "?manufacturer=BMW")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
@@ -431,7 +456,5 @@ class VehicleAPITest(TestCase):
 
     def test_unauthenticated_create_returns_401(self):
         unauthenticated = APIClient()
-        response = unauthenticated.post(
-            self.BASE_URL, self._payload(), format="json"
-        )
+        response = unauthenticated.post(self.BASE_URL, self._payload(), format="json")
         self.assertEqual(response.status_code, 401)
