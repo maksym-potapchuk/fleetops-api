@@ -90,6 +90,7 @@ class VehiclePhoto(models.Model):
 
 class VehicleOwnerHistory(models.Model):
     """Tracks who owns the vehicle and under what agreement."""
+
     vehicle = models.ForeignKey(
         "vehicle.Vehicle",
         on_delete=models.CASCADE,

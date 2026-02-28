@@ -3,6 +3,7 @@ Assign default regulation schema to a vehicle by car number.
 Fills regulation so the bot and API can show the plan.
 Use: make assign-regulation CAR=AA6601BB
 """
+
 from django.core.management.base import BaseCommand
 
 from fleet_management.models import FleetVehicleRegulationSchema
@@ -45,10 +46,16 @@ class Command(BaseCommand):
             )
             return
 
-        schema = FleetVehicleRegulationSchema.objects.filter(is_default=True).prefetch_related("items").first()
+        schema = (
+            FleetVehicleRegulationSchema.objects.filter(is_default=True)
+            .prefetch_related("items")
+            .first()
+        )
         if not schema:
             self.stdout.write(
-                self.style.ERROR("No default regulation schema. Run: make create-reg-schema")
+                self.style.ERROR(
+                    "No default regulation schema. Run: make create-reg-schema"
+                )
             )
             return
 

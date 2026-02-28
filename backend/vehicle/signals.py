@@ -26,6 +26,7 @@ _SENTINEL = object()  # marker for "signal data not stored"
 
 # ── pre_save — capture previous driver before the row is changed ──────────────
 
+
 @receiver(pre_save, sender=Vehicle)
 def vehicle_capture_prev_driver(sender, instance, **kwargs):
     """Store the current (old) driver_id on the instance before it changes."""
@@ -41,6 +42,7 @@ def vehicle_capture_prev_driver(sender, instance, **kwargs):
 
 # ── post_save — react to the change ──────────────────────────────────────────
 
+
 @receiver(post_save, sender=Vehicle)
 def vehicle_post_save(sender, instance, created, **kwargs):
     """
@@ -51,7 +53,9 @@ def vehicle_post_save(sender, instance, created, **kwargs):
 
     if created:
         if instance.driver_id:
-            _assign_driver(instance, old_driver_id=None, new_driver_id=instance.driver_id)
+            _assign_driver(
+                instance, old_driver_id=None, new_driver_id=instance.driver_id
+            )
         return
 
     if prev is _SENTINEL:
@@ -66,6 +70,7 @@ def vehicle_post_save(sender, instance, created, **kwargs):
 
 
 # ── pre_delete — close history and clear has_vehicle before row disappears ────
+
 
 @receiver(pre_delete, sender=Vehicle)
 def vehicle_pre_delete(sender, instance, **kwargs):
@@ -87,6 +92,7 @@ def vehicle_pre_delete(sender, instance, **kwargs):
 
 # ── Core logic ────────────────────────────────────────────────────────────────
 
+
 def _assign_driver(vehicle: Vehicle, old_driver_id, new_driver_id) -> None:
     """
     Reconcile driver assignment:
@@ -96,7 +102,9 @@ def _assign_driver(vehicle: Vehicle, old_driver_id, new_driver_id) -> None:
     • Update new driver's has_vehicle = True.
     • Invalidate affected driver caches.
     """
-    from driver.models import Driver  # local import avoids circular dependency at module level
+    from driver.models import (
+        Driver,  # local import avoids circular dependency at module level
+    )
 
     try:
         if old_driver_id:

@@ -2,8 +2,9 @@ import logging
 
 from django.db import transaction
 
-from .models import Vehicle
 from fleet_management.services import grant_equipment_to_vehicle
+
+from .models import Vehicle
 
 logger = logging.getLogger(__name__)
 

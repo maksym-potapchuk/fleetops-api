@@ -1,9 +1,12 @@
 from django.core.management.base import BaseCommand
 
 from driver.models import Driver
-from vehicle.models import Vehicle, VehicleDriverHistory
-from vehicle.models import ManufacturerChoices, VehicleStatus
-
+from vehicle.models import (
+    ManufacturerChoices,
+    Vehicle,
+    VehicleDriverHistory,
+    VehicleStatus,
+)
 
 DRIVER_PHONE = "+380663234712"
 DEFAULT_FIRST_NAME = "Тест"
@@ -67,7 +70,9 @@ class Command(BaseCommand):
                     )
                 )
                 return
-            self.stdout.write(self.style.WARNING(f"Updating existing vehicle: {vehicle}"))
+            self.stdout.write(
+                self.style.WARNING(f"Updating existing vehicle: {vehicle}")
+            )
         else:
             vehicle = Vehicle(
                 model=VEHICLE_MODEL,

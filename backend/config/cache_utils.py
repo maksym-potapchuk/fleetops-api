@@ -23,20 +23,21 @@ from django.core.cache import cache
 logger = logging.getLogger(__name__)
 
 # ── TTLs pulled from settings ────────────────────────────────────────────────
-_VEHICLE_LIST_TTL    = getattr(settings, "CACHE_TTL_VEHICLE_LIST",    30)
-_VEHICLE_DETAIL_TTL  = getattr(settings, "CACHE_TTL_VEHICLE_DETAIL",  60)
-_DRIVER_LIST_TTL     = getattr(settings, "CACHE_TTL_DRIVER_LIST",     300)
-_SCHEMA_LIST_TTL     = getattr(settings, "CACHE_TTL_SCHEMA_LIST",     600)
-_SCHEMA_DETAIL_TTL   = getattr(settings, "CACHE_TTL_SCHEMA_DETAIL",   600)
-_REG_PLAN_TTL        = getattr(settings, "CACHE_TTL_REGULATION_PLAN", 300)
-_EQUIPMENT_TTL       = getattr(settings, "CACHE_TTL_EQUIPMENT",       300)
+_VEHICLE_LIST_TTL = getattr(settings, "CACHE_TTL_VEHICLE_LIST", 30)
+_VEHICLE_DETAIL_TTL = getattr(settings, "CACHE_TTL_VEHICLE_DETAIL", 60)
+_DRIVER_LIST_TTL = getattr(settings, "CACHE_TTL_DRIVER_LIST", 300)
+_SCHEMA_LIST_TTL = getattr(settings, "CACHE_TTL_SCHEMA_LIST", 600)
+_SCHEMA_DETAIL_TTL = getattr(settings, "CACHE_TTL_SCHEMA_DETAIL", 600)
+_REG_PLAN_TTL = getattr(settings, "CACHE_TTL_REGULATION_PLAN", 300)
+_EQUIPMENT_TTL = getattr(settings, "CACHE_TTL_EQUIPMENT", 300)
 
 # ── Version-key names ────────────────────────────────────────────────────────
 _VK_VEHICLE = "v:vehicle"
-_VK_SCHEMA  = "v:schema"
+_VK_SCHEMA = "v:schema"
 
 
 # ── Internal helpers ─────────────────────────────────────────────────────────
+
 
 def _safe_get(key: str):
     try:
@@ -95,10 +96,11 @@ def _params_hash(query_params) -> str:
     """8-char MD5 of sorted query params → stable, short cache-key segment."""
     items = sorted((k, v) for k, v in query_params.items())
     raw = "&".join(f"{k}={v}" for k, v in items)
-    return hashlib.md5(raw.encode()).hexdigest()[:8]  # noqa: S324 — non-security hash
+    return hashlib.md5(raw.encode()).hexdigest()[:8]
 
 
 # ── Vehicle ───────────────────────────────────────────────────────────────────
+
 
 def get_vehicle_list(query_params) -> list | None:
     v = _get_version(_VK_VEHICLE)
@@ -107,7 +109,9 @@ def get_vehicle_list(query_params) -> list | None:
 
 def set_vehicle_list(query_params, data) -> None:
     v = _get_version(_VK_VEHICLE)
-    _safe_set(f"vehicle:list:v{v}:{_params_hash(query_params)}", data, _VEHICLE_LIST_TTL)
+    _safe_set(
+        f"vehicle:list:v{v}:{_params_hash(query_params)}", data, _VEHICLE_LIST_TTL
+    )
 
 
 def get_vehicle_detail(vehicle_id) -> dict | None:
@@ -130,7 +134,7 @@ def invalidate_vehicle(vehicle_id=None) -> None:
 
 # ── Driver ────────────────────────────────────────────────────────────────────
 
-_DRIVER_LIST_KEY   = "driver:list"
+_DRIVER_LIST_KEY = "driver:list"
 _DRIVER_DETAIL_FMT = "driver:detail:{}"
 
 
@@ -163,6 +167,7 @@ def invalidate_driver(driver_id=None) -> None:
 
 # ── Regulation Schema ─────────────────────────────────────────────────────────
 
+
 def get_schema_list(query_params) -> list | None:
     v = _get_version(_VK_SCHEMA)
     return _safe_get(f"schema:list:v{v}:{_params_hash(query_params)}")
@@ -189,6 +194,7 @@ def invalidate_schema(schema_id=None) -> None:
 
 # ── Vehicle Regulation Plan ───────────────────────────────────────────────────
 
+
 def get_regulation_plan(vehicle_id) -> dict | None:
     return _safe_get(f"regulation:plan:{vehicle_id}")
 
@@ -202,6 +208,7 @@ def invalidate_regulation_plan(vehicle_id) -> None:
 
 
 # ── Equipment List ────────────────────────────────────────────────────────────
+
 
 def get_equipment_list(vehicle_id) -> list | None:
     return _safe_get(f"equipment:{vehicle_id}")

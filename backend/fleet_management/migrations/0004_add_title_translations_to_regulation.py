@@ -5,68 +5,105 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fleet_management', '0003_fleetvehicleregulationschema_unique_default_schema'),
-        ('vehicle', '0003_vehicle_initial_km'),
+        ("fleet_management", "0003_fleetvehicleregulationschema_unique_default_schema"),
+        ("vehicle", "0003_vehicle_initial_km"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='EquipmentDefaultItem',
+            name="EquipmentDefaultItem",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('equipment', models.CharField(max_length=55)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("equipment", models.CharField(max_length=55)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
         ),
         migrations.AddField(
-            model_name='fleetvehicleregulationitem',
-            name='title_pl',
+            model_name="fleetvehicleregulationitem",
+            name="title_pl",
             field=models.CharField(blank=True, max_length=155),
         ),
         migrations.AddField(
-            model_name='fleetvehicleregulationitem',
-            name='title_uk',
+            model_name="fleetvehicleregulationitem",
+            name="title_uk",
             field=models.CharField(blank=True, max_length=155),
         ),
         migrations.AddField(
-            model_name='fleetvehicleregulationschema',
-            name='title_pl',
+            model_name="fleetvehicleregulationschema",
+            name="title_pl",
             field=models.CharField(blank=True, max_length=155),
         ),
         migrations.AddField(
-            model_name='fleetvehicleregulationschema',
-            name='title_uk',
+            model_name="fleetvehicleregulationschema",
+            name="title_uk",
             field=models.CharField(blank=True, max_length=155),
         ),
         migrations.CreateModel(
-            name='EquipmentList',
+            name="EquipmentList",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('equipment', models.CharField(max_length=55)),
-                ('is_equipped', models.BooleanField(default=False)),
-                ('approved_at', models.DateTimeField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('vehicle', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='equipment_list', to='vehicle.vehicle')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("equipment", models.CharField(max_length=55)),
+                ("is_equipped", models.BooleanField(default=False)),
+                ("approved_at", models.DateTimeField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "vehicle",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="equipment_list",
+                        to="vehicle.vehicle",
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('vehicle', 'equipment')},
+                "unique_together": {("vehicle", "equipment")},
             },
         ),
         migrations.CreateModel(
-            name='ServicePlan',
+            name="ServicePlan",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=255)),
-                ('description', models.TextField(blank=True, null=True)),
-                ('planned_at', models.DateField()),
-                ('is_done', models.BooleanField(default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('vehicle', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='service_plans', to='vehicle.vehicle')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=255)),
+                ("description", models.TextField(blank=True, null=True)),
+                ("planned_at", models.DateField()),
+                ("is_done", models.BooleanField(default=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "vehicle",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="service_plans",
+                        to="vehicle.vehicle",
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('vehicle', 'title')},
+                "unique_together": {("vehicle", "title")},
             },
         ),
     ]

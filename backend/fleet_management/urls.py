@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     AllServicePlansAPIView,
+    AssignRegulationView,
     EquipmentDefaultItemViewSet,
     EquipmentItemDestroyAPIView,
     EquipmentItemToggleAPIView,
@@ -14,10 +15,9 @@ from .views import (
     ServicePlanDetailAPIView,
     ServicePlanListCreateAPIView,
     ServicePlanMarkDoneAPIView,
-    AssignRegulationView,
     VehicleRegulationEntryUpdate,
-    VehicleRegulationPlanView,
     VehicleRegulationHistoryView,
+    VehicleRegulationPlanView,
 )
 
 router = DefaultRouter()

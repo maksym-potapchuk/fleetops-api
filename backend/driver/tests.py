@@ -5,10 +5,10 @@ Covers: Driver model constraints, DriverSerializer phone validation, Driver API 
 
 BUG / VULNERABILITY markers document known flaws exposed by these tests.
 """
+
 import uuid
 
 from django.db import IntegrityError
-from django.db.models import ProtectedError
 from django.test import TestCase
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -105,7 +105,9 @@ class DriverSerializerValidationTest(TestCase):
     """
 
     def _validate(self, data, instance=None):
-        s = DriverSerializer(instance=instance, data=data, partial=(instance is not None))
+        s = DriverSerializer(
+            instance=instance, data=data, partial=(instance is not None)
+        )
         s.is_valid()
         return s
 
@@ -113,7 +115,11 @@ class DriverSerializerValidationTest(TestCase):
 
     def test_valid_polish_phone_number_accepted(self):
         s = self._validate(
-            {"first_name": "Jan", "last_name": "Kowalski", "phone_number": "48123456789"}
+            {
+                "first_name": "Jan",
+                "last_name": "Kowalski",
+                "phone_number": "48123456789",
+            }
         )
         self.assertTrue(s.is_valid(), s.errors)
 
@@ -147,7 +153,9 @@ class DriverSerializerValidationTest(TestCase):
         # Documenting the edge case: any number starting with "48" passes,
         # including those starting with "480", "481", etc.
         # This is the intended behaviour per the current rule.
-        self.assertTrue(s.is_valid(), "48-prefixed numbers with trailing 0 are accepted")
+        self.assertTrue(
+            s.is_valid(), "48-prefixed numbers with trailing 0 are accepted"
+        )
 
     # --- invalid format ---
 
@@ -347,7 +355,9 @@ class DriverAPITest(TestCase):
 
     def test_patch_phone_to_existing_number_returns_400(self):
         make_driver(phone_number="48111111111")
-        driver2 = make_driver(first_name="Anna", last_name="B", phone_number="48222222222")
+        driver2 = make_driver(
+            first_name="Anna", last_name="B", phone_number="48222222222"
+        )
         response = self.client.patch(
             f"{self.BASE_URL}{driver2.id}/",
             {"phone_number": "48111111111"},
@@ -419,9 +429,7 @@ class DriverAPITest(TestCase):
 
     def test_unauthenticated_create_returns_401(self):
         unauthenticated = APIClient()
-        response = unauthenticated.post(
-            self.BASE_URL, self._payload(), format="json"
-        )
+        response = unauthenticated.post(self.BASE_URL, self._payload(), format="json")
         self.assertEqual(response.status_code, 401)
 
     def test_unauthenticated_delete_returns_401(self):

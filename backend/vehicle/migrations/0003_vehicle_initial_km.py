@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('vehicle', '0002_alter_vehicle_status_delete_vehiclestatus'),
+        ("vehicle", "0002_alter_vehicle_status_delete_vehiclestatus"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='vehicle',
-            name='initial_km',
+            model_name="vehicle",
+            name="initial_km",
             field=models.PositiveIntegerField(default=0),
         ),
     ]

@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from config import cache_utils
-from .services import assign_regulation_to_vehicle
+
 from .filters import FleetVehicleRegulationSchemaFilter, RegulationHistoryFilter
 from .models import (
     EquipmentDefaultItem,
@@ -23,6 +23,7 @@ from .models import (
     ServicePlan,
 )
 from .serializers import (
+    AssignRegulationSerializer,
     EquipmentDefaultItemSerializer,
     EquipmentListSerializer,
     FleetServiceSerializer,
@@ -31,11 +32,11 @@ from .serializers import (
     FleetVehicleRegulationSchemaUpdateSerializer,
     ServicePlanSerializer,
     ServicePlanWithVehicleSerializer,
-    AssignRegulationSerializer,
+    VehicleRegulationHistorySerializer,
     VehicleRegulationPlanEntrySerializer,
     VehicleRegulationPlanSerializer,
-    VehicleRegulationHistorySerializer,
 )
+from .services import assign_regulation_to_vehicle
 
 logger = logging.getLogger(__name__)
 
@@ -262,7 +263,9 @@ class VehicleRegulationEntryUpdate(APIView):
         km = request.data.get("last_done_km")
         if km is None or not str(km).isdigit():
             return Response(
-                {"detail": "last_done_km is required and must be a non-negative integer."},
+                {
+                    "detail": "last_done_km is required and must be a non-negative integer."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -305,15 +308,17 @@ class VehicleRegulationPlanView(APIView):
             return Response(cached)
 
         regulation = (
-            FleetVehicleRegulation.objects
-            .filter(vehicle_id=vehicle_pk)
+            FleetVehicleRegulation.objects.filter(vehicle_id=vehicle_pk)
             .prefetch_related("entries__item", "schema")
             .first()
         )
         if not regulation:
             data = {"assigned": False}
         else:
-            data = {"assigned": True, **VehicleRegulationPlanSerializer(regulation).data}
+            data = {
+                "assigned": True,
+                **VehicleRegulationPlanSerializer(regulation).data,
+            }
 
         cache_utils.set_regulation_plan(vehicle_pk, data)
         return Response(data)
@@ -328,11 +333,9 @@ class VehicleRegulationHistoryView(generics.ListAPIView):
     ordering = ["created_at"]
 
     def get_queryset(self):
-        return (
-            FleetVehicleRegulationHistory.objects
-            .filter(entry__regulation__vehicle_id=self.kwargs["vehicle_pk"])
-            .select_related("entry__item", "created_by")
-        )
+        return FleetVehicleRegulationHistory.objects.filter(
+            entry__regulation__vehicle_id=self.kwargs["vehicle_pk"]
+        ).select_related("entry__item", "created_by")
 
 
 class ServicePlanListCreateAPIView(generics.ListCreateAPIView):

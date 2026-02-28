@@ -46,8 +46,12 @@ class LoginView(TokenObtainPairView):
             raise
 
         if response.status_code == 200:
-            access_max_age = int(settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds())
-            refresh_max_age = int(settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds())
+            access_max_age = int(
+                settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds()
+            )
+            refresh_max_age = int(
+                settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds()
+            )
             response.set_cookie(
                 "access_token",
                 response.data["access"],
@@ -112,7 +116,9 @@ class RefreshView(TokenRefreshView):
             raise
 
         if response.status_code == 200:
-            access_max_age = int(settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds())
+            access_max_age = int(
+                settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds()
+            )
             response.set_cookie(
                 "access_token",
                 response.data["access"],
@@ -126,7 +132,9 @@ class RefreshView(TokenRefreshView):
             # rotated token, otherwise the next refresh attempt sends a blacklisted token
             # and the user gets kicked out after the first access-token expiry.
             if "refresh" in response.data:
-                refresh_max_age = int(settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds())
+                refresh_max_age = int(
+                    settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds()
+                )
                 response.set_cookie(
                     "refresh_token",
                     response.data["refresh"],

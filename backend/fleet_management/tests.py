@@ -6,10 +6,10 @@ Covers: models, services, serializers, API endpoints.
 Documented vulnerabilities/bugs are prefixed with # BUG: or # VULNERABILITY:.
 Tests that expose known flaws are marked so they serve as regression guards.
 """
-import uuid
-from datetime import date
 
+from datetime import date
 from unittest.mock import patch
+import uuid
 
 from django.db import IntegrityError
 from django.db.models import ProtectedError
@@ -18,7 +18,6 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from account.models import User
-from driver.models import Driver
 from fleet_management.models import (
     EquipmentDefaultItem,
     EquipmentList,
@@ -32,7 +31,10 @@ from fleet_management.models import (
     ServicePlan,
 )
 from fleet_management.serializers import AssignRegulationSerializer
-from fleet_management.services import assign_regulation_to_vehicle, grant_equipment_to_vehicle
+from fleet_management.services import (
+    assign_regulation_to_vehicle,
+    grant_equipment_to_vehicle,
+)
 from vehicle.models import ManufacturerChoices, Vehicle, VehicleStatus
 
 # ---------------------------------------------------------------------------
@@ -146,12 +148,12 @@ class FleetVehicleRegulationSchemaModelTest(TestCase):
         The DB UniqueConstraint (unique_default_schema) should catch this, but only
         when a second True already exists — which means a window exists before the constraint fires.
         """
-        schema_a = make_schema(title="Schema A", is_default=True)
+        make_schema(title="Schema A", is_default=True)
         schema_b = make_schema(title="Schema B", is_default=False)
 
         # Attempting to .update() a second schema to is_default=True must be blocked
         # either by the constraint or by a data integrity check.
-        with self.assertRaises(Exception):
+        with self.assertRaises(IntegrityError):
             FleetVehicleRegulationSchema.objects.filter(pk=schema_b.pk).update(
                 is_default=True
             )
@@ -169,7 +171,9 @@ class FleetVehicleRegulationSchemaModelTest(TestCase):
         """
         make_schema(title="Duplicate Title")
         schema2 = make_schema(title="Duplicate Title")  # must NOT raise IntegrityError
-        self.assertIsNotNone(schema2.pk, "Second schema with duplicate title was created")
+        self.assertIsNotNone(
+            schema2.pk, "Second schema with duplicate title was created"
+        )
 
 
 class FleetVehicleRegulationItemModelTest(TestCase):
@@ -271,9 +275,7 @@ class FleetVehicleRegulationModelTest(TestCase):
         self.schema = make_schema(title="Basic")
 
     def test_unique_together_schema_and_vehicle(self):
-        FleetVehicleRegulation.objects.create(
-            vehicle=self.vehicle, schema=self.schema
-        )
+        FleetVehicleRegulation.objects.create(vehicle=self.vehicle, schema=self.schema)
         with self.assertRaises(IntegrityError):
             FleetVehicleRegulation.objects.create(
                 vehicle=self.vehicle, schema=self.schema
@@ -282,7 +284,9 @@ class FleetVehicleRegulationModelTest(TestCase):
     def test_different_schemas_same_vehicle_allowed(self):
         schema2 = make_schema(title="Advanced")
         FleetVehicleRegulation.objects.create(vehicle=self.vehicle, schema=self.schema)
-        reg2 = FleetVehicleRegulation.objects.create(vehicle=self.vehicle, schema=schema2)
+        reg2 = FleetVehicleRegulation.objects.create(
+            vehicle=self.vehicle, schema=schema2
+        )
         self.assertIsNotNone(reg2.pk)
 
     def test_schema_delete_blocked_by_protect_when_regulation_exists(self):
@@ -462,7 +466,9 @@ class AssignRegulationToVehicleServiceTest(TestCase):
             entries_data=self._entries(km1=5_000, km2=12_000),
             user=self.user,
         )
-        reg = FleetVehicleRegulation.objects.get(vehicle=self.vehicle, schema=self.schema)
+        reg = FleetVehicleRegulation.objects.get(
+            vehicle=self.vehicle, schema=self.schema
+        )
         entry1 = reg.entries.get(item=self.item1)
         entry2 = reg.entries.get(item=self.item2)
         self.assertEqual(entry1.last_done_km, 5_000)
@@ -475,7 +481,9 @@ class AssignRegulationToVehicleServiceTest(TestCase):
             entries_data=self._entries(km1=5_000),
             user=self.user,
         )
-        reg = FleetVehicleRegulation.objects.get(vehicle=self.vehicle, schema=self.schema)
+        reg = FleetVehicleRegulation.objects.get(
+            vehicle=self.vehicle, schema=self.schema
+        )
         entry = reg.entries.get(item=self.item1)
         history = FleetVehicleRegulationHistory.objects.get(entry=entry)
         self.assertEqual(history.event_type, EventType.KM_UPDATED)
@@ -495,7 +503,9 @@ class AssignRegulationToVehicleServiceTest(TestCase):
             entries_data=self._entries(km1=5_000),
             user=self.user,
         )
-        reg = FleetVehicleRegulation.objects.get(vehicle=self.vehicle, schema=self.schema)
+        reg = FleetVehicleRegulation.objects.get(
+            vehicle=self.vehicle, schema=self.schema
+        )
         entry = reg.entries.get(item=self.item1)
         history = FleetVehicleRegulationHistory.objects.get(entry=entry)
         self.assertEqual(history.km_remaining, self.item1.every_km)
@@ -525,7 +535,7 @@ class AssignRegulationToVehicleServiceTest(TestCase):
             {"item_id": self.item1.id, "last_done_km": 0},
             {"item_id": 99_999, "last_done_km": 0},  # Does not exist
         ]
-        with self.assertRaises(Exception):
+        with self.assertRaises(IntegrityError):
             assign_regulation_to_vehicle(
                 vehicle_pk=self.vehicle.id,
                 schema_id=self.schema.id,
@@ -791,7 +801,9 @@ class AssignRegulationAPITest(BaseAPITest):
         fake_vehicle_id = uuid.uuid4()
         url = f"/api/v1/fleet/regulation/{fake_vehicle_id}/assign/"
         with patch("fleet_management.views.assign_regulation_to_vehicle") as mock_svc:
-            mock_svc.side_effect = IntegrityError("FK violation: vehicle does not exist")
+            mock_svc.side_effect = IntegrityError(
+                "FK violation: vehicle does not exist"
+            )
             self.client.raise_request_exception = False
             response = self.client.post(url, self._payload(), format="json")
         # BUG: view must catch IntegrityError and return 404 — currently returns 500
@@ -941,9 +953,7 @@ class VehicleRegulationEntryUpdateAPITest(BaseAPITest):
         The view uses str(km).isdigit() which returns False for negative numbers
         because the minus sign is not a digit character.
         """
-        response = self.client.patch(
-            self.url, {"last_done_km": -100}, format="json"
-        )
+        response = self.client.patch(self.url, {"last_done_km": -100}, format="json")
         self.assertEqual(response.status_code, 400)
 
     def test_float_km_is_rejected(self):
@@ -958,17 +968,12 @@ class VehicleRegulationEntryUpdateAPITest(BaseAPITest):
         self.assertEqual(response.status_code, 400)
 
     def test_string_km_is_rejected(self):
-        response = self.client.patch(
-            self.url, {"last_done_km": "abc"}, format="json"
-        )
+        response = self.client.patch(self.url, {"last_done_km": "abc"}, format="json")
         self.assertEqual(response.status_code, 400)
 
     def test_entry_from_different_vehicle_returns_404(self):
         v2 = make_vehicle(vin_number="2HGBH41JXMN109187", car_number="BB7702CC")
-        url = (
-            f"/api/v1/fleet/vehicles/{v2.id}"
-            f"/regulation/entries/{self.entry.id}/"
-        )
+        url = f"/api/v1/fleet/vehicles/{v2.id}/regulation/entries/{self.entry.id}/"
         response = self.client.patch(url, {"last_done_km": 10_000}, format="json")
         self.assertEqual(response.status_code, 404)
 
@@ -997,9 +1002,7 @@ class ServicePlanAPITest(BaseAPITest):
         self.detail_url = (
             f"/api/v1/fleet/vehicles/{self.vehicle.id}/service-plans/{self.plan.id}/"
         )
-        self.done_url = (
-            f"/api/v1/fleet/vehicles/{self.vehicle.id}/service-plans/{self.plan.id}/done/"
-        )
+        self.done_url = f"/api/v1/fleet/vehicles/{self.vehicle.id}/service-plans/{self.plan.id}/done/"
 
     def test_list_returns_200(self):
         response = self.client.get(self.list_url)
@@ -1059,9 +1062,7 @@ class ServicePlanAPITest(BaseAPITest):
         """
         self.client.patch(self.done_url)  # Mark done
         # Attempt revert through generic detail endpoint
-        response = self.client.patch(
-            self.detail_url, {"is_done": False}, format="json"
-        )
+        response = self.client.patch(self.detail_url, {"is_done": False}, format="json")
         # If 200, the flag was reverted — there is NO protection:
         if response.status_code == 200:
             self.plan.refresh_from_db()
@@ -1201,8 +1202,16 @@ class RegulationSchemaAPITest(BaseAPITest):
                 "title": "Full Schema",
                 "is_default": False,
                 "items": [
-                    {"title": "Oil Change", "every_km": 10_000, "notify_before_km": 500},
-                    {"title": "Air Filter", "every_km": 20_000, "notify_before_km": 1_000},
+                    {
+                        "title": "Oil Change",
+                        "every_km": 10_000,
+                        "notify_before_km": 500,
+                    },
+                    {
+                        "title": "Air Filter",
+                        "every_km": 20_000,
+                        "notify_before_km": 1_000,
+                    },
                 ],
             },
             format="json",
