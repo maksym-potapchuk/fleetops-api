@@ -40,6 +40,7 @@ def make_vehicle(**kwargs):
         "cost": "25000.00",
         "vin_number": "1HGBH41JXMN109186",
         "car_number": "AA6601BB",
+        "color": "#FFFFFF",
         "initial_km": 0,
         "status": VehicleStatus.PREPARATION,
     }
@@ -117,6 +118,7 @@ class VehicleModelTest(TestCase):
             cost="10000.00",
             vin_number="BADVIN00000000001",
             car_number="BAD001",
+            color="#000000",
             initial_km=0,
         )
         vehicle.refresh_from_db()
@@ -276,6 +278,7 @@ class VehicleAPITest(TestCase):
             "cost": "25000.00",
             "vin_number": "1HGBH41JXMN109186",
             "car_number": "AA6601BB",
+            "color": "#FFFFFF",
             "initial_km": 0,
             "status": "PREPARATION",
         }
@@ -431,14 +434,16 @@ class VehicleAPITest(TestCase):
 
     # --- delete ---
 
-    def test_delete_vehicle_without_driver_returns_204(self):
+    def test_delete_vehicle_without_driver_archives_it(self):
         vehicle = make_vehicle()
         response = self.client.delete(f"{self.BASE_URL}{vehicle.id}/")
         self.assertEqual(response.status_code, 204)
-        self.assertFalse(Vehicle.objects.filter(id=vehicle.id).exists())
+        vehicle.refresh_from_db()
+        self.assertTrue(vehicle.is_archived)
+        self.assertIsNotNone(vehicle.archived_at)
 
     def test_deleting_vehicle_with_driver_does_not_delete_driver(self):
-        """Vehicle deletion should NOT delete the assigned driver."""
+        """Vehicle archiving should NOT delete the assigned driver."""
         driver = make_driver()
         vehicle = make_vehicle()
         vehicle.driver = driver
