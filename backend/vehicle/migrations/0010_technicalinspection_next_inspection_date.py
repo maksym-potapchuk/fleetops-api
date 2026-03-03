@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('vehicle', '0009_vehicle_fuel_type'),
+        ("vehicle", "0009_vehicle_fuel_type"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='technicalinspection',
-            name='next_inspection_date',
+            model_name="technicalinspection",
+            name="next_inspection_date",
             field=models.DateField(blank=True, null=True),
         ),
     ]

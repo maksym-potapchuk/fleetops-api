@@ -5,21 +5,26 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('expense', '0008_expense_payment_payer_parts_detail'),
-        ('vehicle', '0010_technicalinspection_next_inspection_date'),
+        ("expense", "0008_expense_payment_payer_parts_detail"),
+        ("vehicle", "0010_technicalinspection_next_inspection_date"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='inspectionexpensedetail',
-            name='linked_inspection',
-            field=models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='expense_detail', to='vehicle.technicalinspection'),
+            model_name="inspectionexpensedetail",
+            name="linked_inspection",
+            field=models.OneToOneField(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="expense_detail",
+                to="vehicle.technicalinspection",
+            ),
         ),
         migrations.AddField(
-            model_name='inspectionexpensedetail',
-            name='next_inspection_date',
+            model_name="inspectionexpensedetail",
+            name="next_inspection_date",
             field=models.DateField(blank=True, null=True),
         ),
     ]

@@ -5,8 +5,8 @@ Verifies that expenses can be created via the vehicle-scoped endpoint
 where vehicle ID comes from the URL (not the request body).
 """
 
-import json
 from decimal import Decimal
+import json
 
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -16,7 +16,7 @@ from account.models import User
 from fleet_management.models import FleetService
 from vehicle.models import ManufacturerChoices, Vehicle, VehicleStatus
 
-from .models import Expense, ExpenseCategory, ExpensePart, ServiceItem
+from .models import Expense, ExpenseCategory, ServiceItem
 
 
 def make_user(email="vexp@example.com", password="pass123!", username="vexpuser"):
@@ -61,7 +61,8 @@ class VehicleExpenseCreateTest(TestCase):
             code="WASHING", defaults={"name": "Washing", "is_system": True, "order": 5}
         )
         self.inspection_cat, _ = ExpenseCategory.objects.get_or_create(
-            code="INSPECTION", defaults={"name": "Inspection", "is_system": True, "order": 6}
+            code="INSPECTION",
+            defaults={"name": "Inspection", "is_system": True, "order": 6},
         )
         self.fines_cat, _ = ExpenseCategory.objects.get_or_create(
             code="FINES", defaults={"name": "Fines", "is_system": True, "order": 4}
@@ -167,14 +168,22 @@ class VehicleExpenseCreateTest(TestCase):
         self.assertEqual(response.data["amount"], "1000.00")
 
     def test_list_returns_only_vehicle_expenses(self):
-        other_vehicle = make_vehicle(car_number="BB7777CC", vin_number="2HGBH41JXMN109186")
-        Expense.objects.create(
-            vehicle=self.vehicle, category=self.other_cat,
-            amount=Decimal("100"), expense_date="2026-01-01", created_by=self.user,
+        other_vehicle = make_vehicle(
+            car_number="BB7777CC", vin_number="2HGBH41JXMN109186"
         )
         Expense.objects.create(
-            vehicle=other_vehicle, category=self.other_cat,
-            amount=Decimal("200"), expense_date="2026-01-01", created_by=self.user,
+            vehicle=self.vehicle,
+            category=self.other_cat,
+            amount=Decimal("100"),
+            expense_date="2026-01-01",
+            created_by=self.user,
+        )
+        Expense.objects.create(
+            vehicle=other_vehicle,
+            category=self.other_cat,
+            amount=Decimal("200"),
+            expense_date="2026-01-01",
+            created_by=self.user,
         )
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)

@@ -48,7 +48,12 @@ DETAIL_MAP = {
     },
     "INSPECTION": {
         "model": InspectionExpenseDetail,
-        "fields": ["inspection_date", "official_cost", "additional_cost", "next_inspection_date"],
+        "fields": [
+            "inspection_date",
+            "official_cost",
+            "additional_cost",
+            "next_inspection_date",
+        ],
         "required": ["inspection_date", "official_cost"],
     },
     "PARTS": {
@@ -125,9 +130,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
     )
 
     # Amount: not required — auto-computed for SERVICE / PARTS / INSPECTION
-    amount = serializers.DecimalField(
-        max_digits=10, decimal_places=2, required=False
-    )
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
 
     # FUEL detail fields
     liters = serializers.DecimalField(
@@ -273,7 +276,10 @@ class ExpenseSerializer(serializers.ModelSerializer):
         code = self._get_category_code(data)
 
         # Auto-computed categories: amount derived from line items
-        if code in ("SERVICE", "PARTS", "INSPECTION", "ACCESSORIES", "DOCUMENTS") and "amount" not in data:
+        if (
+            code in ("SERVICE", "PARTS", "INSPECTION", "ACCESSORIES", "DOCUMENTS")
+            and "amount" not in data
+        ):
             data["amount"] = 0
 
         # Type-specific required fields
@@ -365,7 +371,9 @@ class ExpenseSerializer(serializers.ModelSerializer):
             try:
                 next_date = inspection_date.replace(year=inspection_date.year + 1)
             except ValueError:
-                next_date = inspection_date.replace(year=inspection_date.year + 1, day=28)
+                next_date = inspection_date.replace(
+                    year=inspection_date.year + 1, day=28
+                )
 
         inspection = TechnicalInspection.objects.create(
             vehicle=expense.vehicle,
@@ -389,7 +397,10 @@ class ExpenseSerializer(serializers.ModelSerializer):
         if "inspection_date" in detail_data and detail_data["inspection_date"]:
             inspection.inspection_date = detail_data["inspection_date"]
             changed = True
-        if "next_inspection_date" in detail_data and detail_data["next_inspection_date"]:
+        if (
+            "next_inspection_date" in detail_data
+            and detail_data["next_inspection_date"]
+        ):
             inspection.next_inspection_date = detail_data["next_inspection_date"]
             changed = True
         if changed:
@@ -410,7 +421,13 @@ class ExpenseSerializer(serializers.ModelSerializer):
 
         # Auto-computed categories: placeholder amount — will be recomputed from items
         code = self._get_category_code(validated_data)
-        auto_amount_codes = ("SERVICE", "PARTS", "INSPECTION", "ACCESSORIES", "DOCUMENTS")
+        auto_amount_codes = (
+            "SERVICE",
+            "PARTS",
+            "INSPECTION",
+            "ACCESSORIES",
+            "DOCUMENTS",
+        )
         if code in auto_amount_codes:
             validated_data.setdefault("amount", 0)
 

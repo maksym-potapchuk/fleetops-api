@@ -15,9 +15,8 @@ def backfill_next_inspection_date(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('vehicle', '0010_technicalinspection_next_inspection_date'),
+        ("vehicle", "0010_technicalinspection_next_inspection_date"),
     ]
 
     operations = [

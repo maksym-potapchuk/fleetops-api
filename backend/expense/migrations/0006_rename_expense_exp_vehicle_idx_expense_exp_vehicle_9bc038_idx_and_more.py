@@ -4,20 +4,19 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('expense', '0005_inspection'),
+        ("expense", "0005_inspection"),
     ]
 
     operations = [
         migrations.RenameIndex(
-            model_name='expense',
-            new_name='expense_exp_vehicle_9bc038_idx',
-            old_name='expense_exp_vehicle_idx',
+            model_name="expense",
+            new_name="expense_exp_vehicle_9bc038_idx",
+            old_name="expense_exp_vehicle_idx",
         ),
         migrations.RenameIndex(
-            model_name='expense',
-            new_name='expense_exp_expense_46ea33_idx',
-            old_name='expense_exp_expense_idx',
+            model_name="expense",
+            new_name="expense_exp_expense_46ea33_idx",
+            old_name="expense_exp_expense_idx",
         ),
     ]

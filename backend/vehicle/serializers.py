@@ -224,9 +224,11 @@ class MileageLogSerializer(serializers.ModelSerializer):
 
     def validate_km(self, value):
         vehicle_id = self.context["view"].kwargs["pk"]
-        current_km = Vehicle.objects.filter(pk=vehicle_id).values_list(
-            "initial_km", flat=True
-        ).first()
+        current_km = (
+            Vehicle.objects.filter(pk=vehicle_id)
+            .values_list("initial_km", flat=True)
+            .first()
+        )
         if current_km is not None and value <= current_km:
             raise serializers.ValidationError(
                 f"Mileage must be greater than current value ({current_km} km)."
