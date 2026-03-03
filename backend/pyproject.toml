@@ -17,6 +17,7 @@ dependencies = [
     "redis (>=5.0.0,<6.0.0)",
     "ruff (>=0.15.1,<0.16.0)",
     "Pillow (>=11.0.0,<12.0.0)",
+    "gunicorn (>=23.0.0,<24.0.0)",
 ]
 
 
@@ -63,7 +64,7 @@ ignore = [
 
 # ── isort ─────────────────────────────────────────────────────────────────────
 [tool.ruff.lint.isort]
-known-first-party  = ["account", "driver", "vehicle", "fleet_management", "config"]
+known-first-party  = ["account", "driver", "vehicle", "fleet_management", "expense", "config"]
 known-third-party  = ["django", "rest_framework", "corsheaders", "django_filters", "jwt"]
 force-sort-within-sections = true
 combine-as-imports = true
