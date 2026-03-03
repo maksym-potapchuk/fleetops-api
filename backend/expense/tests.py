@@ -2,8 +2,8 @@
 Expense API Tests — Hybrid architecture with dynamic categories.
 """
 
-from decimal import Decimal
 import json
+from decimal import Decimal
 
 from django.test import TestCase
 from rest_framework.test import APIClient
