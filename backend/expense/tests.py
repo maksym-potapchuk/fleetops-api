@@ -11,7 +11,12 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from account.models import User
 from fleet_management.models import FleetService
-from vehicle.models import ManufacturerChoices, TechnicalInspection, Vehicle, VehicleStatus
+from vehicle.models import (
+    ManufacturerChoices,
+    TechnicalInspection,
+    Vehicle,
+    VehicleStatus,
+)
 
 from .models import Expense, ExpenseCategory, ExpensePart, ServiceItem
 
@@ -67,7 +72,8 @@ class ExpenseAPITest(TestCase):
             code="WASHING", defaults={"name": "Washing", "is_system": True, "order": 5}
         )
         self.inspection_cat, _ = ExpenseCategory.objects.get_or_create(
-            code="INSPECTION", defaults={"name": "Inspection", "is_system": True, "order": 6}
+            code="INSPECTION",
+            defaults={"name": "Inspection", "is_system": True, "order": 6},
         )
 
     def _fuel_payload(self, **overrides):
@@ -163,7 +169,6 @@ class ExpenseAPITest(TestCase):
             "category": str(self.custom_cat.id),
             "amount": "50.00",
             "expense_date": "2026-03-01",
-
         }
         response = self.client.post(self.BASE_URL, payload, format="multipart")
         self.assertEqual(response.status_code, 201)
