@@ -46,12 +46,16 @@ class LoginView(TokenObtainPairView):
             raise
 
         if response.status_code == 200:
+            remember_me = request.data.get("remember_me", False)
+
             access_max_age = int(
                 settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds()
             )
             refresh_max_age = int(
                 settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds()
             )
+
+            # access_token always gets max_age (short-lived, 5 min)
             response.set_cookie(
                 "access_token",
                 response.data["access"],
@@ -60,14 +64,37 @@ class LoginView(TokenObtainPairView):
                 secure=settings.SECURE_COOKIES,
                 samesite="Lax",
             )
+
+            if remember_me:
+                # Persistent cookie — survives browser restart
+                response.set_cookie(
+                    "refresh_token",
+                    response.data["refresh"],
+                    max_age=refresh_max_age,
+                    httponly=True,
+                    secure=settings.SECURE_COOKIES,
+                    samesite="Lax",
+                )
+            else:
+                # Session cookie — no max_age, browser deletes on close
+                response.set_cookie(
+                    "refresh_token",
+                    response.data["refresh"],
+                    httponly=True,
+                    secure=settings.SECURE_COOKIES,
+                    samesite="Lax",
+                )
+
+            # Store preference so RefreshView knows which cookie type to set
             response.set_cookie(
-                "refresh_token",
-                response.data["refresh"],
-                max_age=refresh_max_age,
+                "remember_me",
+                "1" if remember_me else "0",
+                max_age=refresh_max_age if remember_me else None,
                 httponly=True,
                 secure=settings.SECURE_COOKIES,
                 samesite="Lax",
             )
+
             response.data = {"detail": "ok"}
             logger.info(
                 "Login successful",
@@ -116,6 +143,8 @@ class RefreshView(TokenRefreshView):
             raise
 
         if response.status_code == 200:
+            remember_me = request.COOKIES.get("remember_me") == "1"
+
             access_max_age = int(
                 settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds()
             )
@@ -135,14 +164,23 @@ class RefreshView(TokenRefreshView):
                 refresh_max_age = int(
                     settings.SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds()
                 )
-                response.set_cookie(
-                    "refresh_token",
-                    response.data["refresh"],
-                    max_age=refresh_max_age,
-                    httponly=True,
-                    secure=settings.SECURE_COOKIES,
-                    samesite="Lax",
-                )
+                if remember_me:
+                    response.set_cookie(
+                        "refresh_token",
+                        response.data["refresh"],
+                        max_age=refresh_max_age,
+                        httponly=True,
+                        secure=settings.SECURE_COOKIES,
+                        samesite="Lax",
+                    )
+                else:
+                    response.set_cookie(
+                        "refresh_token",
+                        response.data["refresh"],
+                        httponly=True,
+                        secure=settings.SECURE_COOKIES,
+                        samesite="Lax",
+                    )
             response.data = {"detail": "refreshed"}
             logger.info(
                 "Token refresh successful",
@@ -190,6 +228,7 @@ class LogoutView(APIView):
         response = Response({"detail": "logout"})
         response.delete_cookie("access_token")
         response.delete_cookie("refresh_token")
+        response.delete_cookie("remember_me")
 
         logger.info(
             "Logout successful",
@@ -282,4 +321,5 @@ class UnsetSessionView(APIView):
         response = Response({"detail": "session cleared"})
         response.delete_cookie("access_token")
         response.delete_cookie("refresh_token")
+        response.delete_cookie("remember_me")
         return response
