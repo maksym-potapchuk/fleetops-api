@@ -30,10 +30,13 @@ _SCHEMA_LIST_TTL = getattr(settings, "CACHE_TTL_SCHEMA_LIST", 600)
 _SCHEMA_DETAIL_TTL = getattr(settings, "CACHE_TTL_SCHEMA_DETAIL", 600)
 _REG_PLAN_TTL = getattr(settings, "CACHE_TTL_REGULATION_PLAN", 300)
 _EQUIPMENT_TTL = getattr(settings, "CACHE_TTL_EQUIPMENT", 300)
+_EXPENSE_LIST_TTL = getattr(settings, "CACHE_TTL_EXPENSE_LIST", 30)
+_EXPENSE_DETAIL_TTL = getattr(settings, "CACHE_TTL_EXPENSE_DETAIL", 60)
 
 # ── Version-key names ────────────────────────────────────────────────────────
 _VK_VEHICLE = "v:vehicle"
 _VK_SCHEMA = "v:schema"
+_VK_EXPENSE = "v:expense"
 
 
 # ── Internal helpers ─────────────────────────────────────────────────────────
@@ -220,3 +223,49 @@ def set_equipment_list(vehicle_id, data) -> None:
 
 def invalidate_equipment(vehicle_id) -> None:
     _safe_delete(f"equipment:{vehicle_id}")
+
+
+# ── Expense ──────────────────────────────────────────────────────────────────
+
+
+def get_expense_list(query_params) -> list | None:
+    v = _get_version(_VK_EXPENSE)
+    return _safe_get(f"expense:list:v{v}:{_params_hash(query_params)}")
+
+
+def set_expense_list(query_params, data) -> None:
+    v = _get_version(_VK_EXPENSE)
+    _safe_set(
+        f"expense:list:v{v}:{_params_hash(query_params)}", data, _EXPENSE_LIST_TTL
+    )
+
+
+def get_expense_detail(expense_id) -> dict | None:
+    return _safe_get(f"expense:detail:{expense_id}")
+
+
+def set_expense_detail(expense_id, data) -> None:
+    _safe_set(f"expense:detail:{expense_id}", data, _EXPENSE_DETAIL_TTL)
+
+
+def invalidate_expense(expense_id=None) -> None:
+    _bump_version(_VK_EXPENSE)
+    if expense_id is not None:
+        _safe_delete(f"expense:detail:{expense_id}")
+
+
+# ── Expense Category ─────────────────────────────────────────────────────────
+
+_CATEGORY_LIST_TTL = 600
+
+
+def get_category_list() -> list | None:
+    return _safe_get("expense:categories")
+
+
+def set_category_list(data) -> None:
+    _safe_set("expense:categories", data, _CATEGORY_LIST_TTL)
+
+
+def invalidate_categories() -> None:
+    _safe_delete("expense:categories")

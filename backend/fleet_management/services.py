@@ -37,6 +37,7 @@ def grant_equipment_to_vehicle(vehicle_id):
         ]
         result = EquipmentList.objects.bulk_create(items, ignore_conflicts=True)
         cache_utils.invalidate_equipment(vehicle_id)
+        cache_utils.invalidate_vehicle(vehicle_id)
         logger.info(
             "Default equipment granted to vehicle successfully",
             extra={

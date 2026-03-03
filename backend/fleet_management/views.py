@@ -531,6 +531,7 @@ class EquipmentListAPIView(generics.ListCreateAPIView):
         try:
             instance = serializer.save(vehicle_id=self.kwargs["vehicle_pk"])
             cache_utils.invalidate_equipment(self.kwargs["vehicle_pk"])
+            cache_utils.invalidate_vehicle(self.kwargs["vehicle_pk"])
             logger.info(
                 "Equipment item created for vehicle",
                 extra={
@@ -570,6 +571,7 @@ class EquipmentItemDestroyAPIView(generics.DestroyAPIView):
         vehicle_pk = self.kwargs["vehicle_pk"]
         instance.delete()
         cache_utils.invalidate_equipment(vehicle_pk)
+        cache_utils.invalidate_vehicle(vehicle_pk)
         logger.info(
             "Equipment item deleted",
             extra={
@@ -591,6 +593,7 @@ class EquipmentItemToggleAPIView(APIView):
         item.is_equipped = not item.is_equipped
         item.save(update_fields=["is_equipped"])
         cache_utils.invalidate_equipment(vehicle_pk)
+        cache_utils.invalidate_vehicle(vehicle_pk)
         logger.info(
             "Equipment item toggled",
             extra={
