@@ -9,6 +9,7 @@ v1_patterns = [
     path("driver/", include("driver.urls")),
     path("vehicle/", include("vehicle.urls")),
     path("fleet/", include("fleet_management.urls")),
+    path("expense/", include("expense.urls")),
 ]
 
 urlpatterns = [
