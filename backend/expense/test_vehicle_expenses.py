@@ -5,8 +5,8 @@ Verifies that expenses can be created via the vehicle-scoped endpoint
 where vehicle ID comes from the URL (not the request body).
 """
 
-import json
 from decimal import Decimal
+import json
 
 from django.test import TestCase
 from rest_framework.test import APIClient
