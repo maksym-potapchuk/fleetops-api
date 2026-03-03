@@ -31,6 +31,7 @@ def make_vehicle(**kwargs):
         "cost": "25000.00",
         "vin_number": "1HGBH41JXMN109186",
         "car_number": "AA6601BB",
+        "color": "#FFFFFF",
         "initial_km": 0,
         "status": VehicleStatus.PREPARATION,
     }
@@ -81,9 +82,10 @@ class TechnicalInspectionAPITest(TestCase):
         )
         response = self.client.get(self.base_url)
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 2)
-        self.assertEqual(response.data[0]["inspection_date"], "2025-06-15")
-        self.assertEqual(response.data[1]["inspection_date"], "2024-01-01")
+        results = response.data["results"]
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[0]["inspection_date"], "2025-06-15")
+        self.assertEqual(results[1]["inspection_date"], "2024-01-01")
 
     def test_patch_updates_notes(self):
         ins = TechnicalInspection.objects.create(

@@ -55,6 +55,7 @@ def make_vehicle(**kwargs):
         "cost": "25000.00",
         "vin_number": "1HGBH41JXMN109186",
         "car_number": "AA6601BB",
+        "color": "#FFFFFF",
         "initial_km": 0,
         "status": VehicleStatus.PREPARATION,
     }
@@ -1152,6 +1153,7 @@ class EquipmentGrantOnVehicleCreationAPITest(BaseAPITest):
             "cost": "20000.00",
             "vin_number": vin,
             "car_number": car,
+            "color": "#FFFFFF",
             "initial_km": 0,
             "status": "PREPARATION",
         }
