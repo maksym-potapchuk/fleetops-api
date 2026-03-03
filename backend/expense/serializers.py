@@ -5,6 +5,7 @@ from django.db import transaction
 from rest_framework import serializers
 
 from .models import (
+    ALLOWED_INVOICE_EXTENSIONS,
     Expense,
     ExpenseCategory,
     ExpenseInvoice,
@@ -407,9 +408,21 @@ class ExpenseSerializer(serializers.ModelSerializer):
             inspection.save()
 
     def _save_invoices(self, expense, request):
+        import os
+
         files = request.FILES.getlist("invoice_files")
         if not files:
             return
+        invalid = [
+            f.name
+            for f in files
+            if os.path.splitext(f.name)[1].lower() not in ALLOWED_INVOICE_EXTENSIONS
+        ]
+        if invalid:
+            allowed = ", ".join(ALLOWED_INVOICE_EXTENSIONS)
+            raise serializers.ValidationError(
+                {"invoice_files": f"Unsupported file format: {', '.join(invalid)}. Allowed: {allowed}"}
+            )
         for f in files:
             ExpenseInvoice.objects.create(expense=expense, file=f, name=f.name)
 

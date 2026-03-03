@@ -1,5 +1,7 @@
+import os
 import uuid
 
+from django.core.exceptions import ValidationError
 from django.db import models
 
 
@@ -256,12 +258,34 @@ class ExpensePart(models.Model):
         return f"{self.name} x{self.quantity} @ {self.unit_price}"
 
 
+ALLOWED_INVOICE_EXTENSIONS = (".pdf", ".doc", ".docx")
+
+
+def validate_invoice_file(value):
+    ext = os.path.splitext(value.name)[1].lower()
+    if ext not in ALLOWED_INVOICE_EXTENSIONS:
+        allowed = ", ".join(ALLOWED_INVOICE_EXTENSIONS)
+        raise ValidationError(f"Unsupported file format. Allowed: {allowed}")
+
+
+def invoice_upload_to(instance, filename):
+    code = "other"
+    if instance.expense_id:
+        try:
+            code = instance.expense.category.code.lower()
+        except (AttributeError, ExpenseCategory.DoesNotExist):
+            pass
+    return f"expenses/invoices/{code}/{filename}"
+
+
 class ExpenseInvoice(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     expense = models.ForeignKey(
         Expense, on_delete=models.CASCADE, related_name="invoices"
     )
-    file = models.FileField(upload_to="expenses/invoices/")
+    file = models.FileField(
+        upload_to=invoice_upload_to, validators=[validate_invoice_file]
+    )
     name = models.CharField(max_length=100, blank=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
