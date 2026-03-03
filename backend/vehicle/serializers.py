@@ -1,6 +1,15 @@
+from datetime import date
+from decimal import Decimal
+
 from rest_framework import serializers
 
-from .models import Vehicle, VehicleOwnerHistory, VehiclePhoto
+from .models import (
+    MileageLog,
+    TechnicalInspection,
+    Vehicle,
+    VehicleOwnerHistory,
+    VehiclePhoto,
+)
 
 
 class VehiclePhotoSerializer(serializers.ModelSerializer):
@@ -27,8 +36,66 @@ class VehiclePhotoSerializer(serializers.ModelSerializer):
         return rep
 
 
+class TechnicalInspectionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TechnicalInspection
+        fields = [
+            "id",
+            "inspection_date",
+            "next_inspection_date",
+            "report",
+            "notes",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
+
+    def validate_inspection_date(self, value):
+        if value > date.today():
+            raise serializers.ValidationError(
+                "Inspection date cannot be in the future."
+            )
+        return value
+
+    @staticmethod
+    def _compute_default_next(inspection_date):
+        try:
+            return inspection_date.replace(year=inspection_date.year + 1)
+        except ValueError:
+            return inspection_date.replace(year=inspection_date.year + 1, day=28)
+
+    def validate(self, data):
+        if not data.get("next_inspection_date"):
+            inspection_date = data.get("inspection_date")
+            if inspection_date:
+                data["next_inspection_date"] = self._compute_default_next(
+                    inspection_date
+                )
+        return data
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        # Backward compat: frontend reads expiry_date
+        rep["expiry_date"] = rep.get("next_inspection_date")
+        report_url = rep.get("report") or ""
+        if report_url:
+            from urllib.parse import urlparse
+
+            rep["report"] = urlparse(report_url).path
+        return rep
+
+
 class VehicleSerializer(serializers.ModelSerializer):
     photos = VehiclePhotoSerializer(many=True, read_only=True)
+    last_inspection_date = serializers.DateField(read_only=True, default=None)
+    next_inspection_date = serializers.DateField(read_only=True, default=None)
+    days_until_inspection = serializers.IntegerField(read_only=True, default=None)
+    equipment_total = serializers.IntegerField(read_only=True, default=0)
+    equipment_equipped = serializers.IntegerField(read_only=True, default=0)
+    regulation_overdue = serializers.IntegerField(read_only=True, default=0)
+    has_regulation = serializers.BooleanField(read_only=True, default=False)
+    expenses_total = serializers.DecimalField(
+        max_digits=12, decimal_places=2, read_only=True, default=0
+    )
 
     class Meta:
         model = Vehicle
@@ -40,11 +107,23 @@ class VehicleSerializer(serializers.ModelSerializer):
             "cost",
             "vin_number",
             "car_number",
+            "color",
+            "fuel_type",
             "initial_km",
             "is_selected",
             "status",
             "driver",
             "photos",
+            "last_inspection_date",
+            "next_inspection_date",
+            "days_until_inspection",
+            "equipment_total",
+            "equipment_equipped",
+            "regulation_overdue",
+            "has_regulation",
+            "expenses_total",
+            "is_archived",
+            "archived_at",
             "created_at",
             "updated_at",
         ]
@@ -52,9 +131,26 @@ class VehicleSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "photos",
+            "last_inspection_date",
+            "next_inspection_date",
+            "days_until_inspection",
+            "equipment_total",
+            "equipment_equipped",
+            "regulation_overdue",
+            "has_regulation",
+            "expenses_total",
+            "is_archived",
+            "archived_at",
             "created_at",
             "updated_at",
         ]
+
+    @staticmethod
+    def _compute_expiry(inspection_date):
+        try:
+            return inspection_date.replace(year=inspection_date.year + 1)
+        except ValueError:
+            return inspection_date.replace(year=inspection_date.year + 1, day=28)
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
@@ -66,6 +162,41 @@ class VehicleSerializer(serializers.ModelSerializer):
             }
         else:
             representation["driver"] = None
+
+        latest = instance.inspections.first()
+        if latest:
+            next_date = latest.next_inspection_date or self._compute_expiry(
+                latest.inspection_date
+            )
+            representation["last_inspection_date"] = latest.inspection_date.isoformat()
+            representation["next_inspection_date"] = next_date.isoformat()
+            representation["days_until_inspection"] = (next_date - date.today()).days
+        else:
+            representation["last_inspection_date"] = None
+            representation["next_inspection_date"] = None
+            representation["days_until_inspection"] = None
+
+        # Equipment counts (uses prefetched equipment_list if available)
+        eq_list = list(instance.equipment_list.all())
+        representation["equipment_total"] = len(eq_list)
+        representation["equipment_equipped"] = sum(1 for e in eq_list if e.is_equipped)
+
+        # Regulation
+        regs = list(instance.regulations.all())
+        representation["has_regulation"] = len(regs) > 0
+        overdue = 0
+        current_km = instance.initial_km
+        for reg in regs:
+            for entry in reg.entries.all():
+                if current_km >= entry.last_done_km + entry.item.every_km:
+                    overdue += 1
+        representation["regulation_overdue"] = overdue
+
+        # Total cost = purchase price + all expenses
+        expenses_total = getattr(instance, "expenses_total", None) or Decimal("0")
+        representation["expenses_total"] = str(expenses_total)
+        representation["total_cost"] = str(instance.cost + expenses_total)
+
         return representation
 
 
@@ -83,3 +214,21 @@ class VehicleOwnerHistorySerializer(serializers.ModelSerializer):
             "last_name": instance.driver.last_name,
         }
         return rep
+
+
+class MileageLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MileageLog
+        fields = ["id", "km", "recorded_at", "created_by", "created_at"]
+        read_only_fields = ["id", "created_by", "created_at"]
+
+    def validate_km(self, value):
+        vehicle_id = self.context["view"].kwargs["pk"]
+        current_km = Vehicle.objects.filter(pk=vehicle_id).values_list(
+            "initial_km", flat=True
+        ).first()
+        if current_km is not None and value <= current_km:
+            raise serializers.ValidationError(
+                f"Mileage must be greater than current value ({current_km} km)."
+            )
+        return value
