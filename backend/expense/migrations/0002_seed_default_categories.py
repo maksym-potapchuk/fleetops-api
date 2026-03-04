@@ -85,7 +85,8 @@ def create_default_categories(apps, schema_editor):
         },
     ]
     for d in defaults:
-        ExpenseCategory.objects.create(**d)
+        code = d.pop("code")
+        ExpenseCategory.objects.get_or_create(code=code, defaults=d)
 
 
 def remove_default_categories(apps, schema_editor):

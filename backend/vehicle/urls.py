@@ -7,6 +7,11 @@ from . import views
 urlpatterns = [
     path("", views.VehicleListCreateView.as_view(), name="vehicle-list-create"),
     path(
+        "reorder/",
+        views.VehicleReorderView.as_view(),
+        name="vehicle-reorder",
+    ),
+    path(
         "archive/",
         views.VehicleArchiveListView.as_view(),
         name="vehicle-archive-list",

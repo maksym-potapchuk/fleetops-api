@@ -20,11 +20,13 @@ class FleetServiceSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "description",
+            "created_by",
             "created_at",
             "updated_at",
         ]
         read_only_fields = [
             "id",
+            "created_by",
             "created_at",
             "updated_at",
         ]
@@ -36,8 +38,10 @@ class FleetVehicleRegulationSerializer(serializers.ModelSerializer):
         fields = [
             "vehicle",
             "schema",
+            "created_by",
             "assigned_at",
         ]
+        read_only_fields = ["created_by"]
 
 
 class FleetVehicleRegulationItemSerializer(serializers.ModelSerializer):
@@ -136,11 +140,13 @@ class ServicePlanSerializer(serializers.ModelSerializer):
             "description",
             "planned_at",
             "is_done",
+            "created_by",
             "created_at",
         ]
         read_only_fields = [
             "id",
             "vehicle",
+            "created_by",
             "created_at",
         ]
 
@@ -160,9 +166,10 @@ class ServicePlanWithVehicleSerializer(serializers.ModelSerializer):
             "description",
             "planned_at",
             "is_done",
+            "created_by",
             "created_at",
         ]
-        read_only_fields = ["id", "vehicle", "vehicle_car_number", "created_at"]
+        read_only_fields = ["id", "vehicle", "vehicle_car_number", "created_by", "created_at"]
 
 
 class EquipmentDefaultItemSerializer(serializers.ModelSerializer):
@@ -171,10 +178,12 @@ class EquipmentDefaultItemSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "equipment",
+            "created_by",
             "created_at",
         ]
         read_only_fields = [
             "id",
+            "created_by",
             "created_at",
         ]
 
@@ -187,11 +196,13 @@ class EquipmentListSerializer(serializers.ModelSerializer):
             "vehicle",
             "equipment",
             "is_equipped",
+            "created_by",
             "created_at",
         ]
         read_only_fields = [
             "id",
             "vehicle",
+            "created_by",
             "created_at",
         ]
 
