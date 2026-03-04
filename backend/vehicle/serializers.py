@@ -3,6 +3,8 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
+from config.storage_utils import media_url
+
 from .models import (
     MileageLog,
     TechnicalInspection,
@@ -15,8 +17,8 @@ from .models import (
 class VehiclePhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = VehiclePhoto
-        fields = ["id", "image", "uploaded_at"]
-        read_only_fields = ["id", "uploaded_at"]
+        fields = ["id", "image", "uploaded_at", "created_by"]
+        read_only_fields = ["id", "uploaded_at", "created_by"]
 
     def validate(self, attrs):
         vehicle_id = self.context["view"].kwargs["pk"]
@@ -30,8 +32,6 @@ class VehiclePhotoSerializer(serializers.ModelSerializer):
         # regardless of whether the API is accessed from browser or server-side.
         image_url = rep.get("image") or ""
         if image_url:
-            from config.storage_utils import media_url
-
             rep["image"] = media_url(image_url)
         return rep
 
@@ -45,9 +45,10 @@ class TechnicalInspectionSerializer(serializers.ModelSerializer):
             "next_inspection_date",
             "report",
             "notes",
+            "created_by",
             "created_at",
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_by", "created_at"]
 
     def validate_inspection_date(self, value):
         if value > date.today():
@@ -78,8 +79,6 @@ class TechnicalInspectionSerializer(serializers.ModelSerializer):
         rep["expiry_date"] = rep.get("next_inspection_date")
         report_url = rep.get("report") or ""
         if report_url:
-            from config.storage_utils import media_url
-
             rep["report"] = media_url(report_url)
         return rep
 
@@ -122,8 +121,10 @@ class VehicleSerializer(serializers.ModelSerializer):
             "regulation_overdue",
             "has_regulation",
             "expenses_total",
+            "status_position",
             "is_archived",
             "archived_at",
+            "created_by",
             "created_at",
             "updated_at",
         ]
@@ -141,6 +142,7 @@ class VehicleSerializer(serializers.ModelSerializer):
             "expenses_total",
             "is_archived",
             "archived_at",
+            "created_by",
             "created_at",
             "updated_at",
         ]
@@ -203,8 +205,8 @@ class VehicleSerializer(serializers.ModelSerializer):
 class VehicleOwnerHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = VehicleOwnerHistory
-        fields = ["id", "driver", "agreement_number", "acquired_at", "released_at"]
-        read_only_fields = ["id", "acquired_at"]
+        fields = ["id", "driver", "agreement_number", "acquired_at", "released_at", "created_by"]
+        read_only_fields = ["id", "acquired_at", "created_by"]
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)

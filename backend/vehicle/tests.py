@@ -16,12 +16,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from account.models import User
 from driver.models import Driver
-from vehicle.models import (
-    ManufacturerChoices,
-    Vehicle,
-    VehicleDriverHistory,
-    VehicleStatus,
-)
+from vehicle.constants import ManufacturerChoices, VehicleStatus
+from vehicle.models import Vehicle, VehicleDriverHistory
 
 # ---------------------------------------------------------------------------
 # Shared factory helpers

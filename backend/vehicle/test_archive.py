@@ -9,12 +9,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from account.models import User
 from driver.models import Driver
-from vehicle.models import (
-    ManufacturerChoices,
-    Vehicle,
-    VehicleOwnerHistory,
-    VehicleStatus,
-)
+from vehicle.constants import ManufacturerChoices, VehicleStatus
+from vehicle.models import Vehicle, VehicleOwnerHistory
 
 
 def make_user(email="archive@example.com", password="pass123!", username="archuser"):

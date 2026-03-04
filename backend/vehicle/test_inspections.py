@@ -11,12 +11,8 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from account.models import User
-from vehicle.models import (
-    ManufacturerChoices,
-    TechnicalInspection,
-    Vehicle,
-    VehicleStatus,
-)
+from vehicle.constants import ManufacturerChoices, VehicleStatus
+from vehicle.models import TechnicalInspection, Vehicle
 
 
 def make_user(email="insp@example.com", password="pass123!", username="inspuser"):

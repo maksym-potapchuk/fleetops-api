@@ -2,12 +2,13 @@ import logging
 
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
-from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.filters import OrderingFilter
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from config import cache_utils
+from config.filters import LayoutAwareSearchFilter as SearchFilter
 
 from .filters import ExpenseFilter
 from .models import Expense, ExpenseCategory

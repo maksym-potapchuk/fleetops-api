@@ -1,12 +1,8 @@
 from django.core.management.base import BaseCommand
 
 from driver.models import Driver
-from vehicle.models import (
-    ManufacturerChoices,
-    Vehicle,
-    VehicleDriverHistory,
-    VehicleStatus,
-)
+from vehicle.constants import ManufacturerChoices, VehicleStatus
+from vehicle.models import Vehicle, VehicleDriverHistory
 
 DRIVER_PHONE = "+380663234712"
 DEFAULT_FIRST_NAME = "Тест"
