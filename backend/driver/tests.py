@@ -394,7 +394,8 @@ class DriverAPITest(TestCase):
         Attempting to delete a driver that is assigned to a vehicle must fail
         with a non-204 response.
         """
-        from vehicle.models import ManufacturerChoices, Vehicle, VehicleStatus
+        from vehicle.constants import ManufacturerChoices, VehicleStatus
+        from vehicle.models import Vehicle
 
         driver = make_driver()
         Vehicle.objects.create(

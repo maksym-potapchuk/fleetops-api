@@ -2,18 +2,19 @@ import logging
 
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, status, viewsets
-from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from config import cache_utils
+from config.filters import LayoutAwareSearchFilter as SearchFilter
 
 from .filters import FleetVehicleRegulationSchemaFilter, RegulationHistoryFilter
+from .constants import EventType
 from .models import (
     EquipmentDefaultItem,
     EquipmentList,
-    EventType,
     FleetService,
     FleetVehicleRegulation,
     FleetVehicleRegulationEntry,
@@ -48,7 +49,7 @@ class FleetServiceViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         try:
-            instance = serializer.save()
+            instance = serializer.save(created_by=self.request.user)
             logger.info(
                 "Fleet service created successfully",
                 extra={
@@ -353,7 +354,7 @@ class ServicePlanListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         try:
-            instance = serializer.save(vehicle_id=self.kwargs["vehicle_pk"])
+            instance = serializer.save(vehicle_id=self.kwargs["vehicle_pk"], created_by=self.request.user)
             logger.info(
                 "Service plan created successfully",
                 extra={
@@ -465,7 +466,7 @@ class EquipmentDefaultItemViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         try:
-            instance = serializer.save()
+            instance = serializer.save(created_by=self.request.user)
             logger.info(
                 "Default equipment item created",
                 extra={
@@ -529,7 +530,7 @@ class EquipmentListAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         try:
-            instance = serializer.save(vehicle_id=self.kwargs["vehicle_pk"])
+            instance = serializer.save(vehicle_id=self.kwargs["vehicle_pk"], created_by=self.request.user)
             cache_utils.invalidate_equipment(self.kwargs["vehicle_pk"])
             cache_utils.invalidate_vehicle(self.kwargs["vehicle_pk"])
             logger.info(

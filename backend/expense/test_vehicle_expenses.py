@@ -14,7 +14,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from account.models import User
 from fleet_management.models import FleetService
-from vehicle.models import ManufacturerChoices, Vehicle, VehicleStatus
+from vehicle.constants import ManufacturerChoices, VehicleStatus
+from vehicle.models import Vehicle
 
 from .models import Expense, ExpenseCategory, ServiceItem
 

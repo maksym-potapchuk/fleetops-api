@@ -4,33 +4,14 @@ import uuid
 from django.core.exceptions import ValidationError
 from django.db import models
 
-
-class FuelType(models.TextChoices):
-    GASOLINE = "GASOLINE", "Gasoline"
-    DIESEL = "DIESEL", "Diesel"
-    LPG = "LPG", "LPG"
-    ELECTRIC = "ELECTRIC", "Electric"
-
-
-class WashType(models.TextChoices):
-    EXTERIOR = "EXTERIOR", "Exterior"
-    INTERIOR = "INTERIOR", "Interior"
-    FULL = "FULL", "Full"
-
-
-class PaymentMethod(models.TextChoices):
-    CASH = "CASH", "Cash"
-    CASHLESS = "CASHLESS", "Cashless"
-
-
-class PayerType(models.TextChoices):
-    COMPANY = "COMPANY", "Company"
-    CLIENT = "CLIENT", "Client"
-
-
-class SupplierType(models.TextChoices):
-    DISASSEMBLY = "DISASSEMBLY", "Disassembly"
-    INDIVIDUAL = "INDIVIDUAL", "Individual"
+from .constants import (
+    ALLOWED_INVOICE_EXTENSIONS,
+    FuelType,
+    PayerType,
+    PaymentMethod,
+    SupplierType,
+    WashType,
+)
 
 
 # ── Dynamic expense category ──
@@ -81,7 +62,7 @@ class Expense(models.Model):
         related_name="expenses",
     )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    expense_date = models.DateField()
+    expense_date = models.DateTimeField()
     receipt = models.FileField(upload_to="expenses/receipts/", blank=True, null=True)
     payment_method = models.CharField(
         max_length=20,
@@ -256,9 +237,6 @@ class ExpensePart(models.Model):
 
     def __str__(self) -> str:
         return f"{self.name} x{self.quantity} @ {self.unit_price}"
-
-
-ALLOWED_INVOICE_EXTENSIONS = (".pdf", ".doc", ".docx")
 
 
 def validate_invoice_file(value):

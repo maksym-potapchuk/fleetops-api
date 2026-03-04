@@ -1,27 +1,22 @@
 from django.db import models, transaction
 
+from .constants import EventType, RegulationNotificationStatus
 
-# Create your models here.
+
 class FleetService(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(null=True, blank=True)
+    created_by = models.ForeignKey(
+        "account.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="created_fleet_services",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self) -> str:
         return self.name
-
-
-class RegulationNotificationStatus(models.TextChoices):
-    PENDING = "Pending", "Pending"
-    SENT = "Sent", "Sent"
-    FAILED = "Failed", "Failed"
-
-
-class EventType(models.TextChoices):
-    PERFORMED = "performed", "Service Performed"
-    KM_UPDATED = "km_updated", "KM Updated"
-    NOTIFIED = "notified", "Notification Sent"
 
 
 class ServiceHistory(models.Model):
@@ -36,6 +31,12 @@ class ServiceHistory(models.Model):
     invoice_field = models.FileField(upload_to="invoices/")
     invoice_amount = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=50)
+    created_by = models.ForeignKey(
+        "account.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="created_service_histories",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -117,6 +118,12 @@ class FleetVehicleRegulation(models.Model):
         related_name="regulations",
     )
 
+    created_by = models.ForeignKey(
+        "account.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="created_regulations",
+    )
     assigned_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -217,6 +224,12 @@ class ServicePlan(models.Model):
     description = models.TextField(null=True, blank=True)
     planned_at = models.DateField()
     is_done = models.BooleanField(default=False)
+    created_by = models.ForeignKey(
+        "account.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="created_service_plans",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -228,6 +241,12 @@ class ServicePlan(models.Model):
 
 class EquipmentDefaultItem(models.Model):
     equipment = models.CharField(max_length=55)
+    created_by = models.ForeignKey(
+        "account.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="created_default_equipment",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:
@@ -242,6 +261,12 @@ class EquipmentList(models.Model):
     )
     equipment = models.CharField(max_length=55)
     is_equipped = models.BooleanField(default=False)
+    created_by = models.ForeignKey(
+        "account.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="created_equipment_items",
+    )
     approved_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

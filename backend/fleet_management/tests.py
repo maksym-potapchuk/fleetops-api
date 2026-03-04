@@ -19,10 +19,10 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from account.models import User
+from fleet_management.constants import EventType
 from fleet_management.models import (
     EquipmentDefaultItem,
     EquipmentList,
-    EventType,
     FleetService,
     FleetVehicleRegulation,
     FleetVehicleRegulationEntry,
@@ -36,7 +36,8 @@ from fleet_management.services import (
     assign_regulation_to_vehicle,
     grant_equipment_to_vehicle,
 )
-from vehicle.models import ManufacturerChoices, Vehicle, VehicleStatus
+from vehicle.constants import ManufacturerChoices, VehicleStatus
+from vehicle.models import Vehicle
 
 # ---------------------------------------------------------------------------
 # Shared factory helpers — no database state shared between test classes

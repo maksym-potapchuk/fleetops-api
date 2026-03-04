@@ -4,10 +4,10 @@ from django.db import transaction
 
 from config import cache_utils
 
+from .constants import EventType
 from .models import (
     EquipmentDefaultItem,
     EquipmentList,
-    EventType,
     FleetVehicleRegulation,
     FleetVehicleRegulationEntry,
     FleetVehicleRegulationHistory,
@@ -73,7 +73,7 @@ def assign_regulation_to_vehicle(vehicle_pk, schema_id, entries_data, user):
         raise ValueError("Schema already assigned to this vehicle")
 
     regulation = FleetVehicleRegulation.objects.create(
-        vehicle_id=vehicle_pk, schema_id=schema_id
+        vehicle_id=vehicle_pk, schema_id=schema_id, created_by=user
     )
 
     created_entries = []

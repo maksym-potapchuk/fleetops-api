@@ -1,9 +1,13 @@
 import json
+import os
+
 from django.db import transaction
 from rest_framework import serializers
 
+from config.storage_utils import media_url
+
+from .constants import ALLOWED_INVOICE_EXTENSIONS
 from .models import (
-    ALLOWED_INVOICE_EXTENSIONS,
     Expense,
     ExpenseCategory,
     ExpenseInvoice,
@@ -101,8 +105,6 @@ class ExpenseInvoiceSerializer(serializers.ModelSerializer):
         rep = super().to_representation(instance)
         file_url = rep.get("file") or ""
         if file_url:
-            from config.storage_utils import media_url
-
             rep["file"] = media_url(file_url)
         return rep
 
@@ -381,6 +383,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
             inspection_date=inspection_date,
             next_inspection_date=next_date,
             notes=f"Auto-created from expense #{expense.id}",
+            created_by=expense.created_by,
         )
 
         detail = getattr(expense, "inspection_detail", None)
@@ -408,8 +411,6 @@ class ExpenseSerializer(serializers.ModelSerializer):
             inspection.save()
 
     def _save_invoices(self, expense, request):
-        import os
-
         files = request.FILES.getlist("invoice_files")
         if not files:
             return
@@ -512,8 +513,6 @@ class ExpenseSerializer(serializers.ModelSerializer):
 
         receipt_url = rep.get("receipt") or ""
         if receipt_url:
-            from config.storage_utils import media_url
-
             rep["receipt"] = media_url(receipt_url)
 
         code = instance.category.code if instance.category_id else None

@@ -2,36 +2,7 @@ import uuid
 
 from django.db import models
 
-
-class ManufacturerChoices(models.TextChoices):
-    TOYOTA = "Toyota", "Toyota"
-    FORD = "Ford", "Ford"
-    HONDA = "Honda", "Honda"
-    CHEVROLET = "Chevrolet", "Chevrolet"
-    BMW = "BMW", "BMW"
-    LEXUS = "Lexus", "Lexus"
-    AUDI = "Audi", "Audi"
-
-
-class FuelType(models.TextChoices):
-    GASOLINE = "GASOLINE", "Gasoline"
-    DIESEL = "DIESEL", "Diesel"
-    LPG = "LPG", "LPG"
-    LPG_GASOLINE = "LPG_GASOLINE", "LPG + Gasoline"
-    ELECTRIC = "ELECTRIC", "Electric"
-    HYBRID = "HYBRID", "Hybrid"
-
-
-class VehicleStatus(models.TextChoices):
-    CTO = "CTO", "CTO"
-    FOCUS = "FOCUS", "Focus"
-    CLEANING = "CLEANING", "Cleaning"
-    PREPARATION = "PREPARATION", "Preparation"
-    READY = "READY", "Ready"
-    LEASING = "LEASING", "Leasing"
-    RENT = "RENT", "Rent"
-    SELLING = "SELLING", "Selling"
-    SOLD = "SOLD", "Sold"
+from .constants import FuelType, ManufacturerChoices, VehicleStatus
 
 
 class Vehicle(models.Model):
@@ -55,12 +26,20 @@ class Vehicle(models.Model):
         choices=VehicleStatus.choices,
         default=VehicleStatus.PREPARATION,
     )
+    status_position = models.PositiveIntegerField(default=0, db_index=True)
     driver = models.ForeignKey(
         "driver.Driver",
         on_delete=models.PROTECT,
         related_name="vehicle_driver",
         null=True,
         blank=True,
+    )
+
+    created_by = models.ForeignKey(
+        "account.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="created_vehicles",
     )
 
     is_archived = models.BooleanField(default=False, db_index=True)
@@ -112,6 +91,12 @@ class VehiclePhoto(models.Model):
         related_name="photos",
     )
     image = models.ImageField(upload_to="vehicles/photos/")
+    created_by = models.ForeignKey(
+        "account.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="created_vehicle_photos",
+    )
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -135,6 +120,12 @@ class VehicleOwnerHistory(models.Model):
         related_name="owned_vehicles",
     )
     agreement_number = models.CharField(max_length=100, blank=True)
+    created_by = models.ForeignKey(
+        "account.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="created_owner_histories",
+    )
     acquired_at = models.DateTimeField(auto_now_add=True)
     released_at = models.DateTimeField(null=True, blank=True)
 
@@ -183,6 +174,12 @@ class TechnicalInspection(models.Model):
         null=True,
     )
     notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        "account.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="created_inspections",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
