@@ -7,3 +7,8 @@ backend/.env
 
 # Media uploads
 backend/media/
+
+# Docs (keep only root README.md and frontend/README.md)
+*.md
+!README.md
+!frontend/README.md
