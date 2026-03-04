@@ -1,6 +1,16 @@
 from django.db import migrations
 
 
+DEFAULT_EQUIPMENT = [
+    "Вогнегасник",
+    "Аптечка",
+    "Трикутник",
+    "Жилет",
+    "Буксирувальний трос",
+    "Запасне колесо",
+    "Домкрат",
+]
+
 DEFAULT_SCHEMA_TITLE = "Базовий регламент"
 
 DEFAULT_ITEMS = [
@@ -86,7 +96,20 @@ DEFAULT_ITEMS = [
 ]
 
 
-def add_default_schema(apps, schema_editor):
+def seed_equipment(apps, schema_editor):
+    EquipmentDefaultItem = apps.get_model("fleet_management", "EquipmentDefaultItem")
+    EquipmentDefaultItem.objects.bulk_create(
+        [EquipmentDefaultItem(equipment=name) for name in DEFAULT_EQUIPMENT],
+        ignore_conflicts=True,
+    )
+
+
+def remove_equipment(apps, schema_editor):
+    EquipmentDefaultItem = apps.get_model("fleet_management", "EquipmentDefaultItem")
+    EquipmentDefaultItem.objects.filter(equipment__in=DEFAULT_EQUIPMENT).delete()
+
+
+def seed_regulation_schema(apps, schema_editor):
     Schema = apps.get_model("fleet_management", "FleetVehicleRegulationSchema")
     Item = apps.get_model("fleet_management", "FleetVehicleRegulationItem")
 
@@ -116,16 +139,17 @@ def add_default_schema(apps, schema_editor):
     )
 
 
-def remove_default_schema(apps, schema_editor):
+def remove_regulation_schema(apps, schema_editor):
     Schema = apps.get_model("fleet_management", "FleetVehicleRegulationSchema")
     Schema.objects.filter(title=DEFAULT_SCHEMA_TITLE, is_default=True).delete()
 
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("fleet_management", "0005_seed_default_equipment_items"),
+        ("fleet_management", "0001_initial"),
     ]
 
     operations = [
-        migrations.RunPython(add_default_schema, remove_default_schema),
+        migrations.RunPython(seed_equipment, remove_equipment),
+        migrations.RunPython(seed_regulation_schema, remove_regulation_schema),
     ]
