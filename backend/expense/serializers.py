@@ -1,6 +1,4 @@
 import json
-from urllib.parse import urlparse
-
 from django.db import transaction
 from rest_framework import serializers
 
@@ -103,7 +101,9 @@ class ExpenseInvoiceSerializer(serializers.ModelSerializer):
         rep = super().to_representation(instance)
         file_url = rep.get("file") or ""
         if file_url:
-            rep["file"] = urlparse(file_url).path
+            from config.storage_utils import media_url
+
+            rep["file"] = media_url(file_url)
         return rep
 
 
@@ -510,10 +510,11 @@ class ExpenseSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         rep = super().to_representation(instance)
 
-        # Receipt: path-only
         receipt_url = rep.get("receipt") or ""
         if receipt_url:
-            rep["receipt"] = urlparse(receipt_url).path
+            from config.storage_utils import media_url
+
+            rep["receipt"] = media_url(receipt_url)
 
         code = instance.category.code if instance.category_id else None
 
