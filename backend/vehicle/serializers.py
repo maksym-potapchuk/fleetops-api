@@ -30,9 +30,9 @@ class VehiclePhotoSerializer(serializers.ModelSerializer):
         # regardless of whether the API is accessed from browser or server-side.
         image_url = rep.get("image") or ""
         if image_url:
-            from urllib.parse import urlparse
+            from config.storage_utils import media_url
 
-            rep["image"] = urlparse(image_url).path
+            rep["image"] = media_url(image_url)
         return rep
 
 
@@ -78,9 +78,9 @@ class TechnicalInspectionSerializer(serializers.ModelSerializer):
         rep["expiry_date"] = rep.get("next_inspection_date")
         report_url = rep.get("report") or ""
         if report_url:
-            from urllib.parse import urlparse
+            from config.storage_utils import media_url
 
-            rep["report"] = urlparse(report_url).path
+            rep["report"] = media_url(report_url)
         return rep
 
 
