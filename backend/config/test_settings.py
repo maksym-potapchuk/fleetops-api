@@ -8,6 +8,14 @@ Overrides:
 
 from config.settings import *  # noqa: F403
 
+# Use in-memory SQLite — fast, no external DB required for tests
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": ":memory:",
+    }
+}
+
 # Use in-memory cache — no Redis required for tests
 CACHES = {
     "default": {

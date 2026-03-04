@@ -1,5 +1,6 @@
 import logging
 
+from django.db import models, transaction
 from django.db.models import DecimalField, Sum, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
@@ -49,7 +50,7 @@ class VehicleListCreateView(generics.ListCreateAPIView):
         )
         .filter(is_archived=False)
         .annotate(**_EXPENSES_TOTAL_ANNOTATION)
-        .order_by("-updated_at")
+        .order_by("status_position", "-updated_at")
     )
     serializer_class = VehicleSerializer
     permission_classes = [IsAuthenticated]
@@ -68,7 +69,7 @@ class VehicleListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         try:
-            instance = create_vehicle(serializer.validated_data)
+            instance = create_vehicle(serializer.validated_data, user=self.request.user)
             serializer.instance = (
                 instance  # allow DRF to serialize the response correctly
             )
@@ -127,7 +128,22 @@ class VehicleRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_update(self, serializer):
         try:
+            old_status = serializer.instance.status
             instance = serializer.save()
+            if (
+                instance.status != old_status
+                and "status_position" not in self.request.data
+            ):
+                max_pos = (
+                    Vehicle.objects.filter(
+                        status=instance.status, is_archived=False
+                    )
+                    .exclude(pk=instance.pk)
+                    .aggregate(m=models.Max("status_position"))["m"]
+                    or 0
+                )
+                instance.status_position = max_pos + 1000
+                instance.save(update_fields=["status_position"])
             cache_utils.invalidate_vehicle(instance.id)
             logger.info(
                 "Vehicle updated successfully",
@@ -181,6 +197,49 @@ class VehicleRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
                 "user_id": str(self.request.user.id),
             },
         )
+
+
+class VehicleReorderView(generics.GenericAPIView):
+    """POST /vehicle/reorder/ — batch update positions (and optionally status)."""
+
+    permission_classes = [IsAuthenticated]
+    http_method_names = ["post"]
+
+    def post(self, request):
+        items = request.data
+        if not isinstance(items, list) or len(items) == 0:
+            return Response(
+                {"detail": "Expected non-empty array."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(items) > 100:
+            return Response(
+                {"detail": "Too many items."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        vehicle_ids = [item["id"] for item in items]
+        vehicles_qs = Vehicle.objects.filter(
+            id__in=vehicle_ids, is_archived=False
+        )
+        vehicles_map = {str(v.id): v for v in vehicles_qs}
+
+        with transaction.atomic():
+            to_update = []
+            for item in items:
+                v = vehicles_map.get(item["id"])
+                if not v:
+                    continue
+                v.status = item.get("status", v.status)
+                v.status_position = item["status_position"]
+                to_update.append(v)
+            if to_update:
+                Vehicle.objects.bulk_update(
+                    to_update, ["status", "status_position"]
+                )
+
+        cache_utils.invalidate_vehicle()
+        return Response({"updated": len(to_update)})
 
 
 class VehicleArchiveListView(generics.ListAPIView):
@@ -308,7 +367,7 @@ class VehiclePhotoListCreateView(generics.ListCreateAPIView):
         return VehiclePhoto.objects.filter(vehicle_id=self.kwargs["pk"])
 
     def perform_create(self, serializer):
-        serializer.save(vehicle_id=self.kwargs["pk"])
+        serializer.save(vehicle_id=self.kwargs["pk"], created_by=self.request.user)
         cache_utils.invalidate_vehicle(self.kwargs["pk"])
 
 
@@ -345,7 +404,7 @@ class VehicleOwnerHistoryListCreateView(generics.ListCreateAPIView):
         ).select_related("driver")
 
     def perform_create(self, serializer):
-        serializer.save(vehicle_id=self.kwargs["pk"])
+        serializer.save(vehicle_id=self.kwargs["pk"], created_by=self.request.user)
 
 
 class VehicleOwnerHistoryUpdateView(generics.UpdateAPIView):
@@ -376,7 +435,7 @@ class TechnicalInspectionListCreateView(generics.ListCreateAPIView):
         return TechnicalInspection.objects.filter(vehicle_id=self.kwargs["pk"])
 
     def perform_create(self, serializer):
-        serializer.save(vehicle_id=self.kwargs["pk"])
+        serializer.save(vehicle_id=self.kwargs["pk"], created_by=self.request.user)
         cache_utils.invalidate_vehicle(self.kwargs["pk"])
 
 
