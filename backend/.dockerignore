@@ -21,3 +21,6 @@ build/
 
 media/
 staticfiles/
+
+# Trello import artifacts
+trello_export.json

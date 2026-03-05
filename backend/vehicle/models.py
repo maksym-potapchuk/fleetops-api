@@ -17,7 +17,8 @@ class Vehicle(models.Model):
     fuel_type = models.CharField(
         max_length=20,
         choices=FuelType.choices,
-        default=FuelType.GASOLINE,
+        null=True,
+        blank=True,
     )
     initial_km = models.PositiveIntegerField(default=0)
     is_selected = models.BooleanField(default=True)
