@@ -13,7 +13,6 @@ from .constants import (
     WashType,
 )
 
-
 # ── Dynamic expense category ──
 
 

@@ -6,41 +6,70 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('fleet_management', '0002_seed_defaults'),
+        ("fleet_management", "0002_seed_defaults"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='equipmentdefaultitem',
-            name='created_by',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_default_equipment', to=settings.AUTH_USER_MODEL),
+            model_name="equipmentdefaultitem",
+            name="created_by",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="created_default_equipment",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='equipmentlist',
-            name='created_by',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_equipment_items', to=settings.AUTH_USER_MODEL),
+            model_name="equipmentlist",
+            name="created_by",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="created_equipment_items",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='fleetservice',
-            name='created_by',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_fleet_services', to=settings.AUTH_USER_MODEL),
+            model_name="fleetservice",
+            name="created_by",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="created_fleet_services",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='fleetvehicleregulation',
-            name='created_by',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_regulations', to=settings.AUTH_USER_MODEL),
+            model_name="fleetvehicleregulation",
+            name="created_by",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="created_regulations",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='servicehistory',
-            name='created_by',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_service_histories', to=settings.AUTH_USER_MODEL),
+            model_name="servicehistory",
+            name="created_by",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="created_service_histories",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='serviceplan',
-            name='created_by',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_service_plans', to=settings.AUTH_USER_MODEL),
+            model_name="serviceplan",
+            name="created_by",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="created_service_plans",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]

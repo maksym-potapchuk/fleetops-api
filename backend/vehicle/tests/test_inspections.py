@@ -8,42 +8,16 @@ import datetime
 
 from django.test import TestCase
 from rest_framework.test import APIClient
-from rest_framework_simplejwt.tokens import RefreshToken
 
-from account.models import User
-from vehicle.constants import ManufacturerChoices, VehicleStatus
-from vehicle.models import TechnicalInspection, Vehicle
+from vehicle.models import TechnicalInspection
 
-
-def make_user(email="insp@example.com", password="pass123!", username="inspuser"):
-    return User.objects.create_user(email=email, password=password, username=username)
-
-
-def make_vehicle(**kwargs):
-    defaults = {
-        "model": "Camry",
-        "manufacturer": ManufacturerChoices.TOYOTA,
-        "year": 2022,
-        "cost": "25000.00",
-        "vin_number": "1HGBH41JXMN109186",
-        "car_number": "AA6601BB",
-        "color": "#FFFFFF",
-        "initial_km": 0,
-        "status": VehicleStatus.PREPARATION,
-    }
-    defaults.update(kwargs)
-    return Vehicle.objects.create(**defaults)
-
-
-def authenticate(client: APIClient, user: User) -> None:
-    refresh = RefreshToken.for_user(user)
-    client.cookies["access_token"] = str(refresh.access_token)
+from .helpers import authenticate, make_user, make_vehicle
 
 
 class TechnicalInspectionAPITest(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.user = make_user()
+        self.user = make_user(email="insp@example.com", username="inspuser")
         authenticate(self.client, self.user)
         self.vehicle = make_vehicle()
         self.base_url = f"/api/v1/vehicle/{self.vehicle.id}/inspections/"

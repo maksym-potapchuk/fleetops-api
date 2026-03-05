@@ -6,36 +6,55 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('vehicle', '0001_initial'),
+        ("vehicle", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='technicalinspection',
-            name='created_by',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_inspections', to=settings.AUTH_USER_MODEL),
+            model_name="technicalinspection",
+            name="created_by",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="created_inspections",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='vehicle',
-            name='created_by',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_vehicles', to=settings.AUTH_USER_MODEL),
+            model_name="vehicle",
+            name="created_by",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="created_vehicles",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='vehicle',
-            name='status_position',
+            model_name="vehicle",
+            name="status_position",
             field=models.PositiveIntegerField(db_index=True, default=0),
         ),
         migrations.AddField(
-            model_name='vehicleownerhistory',
-            name='created_by',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_owner_histories', to=settings.AUTH_USER_MODEL),
+            model_name="vehicleownerhistory",
+            name="created_by",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="created_owner_histories",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AddField(
-            model_name='vehiclephoto',
-            name='created_by',
-            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_vehicle_photos', to=settings.AUTH_USER_MODEL),
+            model_name="vehiclephoto",
+            name="created_by",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="created_vehicle_photos",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]

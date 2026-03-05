@@ -7,101 +7,264 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('driver', '0001_initial'),
+        ("driver", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Vehicle',
+            name="Vehicle",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('model', models.CharField(max_length=50)),
-                ('manufacturer', models.CharField(choices=[('Toyota', 'Toyota'), ('Ford', 'Ford'), ('Honda', 'Honda'), ('Chevrolet', 'Chevrolet'), ('BMW', 'BMW'), ('Lexus', 'Lexus'), ('Audi', 'Audi')], max_length=50)),
-                ('year', models.PositiveIntegerField()),
-                ('cost', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('vin_number', models.CharField(max_length=17, unique=True)),
-                ('car_number', models.CharField(max_length=10, unique=True)),
-                ('color', models.CharField(max_length=30)),
-                ('fuel_type', models.CharField(choices=[('GASOLINE', 'Gasoline'), ('DIESEL', 'Diesel'), ('LPG', 'LPG'), ('LPG_GASOLINE', 'LPG + Gasoline'), ('ELECTRIC', 'Electric'), ('HYBRID', 'Hybrid')], default='GASOLINE', max_length=20)),
-                ('initial_km', models.PositiveIntegerField(default=0)),
-                ('is_selected', models.BooleanField(default=True)),
-                ('status', models.CharField(choices=[('CTO', 'CTO'), ('FOCUS', 'Focus'), ('CLEANING', 'Cleaning'), ('PREPARATION', 'Preparation'), ('READY', 'Ready'), ('LEASING', 'Leasing'), ('RENT', 'Rent'), ('SELLING', 'Selling'), ('SOLD', 'Sold')], default='PREPARATION', max_length=20)),
-                ('is_archived', models.BooleanField(db_index=True, default=False)),
-                ('archived_at', models.DateTimeField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('driver', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, related_name='vehicle_driver', to='driver.driver')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                ("model", models.CharField(max_length=50)),
+                (
+                    "manufacturer",
+                    models.CharField(
+                        choices=[
+                            ("Toyota", "Toyota"),
+                            ("Ford", "Ford"),
+                            ("Honda", "Honda"),
+                            ("Chevrolet", "Chevrolet"),
+                            ("BMW", "BMW"),
+                            ("Lexus", "Lexus"),
+                            ("Audi", "Audi"),
+                        ],
+                        max_length=50,
+                    ),
+                ),
+                ("year", models.PositiveIntegerField()),
+                ("cost", models.DecimalField(decimal_places=2, max_digits=10)),
+                ("vin_number", models.CharField(max_length=17, unique=True)),
+                ("car_number", models.CharField(max_length=10, unique=True)),
+                ("color", models.CharField(max_length=30)),
+                (
+                    "fuel_type",
+                    models.CharField(
+                        choices=[
+                            ("GASOLINE", "Gasoline"),
+                            ("DIESEL", "Diesel"),
+                            ("LPG", "LPG"),
+                            ("LPG_GASOLINE", "LPG + Gasoline"),
+                            ("ELECTRIC", "Electric"),
+                            ("HYBRID", "Hybrid"),
+                        ],
+                        default="GASOLINE",
+                        max_length=20,
+                    ),
+                ),
+                ("initial_km", models.PositiveIntegerField(default=0)),
+                ("is_selected", models.BooleanField(default=True)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("CTO", "CTO"),
+                            ("FOCUS", "Focus"),
+                            ("CLEANING", "Cleaning"),
+                            ("PREPARATION", "Preparation"),
+                            ("READY", "Ready"),
+                            ("LEASING", "Leasing"),
+                            ("RENT", "Rent"),
+                            ("SELLING", "Selling"),
+                            ("SOLD", "Sold"),
+                        ],
+                        default="PREPARATION",
+                        max_length=20,
+                    ),
+                ),
+                ("is_archived", models.BooleanField(db_index=True, default=False)),
+                ("archived_at", models.DateTimeField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "driver",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="vehicle_driver",
+                        to="driver.driver",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='TechnicalInspection',
+            name="TechnicalInspection",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('inspection_date', models.DateField()),
-                ('next_inspection_date', models.DateField(blank=True, null=True)),
-                ('report', models.FileField(blank=True, null=True, upload_to='vehicles/inspections/')),
-                ('notes', models.TextField(blank=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('vehicle', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='inspections', to='vehicle.vehicle')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("inspection_date", models.DateField()),
+                ("next_inspection_date", models.DateField(blank=True, null=True)),
+                (
+                    "report",
+                    models.FileField(
+                        blank=True, null=True, upload_to="vehicles/inspections/"
+                    ),
+                ),
+                ("notes", models.TextField(blank=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "vehicle",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="inspections",
+                        to="vehicle.vehicle",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-inspection_date'],
+                "ordering": ["-inspection_date"],
             },
         ),
         migrations.CreateModel(
-            name='MileageLog',
+            name="MileageLog",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('km', models.PositiveIntegerField()),
-                ('recorded_at', models.DateField()),
-                ('note', models.CharField(blank=True, max_length=255)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('created_by', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='mileage_logs', to=settings.AUTH_USER_MODEL)),
-                ('vehicle', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='mileage_logs', to='vehicle.vehicle')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("km", models.PositiveIntegerField()),
+                ("recorded_at", models.DateField()),
+                ("note", models.CharField(blank=True, max_length=255)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="mileage_logs",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "vehicle",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="mileage_logs",
+                        to="vehicle.vehicle",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-recorded_at', '-created_at'],
+                "ordering": ["-recorded_at", "-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='VehicleDriverHistory',
+            name="VehicleDriverHistory",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('assigned_at', models.DateTimeField(auto_now_add=True)),
-                ('unassigned_at', models.DateTimeField(blank=True, null=True)),
-                ('driver', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='driver_vehicles', to='driver.driver')),
-                ('vehicle', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='vehicle_drivers', to='vehicle.vehicle')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("assigned_at", models.DateTimeField(auto_now_add=True)),
+                ("unassigned_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "driver",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="driver_vehicles",
+                        to="driver.driver",
+                    ),
+                ),
+                (
+                    "vehicle",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="vehicle_drivers",
+                        to="vehicle.vehicle",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='VehicleOwnerHistory',
+            name="VehicleOwnerHistory",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('agreement_number', models.CharField(blank=True, max_length=100)),
-                ('acquired_at', models.DateTimeField(auto_now_add=True)),
-                ('released_at', models.DateTimeField(blank=True, null=True)),
-                ('driver', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='owned_vehicles', to='driver.driver')),
-                ('vehicle', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='owner_history', to='vehicle.vehicle')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("agreement_number", models.CharField(blank=True, max_length=100)),
+                ("acquired_at", models.DateTimeField(auto_now_add=True)),
+                ("released_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "driver",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="owned_vehicles",
+                        to="driver.driver",
+                    ),
+                ),
+                (
+                    "vehicle",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="owner_history",
+                        to="vehicle.vehicle",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-acquired_at'],
+                "ordering": ["-acquired_at"],
             },
         ),
         migrations.CreateModel(
-            name='VehiclePhoto',
+            name="VehiclePhoto",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('image', models.ImageField(upload_to='vehicles/photos/')),
-                ('uploaded_at', models.DateTimeField(auto_now_add=True)),
-                ('vehicle', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='photos', to='vehicle.vehicle')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("image", models.ImageField(upload_to="vehicles/photos/")),
+                ("uploaded_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "vehicle",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="photos",
+                        to="vehicle.vehicle",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['uploaded_at'],
+                "ordering": ["uploaded_at"],
             },
         ),
     ]

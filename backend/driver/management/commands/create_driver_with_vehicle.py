@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 
 from driver.models import Driver
 from vehicle.constants import ManufacturerChoices, VehicleStatus
-from vehicle.models import Vehicle, VehicleDriverHistory
+from vehicle.models import Vehicle, VehicleOwner
 
 DRIVER_PHONE = "+380663234712"
 DEFAULT_FIRST_NAME = "Тест"
@@ -44,7 +44,6 @@ class Command(BaseCommand):
                     )
                 )
                 return
-            # With --force we update existing driver and vehicle below
             self.stdout.write(self.style.WARNING(f"Updating existing driver: {driver}"))
         else:
             driver = Driver.objects.create(
@@ -70,7 +69,7 @@ class Command(BaseCommand):
                 self.style.WARNING(f"Updating existing vehicle: {vehicle}")
             )
         else:
-            vehicle = Vehicle(
+            vehicle = Vehicle.objects.create(
                 model=VEHICLE_MODEL,
                 manufacturer=VEHICLE_MANUFACTURER,
                 year=VEHICLE_YEAR,
@@ -78,23 +77,17 @@ class Command(BaseCommand):
                 vin_number=VEHICLE_VIN,
                 car_number=VEHICLE_CAR_NUMBER,
                 initial_km=VEHICLE_INITIAL_KM,
-                status=VehicleStatus.PREPARATION,
-                driver=driver,
+                status=VehicleStatus.AUCTION,
             )
-            vehicle.save()
             self.stdout.write(self.style.SUCCESS(f"Created vehicle: {vehicle}"))
 
-        # Assign vehicle to driver
-        vehicle.driver = driver
-        vehicle.save()
+        # Assign vehicle to driver via VehicleOwner
+        VehicleOwner.objects.update_or_create(
+            vehicle=vehicle,
+            defaults={"driver": driver},
+        )
         driver.has_vehicle = True
         driver.save(update_fields=["has_vehicle"])
-
-        VehicleDriverHistory.objects.get_or_create(
-            vehicle=vehicle,
-            driver=driver,
-            defaults={},
-        )
 
         self.stdout.write(
             self.style.SUCCESS(

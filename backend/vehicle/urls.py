@@ -47,14 +47,14 @@ urlpatterns = [
         name="vehicle-photo-delete",
     ),
     path(
-        "<uuid:pk>/owner-history/",
-        views.VehicleOwnerHistoryListCreateView.as_view(),
-        name="vehicle-owner-history",
+        "<uuid:pk>/owner/",
+        views.VehicleOwnerView.as_view(),
+        name="vehicle-owner",
     ),
     path(
-        "<uuid:pk>/owner-history/<int:history_pk>/",
-        views.VehicleOwnerHistoryUpdateView.as_view(),
-        name="vehicle-owner-history-update",
+        "<uuid:pk>/owner/history/",
+        views.OwnerHistoryListView.as_view(),
+        name="vehicle-owner-history",
     ),
     path(
         "<uuid:pk>/inspections/",

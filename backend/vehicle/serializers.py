@@ -7,9 +7,10 @@ from config.storage_utils import media_url
 
 from .models import (
     MileageLog,
+    OwnerHistory,
     TechnicalInspection,
     Vehicle,
-    VehicleOwnerHistory,
+    VehicleOwner,
     VehiclePhoto,
 )
 
@@ -111,7 +112,6 @@ class VehicleSerializer(serializers.ModelSerializer):
             "initial_km",
             "is_selected",
             "status",
-            "driver",
             "photos",
             "last_inspection_date",
             "next_inspection_date",
@@ -156,11 +156,20 @@ class VehicleSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        if instance.driver:
+
+        # Driver from current_owner (select_related in queryset)
+        current_owner = getattr(instance, "_prefetched_current_owner", None)
+        if current_owner is None:
+            try:
+                current_owner = instance.current_owner
+            except VehicleOwner.DoesNotExist:
+                current_owner = None
+
+        if current_owner:
             representation["driver"] = {
-                "id": instance.driver.id,
-                "first_name": instance.driver.first_name,
-                "last_name": instance.driver.last_name,
+                "id": str(current_owner.driver.id),
+                "first_name": current_owner.driver.first_name,
+                "last_name": current_owner.driver.last_name,
             }
         else:
             representation["driver"] = None
@@ -202,16 +211,46 @@ class VehicleSerializer(serializers.ModelSerializer):
         return representation
 
 
-class VehicleOwnerHistorySerializer(serializers.ModelSerializer):
+class VehicleOwnerSerializer(serializers.ModelSerializer):
     class Meta:
-        model = VehicleOwnerHistory
-        fields = ["id", "driver", "agreement_number", "acquired_at", "released_at", "created_by"]
-        read_only_fields = ["id", "acquired_at", "created_by"]
+        model = VehicleOwner
+        fields = ["id", "driver", "agreement_number", "assigned_at", "created_by"]
+        read_only_fields = ["id", "assigned_at", "created_by"]
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)
         rep["driver"] = {
-            "id": instance.driver.id,
+            "id": str(instance.driver.id),
+            "first_name": instance.driver.first_name,
+            "last_name": instance.driver.last_name,
+        }
+        return rep
+
+
+class OwnerHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OwnerHistory
+        fields = [
+            "id",
+            "driver",
+            "agreement_number",
+            "assigned_at",
+            "unassigned_at",
+            "created_by",
+        ]
+        read_only_fields = [
+            "id",
+            "driver",
+            "agreement_number",
+            "assigned_at",
+            "unassigned_at",
+            "created_by",
+        ]
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        rep["driver"] = {
+            "id": str(instance.driver.id),
             "first_name": instance.driver.first_name,
             "last_name": instance.driver.last_name,
         }

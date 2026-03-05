@@ -5,6 +5,7 @@ from .constants import EventType, RegulationNotificationStatus
 
 class FleetService(models.Model):
     name = models.CharField(max_length=100)
+    address = models.CharField(max_length=255, blank=True)
     description = models.TextField(null=True, blank=True)
     created_by = models.ForeignKey(
         "account.User",
