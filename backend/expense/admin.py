@@ -3,11 +3,11 @@ from django.contrib import admin
 from .models import (
     Expense,
     ExpenseCategory,
-    ExpenseInvoice,
     ExpensePart,
     FineExpenseDetail,
     FuelExpenseDetail,
     InspectionExpenseDetail,
+    Invoice,
     PartsExpenseDetail,
     ServiceExpenseDetail,
     ServiceItem,
@@ -63,11 +63,6 @@ class ExpensePartInline(admin.TabularInline):
     extra = 1
 
 
-class ExpenseInvoiceInline(admin.TabularInline):
-    model = ExpenseInvoice
-    extra = 1
-
-
 class InspectionExpenseInline(admin.StackedInline):
     model = InspectionExpenseDetail
     extra = 0
@@ -87,12 +82,22 @@ class PartsExpenseDetailInline(admin.StackedInline):
 
 _CODE_INLINES = {
     "FUEL": [FuelExpenseInline],
-    "SERVICE": [ServiceExpenseInline, ServiceItemInline, ExpenseInvoiceInline],
-    "PARTS": [PartsExpenseDetailInline, ExpensePartInline, ExpenseInvoiceInline],
+    "SERVICE": [ServiceExpenseInline, ServiceItemInline],
+    "PARTS": [PartsExpenseDetailInline, ExpensePartInline],
     "WASHING": [WashingExpenseInline],
     "FINES": [FineExpenseInline],
     "INSPECTION": [InspectionExpenseInline],
 }
+
+
+# ── Invoice admin ──
+
+
+@admin.register(Invoice)
+class InvoiceAdmin(admin.ModelAdmin):
+    list_display = ["number", "vendor_name", "invoice_date", "total_amount", "created_at"]
+    search_fields = ["number", "vendor_name"]
+    list_filter = ["invoice_date"]
 
 
 # ── Expense admin ──
@@ -111,7 +116,7 @@ class ExpenseAdmin(admin.ModelAdmin):
     ]
     list_filter = ["category", "expense_date", "payment_method", "payer_type"]
     search_fields = ["vehicle__car_number"]
-    raw_id_fields = ["vehicle", "created_by"]
+    raw_id_fields = ["vehicle", "created_by", "invoice"]
 
     def get_inlines(self, request, obj=None):
         if obj is None:

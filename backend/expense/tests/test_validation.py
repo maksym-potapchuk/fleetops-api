@@ -172,9 +172,10 @@ class ExpenseEdgeCasesTest(TestCase):
                 "category": str(self.other_cat.id),
                 "amount": "100.00",
                 "expense_date": "2026-03-01",
-                "invoice_files": jpg,
+                "invoice_number": "TEST-JPG-001",
+                "invoice_file": jpg,
             },
             format="multipart",
         )
         self.assertEqual(response.status_code, 400)
-        self.assertIn("invoice_files", response.data)
+        self.assertIn("invoice_file", response.data)

@@ -143,7 +143,7 @@ class Migration(migrations.Migration):
                 (
                     "file",
                     models.FileField(
-                        upload_to=expense.models.invoice_upload_to,
+                        upload_to="expenses/invoices/",
                         validators=[expense.models.validate_invoice_file],
                     ),
                 ),

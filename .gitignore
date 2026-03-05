@@ -12,3 +12,12 @@ backend/media/
 *.md
 !README.md
 !frontend/README.md
+
+# Trello export data
+scraper.py
+trello_export.json
+trello_photos/
+import_report.json
+
+# Database backups
+backups/
