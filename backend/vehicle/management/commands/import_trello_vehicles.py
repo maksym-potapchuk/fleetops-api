@@ -6,8 +6,20 @@ import re
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 
+from fleet_management.models import EquipmentDefaultItem
+from fleet_management.services import grant_equipment_to_vehicle
 from vehicle.constants import VehicleStatus
 from vehicle.models import Vehicle, VehiclePhoto
+
+DEFAULT_EQUIPMENT = [
+    "Вогнегасник",
+    "Аптечка",
+    "Трикутник",
+    "Жилет",
+    "Буксирувальний трос",
+    "Запасне колесо",
+    "Домкрат",
+]
 
 TRELLO_LIST_TO_STATUS = {
     "Сервіс": VehicleStatus.SERVICE,
@@ -66,16 +78,43 @@ def parse_card_name(name):
     return None
 
 
+def ensure_default_equipment(stdout):
+    """Create default equipment items if they don't exist."""
+    if not EquipmentDefaultItem.objects.exists():
+        EquipmentDefaultItem.objects.bulk_create(
+            [EquipmentDefaultItem(equipment=name) for name in DEFAULT_EQUIPMENT],
+            ignore_conflicts=True,
+        )
+        stdout.write(f"  Created {len(DEFAULT_EQUIPMENT)} default equipment items")
+
+
 class Command(BaseCommand):
     help = "Import vehicles from Trello export JSON into the database with photos to S3/media."
 
     def add_arguments(self, parser):
-        parser.add_argument("--list", default="", help="Trello list name (e.g. 'Сервіс')")
-        parser.add_argument("--list-index", type=int, default=None, help="Trello list index (0-based, use instead of --list on Windows)")
-        parser.add_argument("--json", default="trello_export.json", help="Path to trello_export.json")
-        parser.add_argument("--photos", default="trello_photos", help="Path to trello_photos/ dir")
-        parser.add_argument("--dry-run", action="store_true", help="Preview without writing to DB/S3")
-        parser.add_argument("--show-lists", action="store_true", help="Show available lists with indices and exit")
+        parser.add_argument(
+            "--list", default="", help="Trello list name (e.g. 'Сервіс')"
+        )
+        parser.add_argument(
+            "--list-index",
+            type=int,
+            default=None,
+            help="Trello list index (0-based, use instead of --list on Windows)",
+        )
+        parser.add_argument(
+            "--json", default="trello_export.json", help="Path to trello_export.json"
+        )
+        parser.add_argument(
+            "--photos", default="trello_photos", help="Path to trello_photos/ dir"
+        )
+        parser.add_argument(
+            "--dry-run", action="store_true", help="Preview without writing to DB/S3"
+        )
+        parser.add_argument(
+            "--show-lists",
+            action="store_true",
+            help="Show available lists with indices and exit",
+        )
 
     def handle(self, *args, **options):
         json_path = options["json"]
@@ -105,13 +144,19 @@ class Command(BaseCommand):
 
         if list_index is not None:
             if list_index < 0 or list_index >= len(all_lists):
-                self.stderr.write(self.style.ERROR(
-                    f"Index {list_index} out of range. Use --show-lists to see available lists."
-                ))
+                self.stderr.write(
+                    self.style.ERROR(
+                        f"Index {list_index} out of range. Use --show-lists to see available lists."
+                    )
+                )
                 return
             list_name = all_lists[list_index]["name"]
         elif not list_name:
-            self.stderr.write(self.style.ERROR("Provide --list or --list-index. Use --show-lists to see options."))
+            self.stderr.write(
+                self.style.ERROR(
+                    "Provide --list or --list-index. Use --show-lists to see options."
+                )
+            )
             return
 
         # Find the target list
@@ -123,7 +168,11 @@ class Command(BaseCommand):
 
         if not target_list:
             available = [f"  {i}: {lst['name']}" for i, lst in enumerate(all_lists)]
-            self.stderr.write(self.style.ERROR(f"List '{list_name}' not found. Available:\n" + "\n".join(available)))
+            self.stderr.write(
+                self.style.ERROR(
+                    f"List '{list_name}' not found. Available:\n" + "\n".join(available)
+                )
+            )
             return
 
         status = TRELLO_LIST_TO_STATUS.get(list_name)
@@ -137,6 +186,10 @@ class Command(BaseCommand):
 
         if dry_run:
             self.stdout.write(self.style.WARNING("DRY RUN — no changes will be made\n"))
+
+        # Ensure default equipment items exist
+        if not dry_run:
+            ensure_default_equipment(self.stdout)
 
         report = {
             "list": list_name,
@@ -160,7 +213,9 @@ class Command(BaseCommand):
             if not parsed["car_number"]:
                 self.stdout.write(self.style.WARNING(f"  SKIP (no car_number): {name}"))
                 report["skipped"] += 1
-                report["skipped_cards"].append({"name": name, "reason": "missing car_number"})
+                report["skipped_cards"].append(
+                    {"name": name, "reason": "missing car_number"}
+                )
                 continue
 
             vin = parsed["vin"]
@@ -189,18 +244,26 @@ class Command(BaseCommand):
             )
 
             if created:
-                self.stdout.write(self.style.SUCCESS(f"  CREATED: {vehicle.car_number} ({vin})"))
+                grant_equipment_to_vehicle(vehicle.id)
+
+                self.stdout.write(
+                    self.style.SUCCESS(f"  CREATED: {vehicle.car_number} ({vin})")
+                )
                 report["imported"] += 1
             else:
-                self.stdout.write(self.style.WARNING(f"  EXISTS: {vehicle.car_number} ({vin})"))
+                self.stdout.write(
+                    self.style.WARNING(f"  EXISTS: {vehicle.car_number} ({vin})")
+                )
                 report["skipped"] += 1
-                report["skipped_cards"].append({"name": name, "reason": "duplicate vin_number"})
+                report["skipped_cards"].append(
+                    {"name": name, "reason": "duplicate vin_number"}
+                )
                 continue
 
             # Upload photos
             attachments = card.get("attachments", [])
             # Cover photo first
-            attachments.sort(key=lambda a: (not a.get("is_cover", False)))
+            attachments.sort(key=lambda a: not a.get("is_cover", False))
 
             existing_photos = VehiclePhoto.objects.filter(vehicle=vehicle).count()
             for att in attachments:
@@ -220,7 +283,9 @@ class Command(BaseCommand):
 
                 with open(local_path, "rb") as img_file:
                     photo = VehiclePhoto(vehicle=vehicle)
-                    photo.image.save(att["name"], ContentFile(img_file.read()), save=True)
+                    photo.image.save(
+                        att["name"], ContentFile(img_file.read()), save=True
+                    )
                     report["photos_uploaded"] += 1
                     existing_photos += 1
 
@@ -233,8 +298,8 @@ class Command(BaseCommand):
             json.dump(report, f, ensure_ascii=False, indent=2)
 
         self.stdout.write(f"\n{'=' * 50}")
-        self.stdout.write(f"  Imported:  {report['imported']}")
-        self.stdout.write(f"  Skipped:   {report['skipped']}")
-        self.stdout.write(f"  Photos:    {report['photos_uploaded']}")
-        self.stdout.write(f"  Report:    {report_path}")
+        self.stdout.write(f"  Imported:     {report['imported']}")
+        self.stdout.write(f"  Skipped:      {report['skipped']}")
+        self.stdout.write(f"  Photos:       {report['photos_uploaded']}")
+        self.stdout.write(f"  Report:       {report_path}")
         self.stdout.write(f"{'=' * 50}\n")
