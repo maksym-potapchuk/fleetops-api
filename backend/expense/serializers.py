@@ -119,6 +119,14 @@ class ServiceItemSerializer(serializers.ModelSerializer):
 # ── Main expense serializer ──
 
 
+class ExpenseCreatedBySerializer(serializers.ModelSerializer):
+    class Meta:
+        from account.models import User
+
+        model = User
+        fields = ["id", "username", "email"]
+
+
 class ExpenseSerializer(serializers.ModelSerializer):
     # Category read-only fields
     category_code = serializers.CharField(source="category.code", read_only=True)
@@ -131,6 +139,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
     vehicle_vin_number = serializers.CharField(
         source="vehicle.vin_number", read_only=True
     )
+    created_by = ExpenseCreatedBySerializer(read_only=True)
 
     # Amount: not required — auto-computed for SERVICE / PARTS / INSPECTION
     amount = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
@@ -422,7 +431,9 @@ class ExpenseSerializer(serializers.ModelSerializer):
         if invalid:
             allowed = ", ".join(ALLOWED_INVOICE_EXTENSIONS)
             raise serializers.ValidationError(
-                {"invoice_files": f"Unsupported file format: {', '.join(invalid)}. Allowed: {allowed}"}
+                {
+                    "invoice_files": f"Unsupported file format: {', '.join(invalid)}. Allowed: {allowed}"
+                }
             )
         for f in files:
             ExpenseInvoice.objects.create(expense=expense, file=f, name=f.name)

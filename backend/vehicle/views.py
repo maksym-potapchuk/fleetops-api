@@ -14,19 +14,21 @@ from config import cache_utils
 
 from .models import (
     MileageLog,
+    OwnerHistory,
     TechnicalInspection,
     Vehicle,
-    VehicleOwnerHistory,
+    VehicleOwner,
     VehiclePhoto,
 )
 from .serializers import (
     MileageLogSerializer,
+    OwnerHistorySerializer,
     TechnicalInspectionSerializer,
-    VehicleOwnerHistorySerializer,
+    VehicleOwnerSerializer,
     VehiclePhotoSerializer,
     VehicleSerializer,
 )
-from .services import create_vehicle
+from .services import assign_owner, create_vehicle, unassign_owner
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +43,7 @@ _EXPENSES_TOTAL_ANNOTATION = {
 
 class VehicleListCreateView(generics.ListCreateAPIView):
     queryset = (
-        Vehicle.objects.select_related("driver")
+        Vehicle.objects.select_related("current_owner__driver")
         .prefetch_related(
             "photos",
             "inspections",
@@ -103,7 +105,7 @@ class VehicleListCreateView(generics.ListCreateAPIView):
 
 class VehicleRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = (
-        Vehicle.objects.select_related("driver")
+        Vehicle.objects.select_related("current_owner__driver")
         .prefetch_related(
             "photos",
             "inspections",
@@ -135,9 +137,7 @@ class VehicleRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
                 and "status_position" not in self.request.data
             ):
                 max_pos = (
-                    Vehicle.objects.filter(
-                        status=instance.status, is_archived=False
-                    )
+                    Vehicle.objects.filter(status=instance.status, is_archived=False)
                     .exclude(pk=instance.pk)
                     .aggregate(m=models.Max("status_position"))["m"]
                     or 0
@@ -176,9 +176,7 @@ class VehicleRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         vehicle_id = instance.id
         car_number = instance.car_number
 
-        # Unassign driver before archiving (triggers signals for driver history)
-        if instance.driver_id:
-            instance.driver = None
+        unassign_owner(instance)
 
         instance.is_archived = True
         instance.archived_at = timezone.now()
@@ -200,7 +198,7 @@ class VehicleRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class VehicleReorderView(generics.GenericAPIView):
-    """POST /vehicle/reorder/ — batch update positions (and optionally status)."""
+    """POST /vehicle/reorder/ -- batch update positions (and optionally status)."""
 
     permission_classes = [IsAuthenticated]
     http_method_names = ["post"]
@@ -219,9 +217,7 @@ class VehicleReorderView(generics.GenericAPIView):
             )
 
         vehicle_ids = [item["id"] for item in items]
-        vehicles_qs = Vehicle.objects.filter(
-            id__in=vehicle_ids, is_archived=False
-        )
+        vehicles_qs = Vehicle.objects.filter(id__in=vehicle_ids, is_archived=False)
         vehicles_map = {str(v.id): v for v in vehicles_qs}
 
         with transaction.atomic():
@@ -234,19 +230,17 @@ class VehicleReorderView(generics.GenericAPIView):
                 v.status_position = item["status_position"]
                 to_update.append(v)
             if to_update:
-                Vehicle.objects.bulk_update(
-                    to_update, ["status", "status_position"]
-                )
+                Vehicle.objects.bulk_update(to_update, ["status", "status_position"])
 
         cache_utils.invalidate_vehicle()
         return Response({"updated": len(to_update)})
 
 
 class VehicleArchiveListView(generics.ListAPIView):
-    """GET /vehicle/archive/ — list archived vehicles."""
+    """GET /vehicle/archive/ -- list archived vehicles."""
 
     queryset = (
-        Vehicle.objects.select_related("driver")
+        Vehicle.objects.select_related("current_owner__driver")
         .prefetch_related("photos", "inspections")
         .filter(is_archived=True)
         .annotate(**_EXPENSES_TOTAL_ANNOTATION)
@@ -259,7 +253,7 @@ class VehicleArchiveListView(generics.ListAPIView):
 
 
 class VehicleRestoreView(generics.GenericAPIView):
-    """POST /vehicle/<pk>/restore/ — restore vehicle from archive."""
+    """POST /vehicle/<pk>/restore/ -- restore vehicle from archive."""
 
     queryset = Vehicle.objects.filter(is_archived=True)
     serializer_class = VehicleSerializer
@@ -287,7 +281,7 @@ class VehicleRestoreView(generics.GenericAPIView):
 
 
 class VehicleDeleteCheckView(generics.GenericAPIView):
-    """GET /vehicle/<pk>/delete-check/ — check related data before permanent delete."""
+    """GET /vehicle/<pk>/delete-check/ -- check related data before permanent delete."""
 
     queryset = Vehicle.objects.filter(is_archived=True)
     permission_classes = [IsAuthenticated]
@@ -299,8 +293,10 @@ class VehicleDeleteCheckView(generics.GenericAPIView):
             {
                 "has_related_data": vehicle.has_related_data(),
                 "related_counts": {
-                    "owner_history": vehicle.owner_history.count(),
-                    "driver_history": vehicle.vehicle_drivers.count(),
+                    "current_owner": 1
+                    if VehicleOwner.objects.filter(vehicle=vehicle).exists()
+                    else 0,
+                    "ownership_history": vehicle.ownership_history.count(),
                     "photos": vehicle.photos.count(),
                     "inspections": vehicle.inspections.count(),
                     "service_history": vehicle.service_history.count(),
@@ -315,7 +311,7 @@ class VehicleDeleteCheckView(generics.GenericAPIView):
 
 
 class VehiclePermanentDeleteView(generics.GenericAPIView):
-    """DELETE /vehicle/<pk>/permanent-delete/ — permanently delete archived vehicle."""
+    """DELETE /vehicle/<pk>/permanent-delete/ -- permanently delete archived vehicle."""
 
     queryset = Vehicle.objects.filter(is_archived=True)
     permission_classes = [IsAuthenticated]
@@ -354,8 +350,8 @@ class VehiclePermanentDeleteView(generics.GenericAPIView):
 
 class VehiclePhotoListCreateView(generics.ListCreateAPIView):
     """
-    GET  /vehicle/<pk>/photos/  — list all photos for a vehicle.
-    POST /vehicle/<pk>/photos/  — upload a new photo (multipart/form-data, field: image).
+    GET  /vehicle/<pk>/photos/  -- list all photos for a vehicle.
+    POST /vehicle/<pk>/photos/  -- upload a new photo (multipart/form-data, field: image).
                                   Max 10 photos per vehicle.
     """
 
@@ -372,7 +368,7 @@ class VehiclePhotoListCreateView(generics.ListCreateAPIView):
 
 
 class VehiclePhotoDestroyView(generics.DestroyAPIView):
-    """DELETE /vehicle/<pk>/photos/<photo_pk>/ — remove a photo."""
+    """DELETE /vehicle/<pk>/photos/<photo_pk>/ -- remove a photo."""
 
     permission_classes = [IsAuthenticated]
 
@@ -389,40 +385,76 @@ class VehiclePhotoDestroyView(generics.DestroyAPIView):
         cache_utils.invalidate_vehicle(self.kwargs["pk"])
 
 
-class VehicleOwnerHistoryListCreateView(generics.ListCreateAPIView):
+class VehicleOwnerView(generics.GenericAPIView):
     """
-    GET  /vehicle/<pk>/owner-history/  — list all ownership records for a vehicle.
-    POST /vehicle/<pk>/owner-history/  — assign a new owner (driver) to the vehicle.
+    GET    /vehicle/<pk>/owner/  -- current owner (or 404)
+    POST   /vehicle/<pk>/owner/  -- assign new owner (archives old one)
+    PATCH  /vehicle/<pk>/owner/  -- update agreement_number
+    DELETE /vehicle/<pk>/owner/  -- unassign current owner
     """
 
-    serializer_class = VehicleOwnerHistorySerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ["get", "post", "patch", "delete"]
+
+    def get(self, request, pk):
+        vehicle = generics.get_object_or_404(Vehicle, pk=pk)
+        try:
+            owner = VehicleOwner.objects.select_related("driver").get(vehicle=vehicle)
+        except VehicleOwner.DoesNotExist:
+            return Response(None)
+        serializer = VehicleOwnerSerializer(owner)
+        return Response(serializer.data)
+
+    def post(self, request, pk):
+        vehicle = generics.get_object_or_404(Vehicle, pk=pk)
+        serializer = VehicleOwnerSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        driver = serializer.validated_data["driver"]
+        agreement_number = serializer.validated_data.get("agreement_number", "")
+
+        assign_owner(
+            vehicle, driver, agreement_number=agreement_number, user=request.user
+        )
+        cache_utils.invalidate_vehicle(pk)
+
+        owner = VehicleOwner.objects.select_related("driver").get(vehicle=vehicle)
+        return Response(
+            VehicleOwnerSerializer(owner).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    def patch(self, request, pk):
+        vehicle = generics.get_object_or_404(Vehicle, pk=pk)
+        try:
+            owner = VehicleOwner.objects.select_related("driver").get(vehicle=vehicle)
+        except VehicleOwner.DoesNotExist:
+            return Response(
+                {"detail": "No current owner to update."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = VehicleOwnerSerializer(owner, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        cache_utils.invalidate_vehicle(pk)
+        return Response(serializer.data)
+
+    def delete(self, request, pk):
+        vehicle = generics.get_object_or_404(Vehicle, pk=pk)
+        unassign_owner(vehicle)
+        cache_utils.invalidate_vehicle(pk)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class OwnerHistoryListView(generics.ListAPIView):
+    """GET /vehicle/<pk>/owner/history/ -- archived ownership records."""
+
+    serializer_class = OwnerHistorySerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return VehicleOwnerHistory.objects.filter(
-            vehicle_id=self.kwargs["pk"]
-        ).select_related("driver")
-
-    def perform_create(self, serializer):
-        serializer.save(vehicle_id=self.kwargs["pk"], created_by=self.request.user)
-
-
-class VehicleOwnerHistoryUpdateView(generics.UpdateAPIView):
-    """
-    PATCH /vehicle/<pk>/owner-history/<history_pk>/
-    Allows updating agreement_number or closing ownership (released_at).
-    """
-
-    serializer_class = VehicleOwnerHistorySerializer
-    permission_classes = [IsAuthenticated]
-    http_method_names = ["patch"]
-
-    def get_queryset(self):
-        return VehicleOwnerHistory.objects.filter(vehicle_id=self.kwargs["pk"])
-
-    def get_object(self):
-        return generics.get_object_or_404(
-            self.get_queryset(), pk=self.kwargs["history_pk"]
+        return OwnerHistory.objects.filter(vehicle_id=self.kwargs["pk"]).select_related(
+            "driver"
         )
 
 

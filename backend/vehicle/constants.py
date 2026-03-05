@@ -21,12 +21,14 @@ class FuelType(models.TextChoices):
 
 
 class VehicleStatus(models.TextChoices):
-    CTO = "CTO", "CTO"
+    AUCTION = "AUCTION", "Auction Selection"
     FOCUS = "FOCUS", "Focus"
+    GAS_INSTALL = "GAS_INSTALL", "Gas Installation"
+    SERVICE = "SERVICE", "Service"
     CLEANING = "CLEANING", "Cleaning"
-    PREPARATION = "PREPARATION", "Preparation"
-    READY = "READY", "Ready"
-    LEASING = "LEASING", "Leasing"
+    PRE_DELIVERY = "PRE_DELIVERY", "Pre-delivery"
+    READY = "READY", "Ready for Delivery"
     RENT = "RENT", "Rent"
-    SELLING = "SELLING", "Selling"
+    LEASING = "LEASING", "Leasing"
+    SELLING = "SELLING", "Report for Sale"
     SOLD = "SOLD", "Sold"

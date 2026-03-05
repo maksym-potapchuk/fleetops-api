@@ -24,16 +24,9 @@ class Vehicle(models.Model):
     status = models.CharField(
         max_length=20,
         choices=VehicleStatus.choices,
-        default=VehicleStatus.PREPARATION,
+        default=VehicleStatus.AUCTION,
     )
     status_position = models.PositiveIntegerField(default=0, db_index=True)
-    driver = models.ForeignKey(
-        "driver.Driver",
-        on_delete=models.PROTECT,
-        related_name="vehicle_driver",
-        null=True,
-        blank=True,
-    )
 
     created_by = models.ForeignKey(
         "account.User",
@@ -52,9 +45,10 @@ class Vehicle(models.Model):
         return f"{self.car_number} ({self.manufacturer} {self.model})"
 
     def has_related_data(self) -> bool:
+        has_owner = VehicleOwner.objects.filter(vehicle=self).exists()
         return (
-            self.owner_history.exists()
-            or self.vehicle_drivers.exists()
+            has_owner
+            or self.ownership_history.exists()
             or self.photos.exists()
             or self.inspections.exists()
             or self.service_history.exists()
@@ -66,22 +60,60 @@ class Vehicle(models.Model):
         )
 
 
-class VehicleDriverHistory(models.Model):
-    vehicle = models.ForeignKey(
+class VehicleOwner(models.Model):
+    vehicle = models.OneToOneField(
         "vehicle.Vehicle",
         on_delete=models.CASCADE,
-        related_name="vehicle_drivers",
+        related_name="current_owner",
     )
     driver = models.ForeignKey(
         "driver.Driver",
-        on_delete=models.CASCADE,
-        related_name="driver_vehicles",
+        on_delete=models.PROTECT,
+        related_name="active_vehicles",
     )
+    agreement_number = models.CharField(max_length=100, blank=True)
     assigned_at = models.DateTimeField(auto_now_add=True)
-    unassigned_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(
+        "account.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="assigned_vehicle_owners",
+    )
 
     def __str__(self) -> str:
-        return f"{self.vehicle} ← {self.driver}"
+        return f"{self.vehicle} \u2190 {self.driver}"
+
+
+class OwnerHistory(models.Model):
+    vehicle = models.ForeignKey(
+        "vehicle.Vehicle",
+        on_delete=models.CASCADE,
+        related_name="ownership_history",
+    )
+    driver = models.ForeignKey(
+        "driver.Driver",
+        on_delete=models.PROTECT,
+        related_name="past_vehicles",
+    )
+    agreement_number = models.CharField(max_length=100, blank=True)
+    assigned_at = models.DateTimeField()
+    unassigned_at = models.DateTimeField()
+    created_by = models.ForeignKey(
+        "account.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="created_ownership_histories",
+    )
+
+    class Meta:
+        ordering = ["-unassigned_at"]
+
+    def __str__(self) -> str:
+        return f"{self.vehicle} \u2190 {self.driver} ({self.assigned_at} - {self.unassigned_at})"
+
+
+def vehicle_photo_path(instance, filename):
+    return f"vehicle_photos/{instance.vehicle_id}/{filename}"
 
 
 class VehiclePhoto(models.Model):
@@ -90,7 +122,7 @@ class VehiclePhoto(models.Model):
         on_delete=models.CASCADE,
         related_name="photos",
     )
-    image = models.ImageField(upload_to="vehicles/photos/")
+    image = models.ImageField(upload_to=vehicle_photo_path)
     created_by = models.ForeignKey(
         "account.User",
         on_delete=models.SET_NULL,
@@ -104,36 +136,6 @@ class VehiclePhoto(models.Model):
 
     def __str__(self) -> str:
         return f"Photo for {self.vehicle}"
-
-
-class VehicleOwnerHistory(models.Model):
-    """Tracks who owns the vehicle and under what agreement."""
-
-    vehicle = models.ForeignKey(
-        "vehicle.Vehicle",
-        on_delete=models.CASCADE,
-        related_name="owner_history",
-    )
-    driver = models.ForeignKey(
-        "driver.Driver",
-        on_delete=models.PROTECT,
-        related_name="owned_vehicles",
-    )
-    agreement_number = models.CharField(max_length=100, blank=True)
-    created_by = models.ForeignKey(
-        "account.User",
-        on_delete=models.SET_NULL,
-        null=True,
-        related_name="created_owner_histories",
-    )
-    acquired_at = models.DateTimeField(auto_now_add=True)
-    released_at = models.DateTimeField(null=True, blank=True)
-
-    class Meta:
-        ordering = ["-acquired_at"]
-
-    def __str__(self) -> str:
-        return f"{self.vehicle} ← {self.driver}"
 
 
 class MileageLog(models.Model):

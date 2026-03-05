@@ -7,13 +7,8 @@ logout cookie cleanup.
 
 from django.test import TestCase
 from rest_framework.test import APIClient
-from rest_framework_simplejwt.tokens import RefreshToken
 
-from account.models import User
-
-
-def make_user(email="sess@example.com", password="pass123!", username="sessuser"):
-    return User.objects.create_user(email=email, password=password, username=username)
+from .helpers import make_user
 
 
 class RememberMeCookieTest(TestCase):
@@ -21,7 +16,7 @@ class RememberMeCookieTest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.user = make_user()
+        self.user = make_user(email="sess@example.com", username="sessuser")
 
     def _login(self, remember_me=None):
         payload = {"email": "sess@example.com", "password": "pass123!"}
@@ -102,7 +97,7 @@ class TokenRotationTest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.user = make_user()
+        self.user = make_user(email="sess@example.com", username="sessuser")
 
     def test_refresh_rotates_token_and_updates_cookie(self):
         """After refresh, the cookie must contain the new rotated token."""
@@ -144,7 +139,7 @@ class LogoutCookieCleanupTest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.user = make_user()
+        self.user = make_user(email="sess@example.com", username="sessuser")
 
     def test_logout_clears_remember_me_cookie(self):
         self.client.post(

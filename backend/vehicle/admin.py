@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import MileageLog, TechnicalInspection, Vehicle
+from .models import MileageLog, OwnerHistory, TechnicalInspection, Vehicle, VehicleOwner
 
 
 @admin.register(Vehicle)
@@ -24,3 +24,15 @@ class MileageLogAdmin(admin.ModelAdmin):
     list_filter = ["recorded_at"]
     search_fields = ["vehicle__car_number"]
     raw_id_fields = ["vehicle"]
+
+
+@admin.register(VehicleOwner)
+class VehicleOwnerAdmin(admin.ModelAdmin):
+    list_display = ["vehicle", "driver", "agreement_number", "assigned_at"]
+    raw_id_fields = ["vehicle", "driver"]
+
+
+@admin.register(OwnerHistory)
+class OwnerHistoryAdmin(admin.ModelAdmin):
+    list_display = ["vehicle", "driver", "assigned_at", "unassigned_at"]
+    raw_id_fields = ["vehicle", "driver"]

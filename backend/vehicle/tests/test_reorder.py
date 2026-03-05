@@ -6,36 +6,10 @@ POST /vehicle/reorder/ — batch update status_position (and optionally status).
 
 from django.test import TestCase
 from rest_framework.test import APIClient
-from rest_framework_simplejwt.tokens import RefreshToken
 
-from account.models import User
-from vehicle.constants import ManufacturerChoices, VehicleStatus
-from vehicle.models import Vehicle
+from vehicle.constants import VehicleStatus
 
-
-def make_user(email="reorder@example.com", password="pass123!", username="reorduser"):
-    return User.objects.create_user(email=email, password=password, username=username)
-
-
-def make_vehicle(**kwargs):
-    defaults = {
-        "model": "Camry",
-        "manufacturer": ManufacturerChoices.TOYOTA,
-        "year": 2022,
-        "cost": "25000.00",
-        "vin_number": "1HGBH41JXMN109186",
-        "car_number": "AA6601BB",
-        "color": "#FFFFFF",
-        "initial_km": 0,
-        "status": VehicleStatus.PREPARATION,
-    }
-    defaults.update(kwargs)
-    return Vehicle.objects.create(**defaults)
-
-
-def authenticate(client: APIClient, user: User) -> None:
-    refresh = RefreshToken.for_user(user)
-    client.cookies["access_token"] = str(refresh.access_token)
+from .helpers import authenticate, make_user, make_vehicle
 
 
 class VehicleReorderAPITest(TestCase):
@@ -43,7 +17,7 @@ class VehicleReorderAPITest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.user = make_user()
+        self.user = make_user(email="reorder@example.com", username="reorduser")
         authenticate(self.client, self.user)
         self.v1 = make_vehicle(
             car_number="RE0001AA", vin_number="VIN00000000000RE1", status_position=1000
@@ -89,9 +63,7 @@ class VehicleReorderAPITest(TestCase):
         self.assertEqual(response.status_code, 400)
 
     def test_over_100_items_returns_400(self):
-        items = [
-            {"id": str(self.v1.id), "status_position": i} for i in range(101)
-        ]
+        items = [{"id": str(self.v1.id), "status_position": i} for i in range(101)]
         response = self.client.post(self.URL, items, format="json")
         self.assertEqual(response.status_code, 400)
         self.assertIn("Too many", response.data["detail"])

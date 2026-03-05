@@ -25,6 +25,10 @@ CACHES = {
 
 # Keep throttle rates very high so tests never hit the limit.
 # ScopedRateThrottle on LoginView/RefreshView requires 'auth' scope to exist.
+# Force local file storage — tests must not depend on S3
+USE_S3 = False
+DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+
 REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
     "anon": "10000/minute",
     "user": "10000/minute",

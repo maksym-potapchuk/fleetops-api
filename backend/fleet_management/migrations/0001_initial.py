@@ -6,171 +6,366 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('vehicle', '0001_initial'),
+        ("vehicle", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='EquipmentDefaultItem',
+            name="EquipmentDefaultItem",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('equipment', models.CharField(max_length=55)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("equipment", models.CharField(max_length=55)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
         ),
         migrations.CreateModel(
-            name='FleetService',
+            name="FleetService",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
-                ('description', models.TextField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=100)),
+                ("description", models.TextField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
             ],
         ),
         migrations.CreateModel(
-            name='FleetVehicleRegulationItem',
+            name="FleetVehicleRegulationItem",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=155)),
-                ('title_pl', models.CharField(blank=True, max_length=155)),
-                ('title_uk', models.CharField(blank=True, max_length=155)),
-                ('every_km', models.PositiveIntegerField()),
-                ('notify_before_km', models.PositiveIntegerField(default=500)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=155)),
+                ("title_pl", models.CharField(blank=True, max_length=155)),
+                ("title_uk", models.CharField(blank=True, max_length=155)),
+                ("every_km", models.PositiveIntegerField()),
+                ("notify_before_km", models.PositiveIntegerField(default=500)),
             ],
         ),
         migrations.CreateModel(
-            name='FleetVehicleRegulation',
+            name="FleetVehicleRegulation",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('assigned_at', models.DateTimeField(auto_now_add=True)),
-                ('vehicle', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='regulations', to='vehicle.vehicle')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("assigned_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "vehicle",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="regulations",
+                        to="vehicle.vehicle",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='FleetVehicleRegulationEntry',
+            name="FleetVehicleRegulationEntry",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('last_done_km', models.PositiveIntegerField(default=0)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('regulation', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='entries', to='fleet_management.fleetvehicleregulation')),
-                ('item', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='entries', to='fleet_management.fleetvehicleregulationitem')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("last_done_km", models.PositiveIntegerField(default=0)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "regulation",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="entries",
+                        to="fleet_management.fleetvehicleregulation",
+                    ),
+                ),
+                (
+                    "item",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="entries",
+                        to="fleet_management.fleetvehicleregulationitem",
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('regulation', 'item')},
+                "unique_together": {("regulation", "item")},
             },
         ),
         migrations.CreateModel(
-            name='FleetVehicleRegulationHistory',
+            name="FleetVehicleRegulationHistory",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('event_type', models.CharField(choices=[('performed', 'Service Performed'), ('km_updated', 'KM Updated'), ('notified', 'Notification Sent')], max_length=20)),
-                ('km_at_event', models.PositiveIntegerField()),
-                ('km_remaining', models.IntegerField()),
-                ('note', models.TextField(blank=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('created_by', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='regulation_history', to=settings.AUTH_USER_MODEL)),
-                ('entry', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='history', to='fleet_management.fleetvehicleregulationentry')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "event_type",
+                    models.CharField(
+                        choices=[
+                            ("performed", "Service Performed"),
+                            ("km_updated", "KM Updated"),
+                            ("notified", "Notification Sent"),
+                        ],
+                        max_length=20,
+                    ),
+                ),
+                ("km_at_event", models.PositiveIntegerField()),
+                ("km_remaining", models.IntegerField()),
+                ("note", models.TextField(blank=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="regulation_history",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "entry",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="history",
+                        to="fleet_management.fleetvehicleregulationentry",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
+                "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='FleetVehicleRegulationNotification',
+            name="FleetVehicleRegulationNotification",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('regulation_name', models.CharField(max_length=100)),
-                ('notification_message', models.CharField(max_length=255)),
-                ('send_at', models.DateTimeField()),
-                ('status', models.CharField(choices=[('Pending', 'Pending'), ('Sent', 'Sent'), ('Failed', 'Failed')], default='Pending', max_length=20)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('regulation', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='notifications', to='fleet_management.fleetvehicleregulation')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("regulation_name", models.CharField(max_length=100)),
+                ("notification_message", models.CharField(max_length=255)),
+                ("send_at", models.DateTimeField()),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("Pending", "Pending"),
+                            ("Sent", "Sent"),
+                            ("Failed", "Failed"),
+                        ],
+                        default="Pending",
+                        max_length=20,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "regulation",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="notifications",
+                        to="fleet_management.fleetvehicleregulation",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='FleetVehicleRegulationSchema',
+            name="FleetVehicleRegulationSchema",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=155, unique=True)),
-                ('title_pl', models.CharField(blank=True, max_length=155)),
-                ('title_uk', models.CharField(blank=True, max_length=155)),
-                ('is_default', models.BooleanField(default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('created_by', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_regulation_schemas', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=155, unique=True)),
+                ("title_pl", models.CharField(blank=True, max_length=155)),
+                ("title_uk", models.CharField(blank=True, max_length=155)),
+                ("is_default", models.BooleanField(default=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="created_regulation_schemas",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.AddField(
-            model_name='fleetvehicleregulationitem',
-            name='schema',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='items', to='fleet_management.fleetvehicleregulationschema'),
+            model_name="fleetvehicleregulationitem",
+            name="schema",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="items",
+                to="fleet_management.fleetvehicleregulationschema",
+            ),
         ),
         migrations.AddField(
-            model_name='fleetvehicleregulation',
-            name='schema',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='regulations', to='fleet_management.fleetvehicleregulationschema'),
+            model_name="fleetvehicleregulation",
+            name="schema",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.PROTECT,
+                related_name="regulations",
+                to="fleet_management.fleetvehicleregulationschema",
+            ),
         ),
         migrations.CreateModel(
-            name='ServiceHistory',
+            name="ServiceHistory",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('service_date', models.DateField()),
-                ('service_type', models.CharField(max_length=100)),
-                ('invoice_number', models.CharField(max_length=50, unique=True)),
-                ('invoice_field', models.FileField(upload_to='invoices/')),
-                ('invoice_amount', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('status', models.CharField(max_length=50)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('vehicle', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='service_history', to='vehicle.vehicle')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("service_date", models.DateField()),
+                ("service_type", models.CharField(max_length=100)),
+                ("invoice_number", models.CharField(max_length=50, unique=True)),
+                ("invoice_field", models.FileField(upload_to="invoices/")),
+                (
+                    "invoice_amount",
+                    models.DecimalField(decimal_places=2, max_digits=10),
+                ),
+                ("status", models.CharField(max_length=50)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "vehicle",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="service_history",
+                        to="vehicle.vehicle",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='ServicePlan',
+            name="ServicePlan",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=255)),
-                ('description', models.TextField(blank=True, null=True)),
-                ('planned_at', models.DateField()),
-                ('is_done', models.BooleanField(default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('vehicle', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='service_plans', to='vehicle.vehicle')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=255)),
+                ("description", models.TextField(blank=True, null=True)),
+                ("planned_at", models.DateField()),
+                ("is_done", models.BooleanField(default=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "vehicle",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="service_plans",
+                        to="vehicle.vehicle",
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='EquipmentList',
+            name="EquipmentList",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('equipment', models.CharField(max_length=55)),
-                ('is_equipped', models.BooleanField(default=False)),
-                ('approved_at', models.DateTimeField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('vehicle', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='equipment_list', to='vehicle.vehicle')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("equipment", models.CharField(max_length=55)),
+                ("is_equipped", models.BooleanField(default=False)),
+                ("approved_at", models.DateTimeField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "vehicle",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="equipment_list",
+                        to="vehicle.vehicle",
+                    ),
+                ),
             ],
             options={
-                'unique_together': {('vehicle', 'equipment')},
+                "unique_together": {("vehicle", "equipment")},
             },
         ),
         migrations.AddConstraint(
-            model_name='fleetvehicleregulationschema',
-            constraint=models.UniqueConstraint(condition=models.Q(('is_default', True)), fields=('is_default',), name='unique_default_schema'),
+            model_name="fleetvehicleregulationschema",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("is_default", True)),
+                fields=("is_default",),
+                name="unique_default_schema",
+            ),
         ),
         migrations.AlterUniqueTogether(
-            name='fleetvehicleregulationitem',
-            unique_together={('schema', 'title')},
+            name="fleetvehicleregulationitem",
+            unique_together={("schema", "title")},
         ),
         migrations.AlterUniqueTogether(
-            name='fleetvehicleregulation',
-            unique_together={('schema', 'vehicle')},
+            name="fleetvehicleregulation",
+            unique_together={("schema", "vehicle")},
         ),
         migrations.AlterUniqueTogether(
-            name='serviceplan',
-            unique_together={('vehicle', 'title')},
+            name="serviceplan",
+            unique_together={("vehicle", "title")},
         ),
     ]

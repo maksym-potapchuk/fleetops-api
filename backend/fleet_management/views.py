@@ -10,8 +10,8 @@ from rest_framework.views import APIView
 from config import cache_utils
 from config.filters import LayoutAwareSearchFilter as SearchFilter
 
-from .filters import FleetVehicleRegulationSchemaFilter, RegulationHistoryFilter
 from .constants import EventType
+from .filters import FleetVehicleRegulationSchemaFilter, RegulationHistoryFilter
 from .models import (
     EquipmentDefaultItem,
     EquipmentList,
@@ -354,7 +354,9 @@ class ServicePlanListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         try:
-            instance = serializer.save(vehicle_id=self.kwargs["vehicle_pk"], created_by=self.request.user)
+            instance = serializer.save(
+                vehicle_id=self.kwargs["vehicle_pk"], created_by=self.request.user
+            )
             logger.info(
                 "Service plan created successfully",
                 extra={
@@ -530,7 +532,9 @@ class EquipmentListAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         try:
-            instance = serializer.save(vehicle_id=self.kwargs["vehicle_pk"], created_by=self.request.user)
+            instance = serializer.save(
+                vehicle_id=self.kwargs["vehicle_pk"], created_by=self.request.user
+            )
             cache_utils.invalidate_equipment(self.kwargs["vehicle_pk"])
             cache_utils.invalidate_vehicle(self.kwargs["vehicle_pk"])
             logger.info(

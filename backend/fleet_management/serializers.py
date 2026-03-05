@@ -19,6 +19,7 @@ class FleetServiceSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "name",
+            "address",
             "description",
             "created_by",
             "created_at",
@@ -169,7 +170,13 @@ class ServicePlanWithVehicleSerializer(serializers.ModelSerializer):
             "created_by",
             "created_at",
         ]
-        read_only_fields = ["id", "vehicle", "vehicle_car_number", "created_by", "created_at"]
+        read_only_fields = [
+            "id",
+            "vehicle",
+            "vehicle_car_number",
+            "created_by",
+            "created_at",
+        ]
 
 
 class EquipmentDefaultItemSerializer(serializers.ModelSerializer):

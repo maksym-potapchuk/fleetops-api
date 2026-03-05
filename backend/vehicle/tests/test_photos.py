@@ -9,36 +9,10 @@ import io
 from django.test import TestCase
 from PIL import Image
 from rest_framework.test import APIClient
-from rest_framework_simplejwt.tokens import RefreshToken
 
-from account.models import User
-from vehicle.constants import ManufacturerChoices, VehicleStatus
-from vehicle.models import Vehicle, VehiclePhoto
+from vehicle.models import VehiclePhoto
 
-
-def make_user(email="photo@example.com", password="pass123!", username="photouser"):
-    return User.objects.create_user(email=email, password=password, username=username)
-
-
-def make_vehicle(**kwargs):
-    defaults = {
-        "model": "Camry",
-        "manufacturer": ManufacturerChoices.TOYOTA,
-        "year": 2022,
-        "cost": "25000.00",
-        "vin_number": "1HGBH41JXMN109186",
-        "car_number": "AA6601BB",
-        "color": "#FFFFFF",
-        "initial_km": 0,
-        "status": VehicleStatus.PREPARATION,
-    }
-    defaults.update(kwargs)
-    return Vehicle.objects.create(**defaults)
-
-
-def authenticate(client: APIClient, user: User) -> None:
-    refresh = RefreshToken.for_user(user)
-    client.cookies["access_token"] = str(refresh.access_token)
+from .helpers import authenticate, make_user, make_vehicle
 
 
 def _make_image():
@@ -54,19 +28,23 @@ def _make_image():
 class VehiclePhotoAPITest(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.user = make_user()
+        self.user = make_user(email="photo@example.com", username="photouser")
         authenticate(self.client, self.user)
         self.vehicle = make_vehicle()
         self.url = f"/api/v1/vehicle/{self.vehicle.id}/photos/"
 
     def test_upload_photo_returns_201(self):
-        response = self.client.post(self.url, {"image": _make_image()}, format="multipart")
+        response = self.client.post(
+            self.url, {"image": _make_image()}, format="multipart"
+        )
         self.assertEqual(response.status_code, 201)
         self.assertEqual(VehiclePhoto.objects.filter(vehicle=self.vehicle).count(), 1)
 
     def test_upload_returns_path_only_url(self):
         """Image URL in response must be a path-only string (no domain), for Next.js proxy."""
-        response = self.client.post(self.url, {"image": _make_image()}, format="multipart")
+        response = self.client.post(
+            self.url, {"image": _make_image()}, format="multipart"
+        )
         self.assertEqual(response.status_code, 201)
         image_url = response.data["image"]
         self.assertTrue(
@@ -81,7 +59,9 @@ class VehiclePhotoAPITest(TestCase):
                 vehicle=self.vehicle,
                 image=f"vehicles/photos/test_{i}.jpg",
             )
-        response = self.client.post(self.url, {"image": _make_image()}, format="multipart")
+        response = self.client.post(
+            self.url, {"image": _make_image()}, format="multipart"
+        )
         self.assertEqual(response.status_code, 400)
 
     def test_list_returns_all_photos(self):

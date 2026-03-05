@@ -5,47 +5,11 @@ Vehicle Archive / Restore / Permanent Delete API Tests
 
 from django.test import TestCase
 from rest_framework.test import APIClient
-from rest_framework_simplejwt.tokens import RefreshToken
 
-from account.models import User
-from driver.models import Driver
-from vehicle.constants import ManufacturerChoices, VehicleStatus
-from vehicle.models import Vehicle, VehicleOwnerHistory
+from vehicle.models import OwnerHistory, VehicleOwner
+from vehicle.services import assign_owner
 
-
-def make_user(email="archive@example.com", password="pass123!", username="archuser"):
-    return User.objects.create_user(email=email, password=password, username=username)
-
-
-def make_vehicle(**kwargs):
-    defaults = {
-        "model": "Camry",
-        "manufacturer": ManufacturerChoices.TOYOTA,
-        "year": 2022,
-        "cost": "25000.00",
-        "vin_number": "1HGBH41JXMN109186",
-        "car_number": "AA6601BB",
-        "color": "White",
-        "initial_km": 0,
-        "status": VehicleStatus.PREPARATION,
-    }
-    defaults.update(kwargs)
-    return Vehicle.objects.create(**defaults)
-
-
-def make_driver(**kwargs):
-    defaults = {
-        "first_name": "Test",
-        "last_name": "Driver",
-        "phone_number": "48111222333",
-    }
-    defaults.update(kwargs)
-    return Driver.objects.create(**defaults)
-
-
-def authenticate(client: APIClient, user: User) -> None:
-    refresh = RefreshToken.for_user(user)
-    client.cookies["access_token"] = str(refresh.access_token)
+from .helpers import authenticate, make_driver, make_user, make_vehicle
 
 
 class VehicleArchiveTest(TestCase):
@@ -53,7 +17,7 @@ class VehicleArchiveTest(TestCase):
 
     def setUp(self):
         self.client = APIClient()
-        self.user = make_user()
+        self.user = make_user(email="archive@example.com", username="archuser")
         authenticate(self.client, self.user)
 
     def test_delete_archives_vehicle_instead_of_hard_delete(self):
@@ -76,15 +40,17 @@ class VehicleArchiveTest(TestCase):
         self.assertIn(str(v1.id), ids)
         self.assertNotIn(str(v2.id), ids)
 
-    def test_archive_unassigns_driver(self):
+    def test_archive_unassigns_owner(self):
         driver = make_driver()
-        vehicle = make_vehicle(driver=driver)
+        vehicle = make_vehicle()
+        assign_owner(vehicle, driver)
 
         self.client.delete(f"{self.BASE_URL}{vehicle.id}/")
 
         vehicle.refresh_from_db()
-        self.assertIsNone(vehicle.driver_id)
         self.assertTrue(vehicle.is_archived)
+        self.assertFalse(VehicleOwner.objects.filter(vehicle=vehicle).exists())
+        self.assertEqual(OwnerHistory.objects.filter(vehicle=vehicle).count(), 1)
 
     def test_archive_list_returns_only_archived(self):
         make_vehicle(car_number="ACTIVE02", vin_number="VIN00000000000003")
@@ -117,6 +83,8 @@ class VehicleArchiveTest(TestCase):
 
         response = self.client.delete(f"{self.BASE_URL}{vehicle_id}/permanent-delete/")
         self.assertEqual(response.status_code, 204)
+        from vehicle.models import Vehicle
+
         self.assertFalse(Vehicle.objects.filter(pk=vehicle_id).exists())
 
     def test_permanent_delete_with_data_requires_confirm(self):
@@ -124,7 +92,7 @@ class VehicleArchiveTest(TestCase):
         vehicle.is_archived = True
         vehicle.save(update_fields=["is_archived"])
         driver = make_driver(phone_number="48999888777")
-        VehicleOwnerHistory.objects.create(vehicle=vehicle, driver=driver)
+        VehicleOwner.objects.create(vehicle=vehicle, driver=driver)
 
         response = self.client.delete(f"{self.BASE_URL}{vehicle.id}/permanent-delete/")
         self.assertEqual(response.status_code, 400)
@@ -135,13 +103,15 @@ class VehicleArchiveTest(TestCase):
         vehicle.is_archived = True
         vehicle.save(update_fields=["is_archived"])
         driver = make_driver(phone_number="48777666555")
-        VehicleOwnerHistory.objects.create(vehicle=vehicle, driver=driver)
+        VehicleOwner.objects.create(vehicle=vehicle, driver=driver)
         vehicle_id = vehicle.id
 
         response = self.client.delete(
             f"{self.BASE_URL}{vehicle_id}/permanent-delete/?confirm=true"
         )
         self.assertEqual(response.status_code, 204)
+        from vehicle.models import Vehicle
+
         self.assertFalse(Vehicle.objects.filter(pk=vehicle_id).exists())
 
     def test_delete_check_returns_related_counts(self):
@@ -149,9 +119,9 @@ class VehicleArchiveTest(TestCase):
         vehicle.is_archived = True
         vehicle.save(update_fields=["is_archived"])
         driver = make_driver(phone_number="48555444333")
-        VehicleOwnerHistory.objects.create(vehicle=vehicle, driver=driver)
+        VehicleOwner.objects.create(vehicle=vehicle, driver=driver)
 
         response = self.client.get(f"{self.BASE_URL}{vehicle.id}/delete-check/")
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["has_related_data"])
-        self.assertEqual(response.data["related_counts"]["owner_history"], 1)
+        self.assertEqual(response.data["related_counts"]["current_owner"], 1)
