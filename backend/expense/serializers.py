@@ -5,8 +5,6 @@ import os
 from django.db import transaction
 from rest_framework import serializers
 
-logger = logging.getLogger(__name__)
-
 from config.storage_utils import media_url
 
 from .constants import ALLOWED_INVOICE_EXTENSIONS
@@ -23,6 +21,8 @@ from .models import (
     ServiceItem,
     WashingExpenseDetail,
 )
+
+logger = logging.getLogger(__name__)
 
 # ── Detail map: category code → (model, fields, required) ──
 

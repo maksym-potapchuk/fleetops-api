@@ -1,7 +1,7 @@
 import json
 import os
-import re
 from pathlib import Path
+import re
 
 from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
@@ -96,7 +96,7 @@ class Command(BaseCommand):
             for i, lst in enumerate(all_lists):
                 status = TRELLO_LIST_TO_STATUS.get(lst["name"], "—")
                 self.stdout.write(f"  {i}: {lst['name']} → {status}")
-            self.stdout.write(f"\nUsage: --list-index <number>")
+            self.stdout.write("\nUsage: --list-index <number>")
             return
 
         # Resolve list name: by index or by name
