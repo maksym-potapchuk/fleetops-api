@@ -11,8 +11,12 @@ from config import cache_utils
 from config.filters import LayoutAwareSearchFilter as SearchFilter
 
 from .filters import ExpenseFilter
-from .models import Expense, ExpenseCategory
-from .serializers import ExpenseCategorySerializer, ExpenseSerializer
+from .models import Expense, ExpenseCategory, Invoice
+from .serializers import (
+    ExpenseCategorySerializer,
+    ExpenseSerializer,
+    InvoiceSearchSerializer,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +30,8 @@ def _expense_queryset():
         "inspection_detail",
         "inspection_detail__linked_inspection",
         "parts_detail",
-    ).prefetch_related("parts", "invoices", "service_items")
+        "invoice",
+    ).prefetch_related("parts", "service_items")
 
 
 class ExpenseCategoryListView(generics.ListAPIView):
@@ -140,6 +145,28 @@ class ExpenseRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
                 "user_id": str(self.request.user.id),
             },
         )
+
+
+class InvoiceSearchView(generics.ListAPIView):
+    """GET /expense/invoices/?search=FAK-123 — search invoices by number."""
+
+    serializer_class = InvoiceSearchSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+    filter_backends = [SearchFilter]
+    search_fields = ["number", "vendor_name"]
+
+    def get_queryset(self):
+        from django.db.models import Count
+
+        return Invoice.objects.annotate(
+            _expense_count=Count("expenses")
+        ).order_by("-created_at")
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())[:20]
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class VehicleExpenseListCreateView(generics.ListCreateAPIView):

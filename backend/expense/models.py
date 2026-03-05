@@ -60,6 +60,13 @@ class Expense(models.Model):
         on_delete=models.PROTECT,
         related_name="expenses",
     )
+    invoice = models.ForeignKey(
+        "Invoice",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="expenses",
+    )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     expense_date = models.DateTimeField()
     receipt = models.FileField(upload_to="expenses/receipts/", blank=True, null=True)
@@ -245,32 +252,25 @@ def validate_invoice_file(value):
         raise ValidationError(f"Unsupported file format. Allowed: {allowed}")
 
 
-def invoice_upload_to(instance, filename):
-    code = "other"
-    if instance.expense_id:
-        try:
-            code = instance.expense.category.code.lower()
-        except (AttributeError, ExpenseCategory.DoesNotExist):
-            pass
-    return f"expenses/invoices/{code}/{filename}"
-
-
-class ExpenseInvoice(models.Model):
+class Invoice(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    expense = models.ForeignKey(
-        Expense, on_delete=models.CASCADE, related_name="invoices"
-    )
+    number = models.CharField(max_length=100, unique=True, db_index=True)
     file = models.FileField(
-        upload_to=invoice_upload_to, validators=[validate_invoice_file]
+        upload_to="expenses/invoices/", validators=[validate_invoice_file]
     )
-    name = models.CharField(max_length=100, blank=True)
-    uploaded_at = models.DateTimeField(auto_now_add=True)
+    vendor_name = models.CharField(max_length=200, blank=True)
+    invoice_date = models.DateField(null=True, blank=True)
+    total_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ["-uploaded_at"]
+        ordering = ["-created_at"]
 
     def __str__(self) -> str:
-        return self.name or str(self.file)
+        return f"Invoice {self.number}"
 
 
 class ServiceItem(models.Model):

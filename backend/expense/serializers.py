@@ -1,8 +1,11 @@
 import json
+import logging
 import os
 
 from django.db import transaction
 from rest_framework import serializers
+
+logger = logging.getLogger(__name__)
 
 from config.storage_utils import media_url
 
@@ -10,11 +13,11 @@ from .constants import ALLOWED_INVOICE_EXTENSIONS
 from .models import (
     Expense,
     ExpenseCategory,
-    ExpenseInvoice,
     ExpensePart,
     FineExpenseDetail,
     FuelExpenseDetail,
     InspectionExpenseDetail,
+    Invoice,
     PartsExpenseDetail,
     ServiceExpenseDetail,
     ServiceItem,
@@ -95,11 +98,25 @@ class ExpensePartSerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
 
 
-class ExpenseInvoiceSerializer(serializers.ModelSerializer):
+class InvoiceSerializer(serializers.ModelSerializer):
+    expense_count = serializers.SerializerMethodField()
+
     class Meta:
-        model = ExpenseInvoice
-        fields = ["id", "file", "name", "uploaded_at"]
-        read_only_fields = ["id", "uploaded_at"]
+        model = Invoice
+        fields = [
+            "id",
+            "number",
+            "file",
+            "vendor_name",
+            "invoice_date",
+            "total_amount",
+            "expense_count",
+            "created_at",
+        ]
+        read_only_fields = ["id", "expense_count", "created_at"]
+
+    def get_expense_count(self, obj):
+        return obj.expenses.count()
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)
@@ -107,6 +124,26 @@ class ExpenseInvoiceSerializer(serializers.ModelSerializer):
         if file_url:
             rep["file"] = media_url(file_url)
         return rep
+
+
+class InvoiceSearchSerializer(serializers.ModelSerializer):
+    expense_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Invoice
+        fields = [
+            "id",
+            "number",
+            "vendor_name",
+            "invoice_date",
+            "total_amount",
+            "expense_count",
+        ]
+
+    def get_expense_count(self, obj):
+        if hasattr(obj, "_expense_count"):
+            return obj._expense_count
+        return obj.expenses.count()
 
 
 class ServiceItemSerializer(serializers.ModelSerializer):
@@ -185,10 +222,16 @@ class ExpenseSerializer(serializers.ModelSerializer):
 
     # PARTS — read-only nested output
     parts = ExpensePartSerializer(many=True, read_only=True)
-    invoices = ExpenseInvoiceSerializer(many=True, read_only=True)
 
     # SERVICE items — read-only nested output
     service_items = ServiceItemSerializer(many=True, read_only=True)
+
+    # Invoice
+    invoice_number = serializers.CharField(
+        required=False, allow_blank=True, write_only=True
+    )
+    invoice_data = InvoiceSerializer(source="invoice", read_only=True)
+    invoice_existing = serializers.SerializerMethodField()
 
     class Meta:
         model = Expense
@@ -231,7 +274,11 @@ class ExpenseSerializer(serializers.ModelSerializer):
             "source_name",
             "supplier_type",
             "parts",
-            "invoices",
+            # Invoice
+            "invoice",
+            "invoice_number",
+            "invoice_data",
+            "invoice_existing",
             # Meta
             "created_by",
             "created_at",
@@ -248,11 +295,15 @@ class ExpenseSerializer(serializers.ModelSerializer):
             "service_name",
             "service_items",
             "parts",
-            "invoices",
+            "invoice_data",
+            "invoice_existing",
             "created_by",
             "created_at",
             "updated_at",
         ]
+
+    def get_invoice_existing(self, obj):
+        return getattr(obj, "_invoice_existing", False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -325,6 +376,17 @@ class ExpenseSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError(
                         {"service_items_json": "Invalid JSON."}
                     ) from None
+
+        # Invoice: look up by number
+        invoice_number = self.initial_data.get("invoice_number", "").strip()
+        if invoice_number:
+            existing = Invoice.objects.filter(number=invoice_number).first()
+            if existing:
+                data["_invoice_obj"] = existing
+                data["_invoice_existing"] = True
+            else:
+                data["_invoice_number"] = invoice_number
+                data["_invoice_existing"] = False
 
         return data
 
@@ -419,30 +481,70 @@ class ExpenseSerializer(serializers.ModelSerializer):
         if changed:
             inspection.save()
 
-    def _save_invoices(self, expense, request):
-        files = request.FILES.getlist("invoice_files")
-        if not files:
+    def _save_invoice(self, expense, invoice_obj, invoice_number, request):
+        # Existing invoice found by number
+        if invoice_obj:
+            expense.invoice = invoice_obj
+            expense._invoice_existing = True
+            expense.save(update_fields=["invoice"])
+            logger.info(
+                "Existing invoice attached",
+                extra={
+                    "operation_type": "INVOICE_ATTACH",
+                    "invoice_number": invoice_obj.number,
+                    "expense_id": str(expense.id),
+                },
+            )
             return
-        invalid = [
-            f.name
-            for f in files
-            if os.path.splitext(f.name)[1].lower() not in ALLOWED_INVOICE_EXTENSIONS
-        ]
-        if invalid:
+
+        # New invoice: need file + number
+        if not invoice_number or not request:
+            return
+
+        file = request.FILES.get("invoice_file")
+        if not file:
+            raise serializers.ValidationError(
+                {"invoice_file": "Invoice file is required for a new invoice."}
+            )
+
+        ext = os.path.splitext(file.name)[1].lower()
+        if ext not in ALLOWED_INVOICE_EXTENSIONS:
             allowed = ", ".join(ALLOWED_INVOICE_EXTENSIONS)
             raise serializers.ValidationError(
-                {
-                    "invoice_files": f"Unsupported file format: {', '.join(invalid)}. Allowed: {allowed}"
-                }
+                {"invoice_file": f"Unsupported file format. Allowed: {allowed}"}
             )
-        for f in files:
-            ExpenseInvoice.objects.create(expense=expense, file=f, name=f.name)
+
+        invoice = Invoice.objects.create(
+            number=invoice_number,
+            file=file,
+            vendor_name=request.data.get("vendor_name", ""),
+            invoice_date=request.data.get("invoice_date") or None,
+            total_amount=request.data.get("invoice_total_amount") or None,
+        )
+        expense.invoice = invoice
+        expense._invoice_existing = False
+        expense.save(update_fields=["invoice"])
+        logger.info(
+            "New invoice created",
+            extra={
+                "operation_type": "INVOICE_CREATE",
+                "invoice_number": invoice_number,
+                "invoice_id": str(invoice.id),
+                "expense_id": str(expense.id),
+            },
+        )
 
     @transaction.atomic
     def create(self, validated_data):
         detail_data = self._extract_detail_data(validated_data)
         parts_data = validated_data.pop("_parts", None)
         service_items_data = validated_data.pop("_service_items", None)
+
+        # Pop invoice-related keys before Expense.objects.create()
+        validated_data.pop("_invoice_existing", None)
+        validated_data.pop("invoice_number", None)
+        invoice_obj = validated_data.pop("_invoice_obj", None)
+        invoice_number = validated_data.pop("_invoice_number", None)
 
         # Auto-computed categories: placeholder amount — will be recomputed from items
         code = self._get_category_code(validated_data)
@@ -473,8 +575,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
             self._create_linked_inspection(expense, detail_data)
 
         request = self.context.get("request")
-        if request:
-            self._save_invoices(expense, request)
+        self._save_invoice(expense, invoice_obj, invoice_number, request)
         return expense
 
     @transaction.atomic
@@ -482,6 +583,12 @@ class ExpenseSerializer(serializers.ModelSerializer):
         detail_data = self._extract_detail_data(validated_data)
         parts_data = validated_data.pop("_parts", None)
         service_items_data = validated_data.pop("_service_items", None)
+
+        # Pop invoice-related keys before setattr loop
+        validated_data.pop("_invoice_existing", None)
+        validated_data.pop("invoice_number", None)
+        invoice_obj = validated_data.pop("_invoice_obj", None)
+        invoice_number = validated_data.pop("_invoice_number", None)
 
         old_code = instance.category.code
         new_category = validated_data.get("category")
@@ -513,8 +620,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
             self._update_linked_inspection(instance, detail_data)
 
         request = self.context.get("request")
-        if request and request.FILES.getlist("invoice_files"):
-            self._save_invoices(instance, request)
+        self._save_invoice(instance, invoice_obj, invoice_number, request)
         return instance
 
     # ── Representation (flatten detail fields) ──

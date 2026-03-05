@@ -40,7 +40,7 @@ class LayoutAwareSearchFilter(SearchFilter):
         if not search_fields:
             return queryset
 
-        orm_lookups = [self.construct_search(str(field)) for field in search_fields]
+        orm_lookups = [self.construct_search(str(field), queryset) for field in search_fields]
 
         conditions = []
         for term in search_terms:
