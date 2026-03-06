@@ -174,7 +174,8 @@ class VehicleSerializer(serializers.ModelSerializer):
         else:
             representation["driver"] = None
 
-        latest = instance.inspections.first()
+        inspections = list(instance.inspections.all())
+        latest = inspections[0] if inspections else None
         if latest:
             next_date = latest.next_inspection_date or self._compute_expiry(
                 latest.inspection_date
