@@ -6,6 +6,7 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics, status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -58,7 +59,6 @@ class VehicleListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["model", "manufacturer", "year", "status"]
-    pagination_class = None
     http_method_names = ["get", "post"]
 
     def list(self, request, *args, **kwargs):
@@ -248,7 +248,6 @@ class VehicleArchiveListView(generics.ListAPIView):
     )
     serializer_class = VehicleSerializer
     permission_classes = [IsAuthenticated]
-    pagination_class = None
     http_method_names = ["get"]
 
 
@@ -497,7 +496,6 @@ class TechnicalInspectionUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView
 class MileageLogListCreateView(generics.ListCreateAPIView):
     serializer_class = MileageLogSerializer
     permission_classes = [IsAuthenticated]
-    pagination_class = None
 
     def get_queryset(self):
         return MileageLog.objects.filter(vehicle_id=self.kwargs["pk"])

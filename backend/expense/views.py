@@ -78,7 +78,7 @@ class ExpenseListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         instance = serializer.save(created_by=self.request.user)
         cache_utils.invalidate_expense()
-        cache_utils.invalidate_vehicle()
+        cache_utils.invalidate_vehicle(instance.vehicle_id)
         logger.info(
             "Expense created",
             extra={
@@ -114,7 +114,7 @@ class ExpenseRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     def perform_update(self, serializer):
         instance = serializer.save()
         cache_utils.invalidate_expense(instance.id)
-        cache_utils.invalidate_vehicle()
+        cache_utils.invalidate_vehicle(instance.vehicle_id)
         logger.info(
             "Expense updated",
             extra={
