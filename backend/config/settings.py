@@ -36,6 +36,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 
 ALLOWED_HOSTS = _env_list("ALLOWED_HOSTS") or (["*"] if DEBUG else ["localhost"])
+ALLOWED_HOSTS += ["backend"]  # internal Docker hostname for Prometheus scraping
 
 # Cookie security settings
 SECURE_COOKIES = os.getenv("SECURE_COOKIES", "False").lower() in ("true", "1", "yes")
@@ -178,7 +179,7 @@ _needs_ssl = "neon.tech" in _pg_host or "rds.amazonaws.com" in _pg_host
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.postgresql",
+        "ENGINE": "django_prometheus.db.backends.postgresql",
         "NAME": os.getenv("POSTGRES_DB"),
         "USER": os.getenv("POSTGRES_USER"),
         "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
