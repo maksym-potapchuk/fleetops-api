@@ -107,6 +107,7 @@ class VehicleSerializer(serializers.ModelSerializer):
             "cost",
             "vin_number",
             "car_number",
+            "is_temporary_plate",
             "color",
             "fuel_type",
             "initial_km",

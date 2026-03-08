@@ -213,6 +213,31 @@ class VehicleAPITest(TestCase):
 
     # --- authentication ---
 
+    def test_create_vehicle_without_car_number_returns_201(self):
+        payload = self._payload(vin_number="NOPLATE000000001")
+        del payload["car_number"]
+        response = self.client.post(self.BASE_URL, payload, format="json")
+        self.assertEqual(response.status_code, 201)
+        self.assertIsNone(response.data["car_number"])
+
+    def test_create_vehicle_with_temporary_plate(self):
+        response = self.client.post(
+            self.BASE_URL,
+            self._payload(
+                vin_number="TEMPPLATE000001",
+                car_number="TEMP001",
+                is_temporary_plate=True,
+            ),
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.data["is_temporary_plate"])
+
+    def test_is_temporary_plate_defaults_to_false(self):
+        response = self.client.post(self.BASE_URL, self._payload(), format="json")
+        self.assertEqual(response.status_code, 201)
+        self.assertFalse(response.data["is_temporary_plate"])
+
     def test_unauthenticated_list_returns_401(self):
         unauthenticated = APIClient()
         response = unauthenticated.get(self.BASE_URL)
