@@ -51,6 +51,29 @@ class VehicleModelTest(TestCase):
         vehicle = make_vehicle()
         self.assertEqual(str(vehicle), "AA6601BB (Toyota Camry)")
 
+    def test_str_representation_without_car_number(self):
+        vehicle = make_vehicle(car_number=None, vin_number="NOPLATE000000001")
+        self.assertEqual(str(vehicle), "— (Toyota Camry)")
+
+    def test_car_number_can_be_null(self):
+        vehicle = make_vehicle(car_number=None, vin_number="NULLPLATE0000001")
+        vehicle.refresh_from_db()
+        self.assertIsNone(vehicle.car_number)
+
+    def test_multiple_null_car_numbers_allowed(self):
+        make_vehicle(car_number=None, vin_number="NULLPLATE0000001")
+        make_vehicle(car_number=None, vin_number="NULLPLATE0000002")
+        self.assertEqual(Vehicle.objects.filter(car_number=None).count(), 2)
+
+    def test_is_temporary_plate_defaults_to_false(self):
+        vehicle = make_vehicle()
+        self.assertFalse(vehicle.is_temporary_plate)
+
+    def test_is_temporary_plate_can_be_set_to_true(self):
+        vehicle = make_vehicle(is_temporary_plate=True, vin_number="TEMPPLATE000001")
+        vehicle.refresh_from_db()
+        self.assertTrue(vehicle.is_temporary_plate)
+
     def test_vehicle_id_is_uuid(self):
         vehicle = make_vehicle()
         self.assertIsInstance(vehicle.id, uuid.UUID)

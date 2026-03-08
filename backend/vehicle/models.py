@@ -12,7 +12,8 @@ class Vehicle(models.Model):
     year = models.PositiveIntegerField()
     cost = models.DecimalField(max_digits=10, decimal_places=2)
     vin_number = models.CharField(max_length=17, unique=True)
-    car_number = models.CharField(max_length=10, unique=True)
+    car_number = models.CharField(max_length=10, unique=True, null=True, blank=True)
+    is_temporary_plate = models.BooleanField(default=False)
     color = models.CharField(max_length=30)
     fuel_type = models.CharField(
         max_length=20,
@@ -43,7 +44,8 @@ class Vehicle(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self) -> str:
-        return f"{self.car_number} ({self.manufacturer} {self.model})"
+        plate = self.car_number or "—"
+        return f"{plate} ({self.manufacturer} {self.model})"
 
     def has_related_data(self) -> bool:
         has_owner = VehicleOwner.objects.filter(vehicle=self).exists()
