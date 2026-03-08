@@ -12,6 +12,7 @@ backend/media/
 *.md
 !README.md
 !frontend/README.md
+!SECURITY.md
 
 # Trello export data
 scraper.py
