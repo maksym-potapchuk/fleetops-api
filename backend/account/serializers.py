@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import User
+from .models import User, UserPreferences
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -29,3 +29,10 @@ class UserSerializer(serializers.ModelSerializer):
             "email",
             "username",
         )
+
+
+class UserPreferencesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserPreferences
+        fields = ("kanban_column_order", "updated_at")
+        read_only_fields = ("updated_at",)

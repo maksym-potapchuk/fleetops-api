@@ -32,6 +32,24 @@ class UserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 
+class UserPreferences(models.Model):
+    user = models.OneToOneField(
+        "User",
+        on_delete=models.CASCADE,
+        related_name="preferences",
+        primary_key=True,
+    )
+    kanban_column_order = models.JSONField(default=list, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "User Preferences"
+        verbose_name_plural = "User Preferences"
+
+    def __str__(self):
+        return f"Preferences for {self.user.email}"
+
+
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
