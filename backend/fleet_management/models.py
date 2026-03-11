@@ -148,6 +148,16 @@ class FleetVehicleRegulationEntry(models.Model):
         related_name="entries",
     )
     last_done_km = models.PositiveIntegerField(default=0)
+    every_km = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Vehicle-specific override. Falls back to item.every_km when null.",
+    )
+    notify_before_km = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Vehicle-specific override. Falls back to item.notify_before_km when null.",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -157,8 +167,16 @@ class FleetVehicleRegulationEntry(models.Model):
         return f"{self.item.title} → next at {self.next_due_km} km"
 
     @property
+    def effective_every_km(self):
+        return self.every_km if self.every_km is not None else self.item.every_km
+
+    @property
+    def effective_notify_before_km(self):
+        return self.notify_before_km if self.notify_before_km is not None else self.item.notify_before_km
+
+    @property
     def next_due_km(self):
-        return self.last_done_km + self.item.every_km
+        return self.last_done_km + self.effective_every_km
 
     def is_due(self, current_km: int) -> bool:
         return current_km >= self.next_due_km

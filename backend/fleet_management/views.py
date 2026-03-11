@@ -272,8 +272,21 @@ class VehicleRegulationEntryUpdate(APIView):
             )
 
         km = int(km)
+        update_fields = ["last_done_km", "updated_at"]
         entry.last_done_km = km
-        entry.save(update_fields=["last_done_km", "updated_at"])
+
+        # Allow per-vehicle override of interval
+        new_every = request.data.get("every_km")
+        if new_every is not None and str(new_every).isdigit() and int(new_every) > 0:
+            entry.every_km = int(new_every)
+            update_fields.append("every_km")
+
+        new_notify = request.data.get("notify_before_km")
+        if new_notify is not None and str(new_notify).isdigit():
+            entry.notify_before_km = int(new_notify)
+            update_fields.append("notify_before_km")
+
+        entry.save(update_fields=update_fields)
 
         FleetVehicleRegulationHistory.objects.create(
             entry=entry,
@@ -324,10 +337,16 @@ class VehicleRegulationEntryAddView(APIView):
             },
         )
 
+        # Store every_km / notify_before_km on the entry (vehicle-level override)
+        # so changing values for one vehicle doesn't affect others.
         entry, created = FleetVehicleRegulationEntry.objects.get_or_create(
             regulation=regulation,
             item=item,
-            defaults={"last_done_km": d["last_done_km"]},
+            defaults={
+                "last_done_km": d["last_done_km"],
+                "every_km": d["every_km"],
+                "notify_before_km": d["notify_before_km"],
+            },
         )
         if not created:
             return Response(

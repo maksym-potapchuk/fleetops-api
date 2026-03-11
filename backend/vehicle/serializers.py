@@ -205,7 +205,7 @@ class VehicleSerializer(serializers.ModelSerializer):
             current_km = instance.initial_km
             for reg in regs:
                 for entry in reg.entries.all():
-                    if current_km >= entry.last_done_km + entry.item.every_km:
+                    if current_km >= entry.last_done_km + entry.effective_every_km:
                         overdue += 1
             representation["regulation_overdue"] = overdue
 
