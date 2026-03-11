@@ -30,7 +30,9 @@ class Command(BaseCommand):
         )
 
         if not options["force"]:
-            confirm = input("\nThis will CASCADE-delete everything above. Continue? [y/N] ")
+            confirm = input(
+                "\nThis will CASCADE-delete everything above. Continue? [y/N] "
+            )
             if confirm.lower() != "y":
                 self.stdout.write("Aborted.")
                 return

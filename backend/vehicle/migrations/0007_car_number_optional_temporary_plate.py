@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('vehicle', '0006_fuel_type_optional'),
+        ("vehicle", "0006_fuel_type_optional"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='vehicle',
-            name='is_temporary_plate',
+            model_name="vehicle",
+            name="is_temporary_plate",
             field=models.BooleanField(default=False),
         ),
         migrations.AlterField(
-            model_name='vehicle',
-            name='car_number',
+            model_name="vehicle",
+            name="car_number",
             field=models.CharField(blank=True, max_length=10, null=True, unique=True),
         ),
     ]

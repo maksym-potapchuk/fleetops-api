@@ -6,7 +6,7 @@ Covers: POST /vehicle/{pk}/mileage/, GET list, validation, side effects.
 Key business rules:
 - km must be strictly greater than vehicle.initial_km
 - POST updates vehicle.initial_km to the new value
-- List is NOT paginated (plain array)
+- List is paginated ({results: []})
 - Cascade delete when vehicle is hard-deleted
 """
 
@@ -77,15 +77,15 @@ class MileageLogAPITest(TestCase):
 
     # --- list ---
 
-    def test_list_returns_plain_array(self):
-        """Mileage list is NOT paginated — returns plain array, no {results: []}."""
+    def test_list_returns_paginated_response(self):
+        """Mileage list is paginated — returns {results: []}."""
         MileageLog.objects.create(
             vehicle=self.vehicle, km=100, recorded_at="2026-01-01"
         )
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
-        self.assertIsInstance(response.data, list)
-        self.assertEqual(len(response.data), 1)
+        self.assertIn("results", response.data)
+        self.assertEqual(len(response.data["results"]), 1)
 
     # --- cascade ---
 

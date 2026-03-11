@@ -113,7 +113,6 @@ def _invalidate_caches(vehicle_id, driver_id=None):
 
         invalidate_vehicle(vehicle_id)
         if driver_id:
-            invalidate_driver()
             invalidate_driver(driver_id)
     except Exception:
         logger.warning("Could not invalidate caches", exc_info=True)
@@ -123,7 +122,6 @@ def _invalidate_driver_caches(driver_id):
     try:
         from config.cache_utils import invalidate_driver
 
-        invalidate_driver()
         invalidate_driver(driver_id)
     except Exception:
         logger.warning("Could not invalidate driver cache", exc_info=True)

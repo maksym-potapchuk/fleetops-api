@@ -140,8 +140,8 @@ class VehicleAPITest(TestCase):
         )
         response = self.client.get(self.BASE_URL + "?status=READY")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["status"], "READY")
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["status"], "READY")
 
     def test_list_filters_by_manufacturer(self):
         make_vehicle(
@@ -156,7 +156,7 @@ class VehicleAPITest(TestCase):
         )
         response = self.client.get(self.BASE_URL + "?manufacturer=BMW")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 1)
+        self.assertEqual(len(response.data["results"]), 1)
 
     # --- retrieve ---
 

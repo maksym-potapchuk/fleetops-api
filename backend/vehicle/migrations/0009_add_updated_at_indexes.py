@@ -5,19 +5,21 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('vehicle', '0008_vehicle_idx_status_position'),
+        ("vehicle", "0008_vehicle_idx_status_position"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddIndex(
-            model_name='vehicle',
-            index=models.Index(fields=['-updated_at'], name='idx_vehicle_updated_at'),
+            model_name="vehicle",
+            index=models.Index(fields=["-updated_at"], name="idx_vehicle_updated_at"),
         ),
         migrations.AddIndex(
-            model_name='vehicle',
-            index=models.Index(fields=['is_archived', '-updated_at'], name='idx_vehicle_archived_updated'),
+            model_name="vehicle",
+            index=models.Index(
+                fields=["is_archived", "-updated_at"],
+                name="idx_vehicle_archived_updated",
+            ),
         ),
     ]

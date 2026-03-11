@@ -53,6 +53,7 @@ class FleetVehicleRegulationItemSerializer(serializers.ModelSerializer):
             "title",
             "title_pl",
             "title_uk",
+            "title_en",
             "every_km",
             "notify_before_km",
         ]
@@ -68,6 +69,7 @@ class FleetVehicleRegulationSchemaSerializer(serializers.ModelSerializer):
             "title",
             "title_pl",
             "title_uk",
+            "title_en",
             "items",
             "is_default",
             "created_by",
@@ -123,6 +125,7 @@ class AddRegulationEntrySerializer(serializers.Serializer):
     title = serializers.CharField(max_length=155)
     title_pl = serializers.CharField(max_length=155, required=False, default="")
     title_uk = serializers.CharField(max_length=155, required=False, default="")
+    title_en = serializers.CharField(max_length=155, required=False, default="")
     every_km = serializers.IntegerField(min_value=1)
     notify_before_km = serializers.IntegerField(min_value=0, default=500)
     last_done_km = serializers.IntegerField(min_value=0, default=0)
@@ -133,7 +136,7 @@ class FleetVehicleRegulationSchemaUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FleetVehicleRegulationSchema
-        fields = ["id", "title", "title_pl", "title_uk", "is_default"]
+        fields = ["id", "title", "title_pl", "title_uk", "title_en", "is_default"]
         read_only_fields = ["id"]
 
 
@@ -244,7 +247,7 @@ class VehicleRegulationPlanEntrySerializer(serializers.ModelSerializer):
 class _RegulationSchemaShortSerializer(serializers.ModelSerializer):
     class Meta:
         model = FleetVehicleRegulationSchema
-        fields = ["id", "title", "title_pl", "title_uk"]
+        fields = ["id", "title", "title_pl", "title_uk", "title_en"]
 
 
 class VehicleRegulationPlanSerializer(serializers.ModelSerializer):
@@ -260,6 +263,7 @@ class VehicleRegulationHistorySerializer(serializers.ModelSerializer):
     item_title = serializers.CharField(source="entry.item.title", read_only=True)
     item_title_pl = serializers.CharField(source="entry.item.title_pl", read_only=True)
     item_title_uk = serializers.CharField(source="entry.item.title_uk", read_only=True)
+    item_title_en = serializers.CharField(source="entry.item.title_en", read_only=True)
 
     class Meta:
         model = FleetVehicleRegulationHistory
@@ -268,6 +272,7 @@ class VehicleRegulationHistorySerializer(serializers.ModelSerializer):
             "item_title",
             "item_title_pl",
             "item_title_uk",
+            "item_title_en",
             "event_type",
             "km_at_event",
             "km_remaining",

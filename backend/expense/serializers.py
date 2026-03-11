@@ -7,7 +7,7 @@ from rest_framework import serializers
 
 from config.storage_utils import media_url
 
-from .constants import ALLOWED_INVOICE_EXTENSIONS
+from .constants import ALLOWED_INVOICE_EXTENSIONS, ApprovalStatus, PayerType
 from .models import (
     Expense,
     ExpenseCategory,
@@ -226,6 +226,21 @@ class ExpenseSerializer(serializers.ModelSerializer):
     # SERVICE items — read-only nested output
     service_items = ServiceItemSerializer(many=True, read_only=True)
 
+    # Cost splitting (CLIENT payer_type)
+    company_amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    client_amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, allow_null=True
+    )
+    client_driver = serializers.PrimaryKeyRelatedField(
+        read_only=True, required=False, allow_null=True
+    )
+    client_driver_name = serializers.SerializerMethodField()
+    approval_status = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True
+    )
+
     # Invoice
     invoice_number = serializers.CharField(
         required=False, allow_blank=True, write_only=True
@@ -251,6 +266,12 @@ class ExpenseSerializer(serializers.ModelSerializer):
             "payment_method",
             "payer_type",
             "expense_for",
+            # Cost splitting
+            "company_amount",
+            "client_amount",
+            "client_driver",
+            "client_driver_name",
+            "approval_status",
             # FUEL
             "liters",
             "fuel_type",
@@ -297,6 +318,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
             "parts",
             "invoice_data",
             "invoice_existing",
+            "client_driver_name",
             "created_by",
             "created_at",
             "updated_at",
@@ -304,6 +326,12 @@ class ExpenseSerializer(serializers.ModelSerializer):
 
     def get_invoice_existing(self, obj):
         return getattr(obj, "_invoice_existing", False)
+
+    def get_client_driver_name(self, obj):
+        driver = obj.client_driver
+        if driver:
+            return f"{driver.first_name} {driver.last_name}".strip()
+        return None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -315,6 +343,9 @@ class ExpenseSerializer(serializers.ModelSerializer):
         )
         self.fields["service"] = serializers.PrimaryKeyRelatedField(
             queryset=FleetService.objects.all(), required=False, allow_null=True
+        )
+        self.fields["client_driver"] = serializers.PrimaryKeyRelatedField(
+            queryset=Driver.objects.all(), required=False, allow_null=True
         )
 
     # ── Helpers ──
@@ -376,6 +407,50 @@ class ExpenseSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError(
                         {"service_items_json": "Invalid JSON."}
                     ) from None
+
+        # ── Cost splitting validation ──
+        payer_type = data.get("payer_type")
+        if payer_type is None and self.instance:
+            payer_type = self.instance.payer_type
+
+        if payer_type == PayerType.COMPANY:
+            data["company_amount"] = None
+            data["client_amount"] = None
+            data["client_driver"] = None
+            data["approval_status"] = None
+        elif payer_type == PayerType.CLIENT:
+            company_amt = data.get("company_amount")
+            client_amt = data.get("client_amount")
+            if self.instance is None:
+                # Create: require split amounts
+                if company_amt is None or client_amt is None:
+                    raise serializers.ValidationError(
+                        {"company_amount": "Required when payer_type is CLIENT."}
+                    )
+            if company_amt is not None and company_amt < 0:
+                raise serializers.ValidationError({"company_amount": "Must be >= 0."})
+            if client_amt is not None and client_amt < 0:
+                raise serializers.ValidationError({"client_amount": "Must be >= 0."})
+            # Default approval_status to DRAFT on create
+            if self.instance is None and not data.get("approval_status"):
+                data["approval_status"] = ApprovalStatus.DRAFT
+
+        # ── Approval status transition validation ──
+        new_status = data.get("approval_status")
+        if self.instance and new_status and new_status != self.instance.approval_status:
+            allowed_transitions = {
+                ApprovalStatus.DRAFT: [ApprovalStatus.SENT],
+                ApprovalStatus.SENT: [ApprovalStatus.REVIEW, ApprovalStatus.DRAFT],
+                ApprovalStatus.REVIEW: [ApprovalStatus.APPROVED],
+            }
+            old_status = self.instance.approval_status
+            allowed = allowed_transitions.get(old_status, [])
+            if new_status not in allowed:
+                raise serializers.ValidationError(
+                    {
+                        "approval_status": f"Cannot transition from {old_status} to {new_status}."
+                    }
+                )
 
         # Invoice: look up by number
         invoice_number = self.initial_data.get("invoice_number", "").strip()
@@ -570,6 +645,16 @@ class ExpenseSerializer(serializers.ModelSerializer):
             expense.amount = expense.computed_amount
             expense.save(update_fields=["amount"])
 
+        # Validate split amounts sum after auto-computation
+        if expense.payer_type == PayerType.CLIENT:
+            if expense.company_amount is not None and expense.client_amount is not None:
+                if expense.company_amount + expense.client_amount != expense.amount:
+                    raise serializers.ValidationError(
+                        {
+                            "company_amount": "company_amount + client_amount must equal total amount."
+                        }
+                    )
+
         # Auto-create TechnicalInspection for INSPECTION expenses
         if code == "INSPECTION":
             self._create_linked_inspection(expense, detail_data)
@@ -614,6 +699,19 @@ class ExpenseSerializer(serializers.ModelSerializer):
         if new_code in ("SERVICE", "PARTS", "INSPECTION", "ACCESSORIES", "DOCUMENTS"):
             instance.amount = instance.computed_amount
             instance.save(update_fields=["amount"])
+
+        # Validate split amounts sum after auto-computation
+        if instance.payer_type == PayerType.CLIENT:
+            if (
+                instance.company_amount is not None
+                and instance.client_amount is not None
+            ):
+                if instance.company_amount + instance.client_amount != instance.amount:
+                    raise serializers.ValidationError(
+                        {
+                            "company_amount": "company_amount + client_amount must equal total amount."
+                        }
+                    )
 
         # Sync linked TechnicalInspection for INSPECTION expenses
         if new_code == "INSPECTION":

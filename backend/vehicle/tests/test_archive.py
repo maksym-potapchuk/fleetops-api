@@ -36,7 +36,7 @@ class VehicleArchiveTest(TestCase):
 
         response = self.client.get(self.BASE_URL)
         self.assertEqual(response.status_code, 200)
-        ids = [v["id"] for v in response.data]
+        ids = [v["id"] for v in response.data["results"]]
         self.assertIn(str(v1.id), ids)
         self.assertNotIn(str(v2.id), ids)
 
@@ -60,7 +60,7 @@ class VehicleArchiveTest(TestCase):
 
         response = self.client.get(f"{self.BASE_URL}archive/")
         self.assertEqual(response.status_code, 200)
-        ids = [v["id"] for v in response.data]
+        ids = [v["id"] for v in response.data["results"]]
         self.assertEqual(len(ids), 1)
         self.assertIn(str(archived.id), ids)
 

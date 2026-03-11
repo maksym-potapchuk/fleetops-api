@@ -6,6 +6,7 @@ from django.db import models
 
 from .constants import (
     ALLOWED_INVOICE_EXTENSIONS,
+    ApprovalStatus,
     FuelType,
     PayerType,
     PaymentMethod,
@@ -81,6 +82,26 @@ class Expense(models.Model):
         default=PayerType.COMPANY,
     )
     expense_for = models.CharField(max_length=200, blank=True)
+    # ── Cost splitting (only when payer_type=CLIENT) ──
+    company_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True
+    )
+    client_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True
+    )
+    client_driver = models.ForeignKey(
+        "driver.Driver",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="client_expenses",
+    )
+    approval_status = models.CharField(
+        max_length=20,
+        choices=ApprovalStatus.choices,
+        null=True,
+        blank=True,
+    )
     created_by = models.ForeignKey(
         "account.User",
         on_delete=models.SET_NULL,
@@ -95,6 +116,7 @@ class Expense(models.Model):
         indexes = [
             models.Index(fields=["vehicle", "category"]),
             models.Index(fields=["expense_date"]),
+            models.Index(fields=["approval_status"]),
         ]
 
     def __str__(self) -> str:

@@ -271,18 +271,16 @@ class Command(BaseCommand):
                     parsed = parse_card_name(card["name"])
                     if not parsed or not parsed["vin"]:
                         continue
-                    count = Vehicle.objects.filter(
-                        vin_number=parsed["vin"]
-                    ).update(status_position=position)
+                    count = Vehicle.objects.filter(vin_number=parsed["vin"]).update(
+                        status_position=position
+                    )
                     if count:
                         self.stdout.write(
                             f"  {parsed['car_number'] or parsed['vin']} → pos={position}"
                         )
                         updated += count
                     position += 1000
-            self.stdout.write(
-                self.style.SUCCESS(f"\nRepositioned {updated} vehicles.")
-            )
+            self.stdout.write(self.style.SUCCESS(f"\nRepositioned {updated} vehicles."))
             return
 
         # ── --all: import every list with a status mapping ──
@@ -417,13 +415,9 @@ class Command(BaseCommand):
             vin = parsed["vin"]
 
             if not vin:
-                self.stdout.write(
-                    self.style.WARNING(f"  SKIP (no VIN): {name}")
-                )
+                self.stdout.write(self.style.WARNING(f"  SKIP (no VIN): {name}"))
                 report["skipped"] += 1
-                report["skipped_cards"].append(
-                    {"name": name, "reason": "no_vin"}
-                )
+                report["skipped_cards"].append({"name": name, "reason": "no_vin"})
                 continue
 
             if dry_run:

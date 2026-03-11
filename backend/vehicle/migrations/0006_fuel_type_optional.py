@@ -4,15 +4,26 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('vehicle', '0005_vehicle_photo_structured_upload_path'),
+        ("vehicle", "0005_vehicle_photo_structured_upload_path"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='vehicle',
-            name='fuel_type',
-            field=models.CharField(blank=True, choices=[('GASOLINE', 'Gasoline'), ('DIESEL', 'Diesel'), ('LPG', 'LPG'), ('LPG_GASOLINE', 'LPG + Gasoline'), ('ELECTRIC', 'Electric'), ('HYBRID', 'Hybrid')], max_length=20, null=True),
+            model_name="vehicle",
+            name="fuel_type",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("GASOLINE", "Gasoline"),
+                    ("DIESEL", "Diesel"),
+                    ("LPG", "LPG"),
+                    ("LPG_GASOLINE", "LPG + Gasoline"),
+                    ("ELECTRIC", "Electric"),
+                    ("HYBRID", "Hybrid"),
+                ],
+                max_length=20,
+                null=True,
+            ),
         ),
     ]

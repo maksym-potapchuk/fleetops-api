@@ -88,7 +88,8 @@ class AssignRegulationAPITest(BaseAPITest):
         )
         self.assertEqual(response.status_code, 400)
 
-    def test_missing_schema_item_returns_400(self):
+    def test_partial_schema_items_accepted(self):
+        """Partial submission (not all schema items) is now allowed."""
         response = self.client.post(
             self.url,
             {
@@ -97,7 +98,7 @@ class AssignRegulationAPITest(BaseAPITest):
             },
             format="json",
         )
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 201)
 
     def test_item_from_wrong_schema_returns_400(self):
         schema2 = make_schema(title="Schema 2")

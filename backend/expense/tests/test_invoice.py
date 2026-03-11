@@ -34,7 +34,9 @@ class InvoiceExpenseTest(TestCase):
         )
 
     def _pdf(self, name="invoice.pdf"):
-        return SimpleUploadedFile(name, b"%PDF-1.4 test", content_type="application/pdf")
+        return SimpleUploadedFile(
+            name, b"%PDF-1.4 test", content_type="application/pdf"
+        )
 
     def _base(self, category, **extra):
         payload = {
@@ -103,7 +105,9 @@ class InvoiceExpenseTest(TestCase):
 
     def test_invoice_jpg_file_rejected(self):
         """Only .pdf, .doc, .docx allowed — .jpg must be rejected."""
-        jpg = SimpleUploadedFile("photo.jpg", b"\xff\xd8\xff", content_type="image/jpeg")
+        jpg = SimpleUploadedFile(
+            "photo.jpg", b"\xff\xd8\xff", content_type="image/jpeg"
+        )
         payload = self._base(
             self.parts_cat,
             invoice_number="FAK-JPG-001",
@@ -125,7 +129,8 @@ class InvoiceExpenseTest(TestCase):
     def test_delete_expense_does_not_delete_shared_invoice(self):
         """Deleting an expense with a shared invoice keeps the Invoice intact."""
         invoice = Invoice.objects.create(
-            number="FAK-KEEP-001", file=self._pdf("keep.pdf"),
+            number="FAK-KEEP-001",
+            file=self._pdf("keep.pdf"),
         )
         v2 = make_vehicle(car_number="CC8801DD", vin_number="WVWZZZ3CZWE000099")
         # Two expenses sharing the same invoice
@@ -144,7 +149,11 @@ class InvoiceExpenseTest(TestCase):
 
     def test_invoice_docx_file_accepted(self):
         """.docx files are valid invoice attachments."""
-        docx = SimpleUploadedFile("invoice.docx", b"PK\x03\x04", content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        docx = SimpleUploadedFile(
+            "invoice.docx",
+            b"PK\x03\x04",
+            content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
         payload = self._base(
             self.parts_cat,
             invoice_number="FAK-DOCX-001",
@@ -164,19 +173,29 @@ class InvoiceSearchTest(TestCase):
         self.client = APIClient()
         self.user = make_user(email="search@example.com", username="searchuser")
         authenticate(self.client, self.user)
-        self.pdf = SimpleUploadedFile("inv.pdf", b"%PDF-1.4", content_type="application/pdf")
+        self.pdf = SimpleUploadedFile(
+            "inv.pdf", b"%PDF-1.4", content_type="application/pdf"
+        )
 
     def test_search_returns_matching_invoices(self):
-        Invoice.objects.create(number="FAK-100/2026", file=self.pdf, vendor_name="Kraków Auto")
-        pdf2 = SimpleUploadedFile("inv2.pdf", b"%PDF-1.4", content_type="application/pdf")
-        Invoice.objects.create(number="FAK-200/2026", file=pdf2, vendor_name="Warszawa Parts")
+        Invoice.objects.create(
+            number="FAK-100/2026", file=self.pdf, vendor_name="Kraków Auto"
+        )
+        pdf2 = SimpleUploadedFile(
+            "inv2.pdf", b"%PDF-1.4", content_type="application/pdf"
+        )
+        Invoice.objects.create(
+            number="FAK-200/2026", file=pdf2, vendor_name="Warszawa Parts"
+        )
         response = self.client.get(self.SEARCH_URL, {"search": "FAK-100"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]["number"], "FAK-100/2026")
 
     def test_search_by_vendor_name(self):
-        Invoice.objects.create(number="FAK-V-001", file=self.pdf, vendor_name="AutoSerwis Kraków")
+        Invoice.objects.create(
+            number="FAK-V-001", file=self.pdf, vendor_name="AutoSerwis Kraków"
+        )
         response = self.client.get(self.SEARCH_URL, {"search": "Kraków"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
@@ -194,8 +213,12 @@ class InvoiceSearchTest(TestCase):
 
         for _ in range(2):
             Expense.objects.create(
-                vehicle=vehicle, category=cat, amount="100.00",
-                expense_date="2026-03-01", invoice=invoice, created_by=user,
+                vehicle=vehicle,
+                category=cat,
+                amount="100.00",
+                expense_date="2026-03-01",
+                invoice=invoice,
+                created_by=user,
             )
         response = self.client.get(self.SEARCH_URL, {"search": "FAK-COUNT"})
         self.assertEqual(response.status_code, 200)
@@ -211,8 +234,12 @@ class InvoiceSearchTest(TestCase):
 
     def test_search_layout_aware_finds_cyrillic_from_latin(self):
         """Layout-aware filter: typing 'Aenjcthdsc' (lat) finds 'АвтоСервіс' (cyr)."""
-        pdf2 = SimpleUploadedFile("layout.pdf", b"%PDF-1.4", content_type="application/pdf")
-        Invoice.objects.create(number="FAK-LAYOUT-001", file=pdf2, vendor_name="АвтоСервіс")
+        pdf2 = SimpleUploadedFile(
+            "layout.pdf", b"%PDF-1.4", content_type="application/pdf"
+        )
+        Invoice.objects.create(
+            number="FAK-LAYOUT-001", file=pdf2, vendor_name="АвтоСервіс"
+        )
         # 'Fdnjcthdsc' is what you type on English layout trying to type 'АвтоСервіс'
         response = self.client.get(self.SEARCH_URL, {"search": "АвтоСервіс"})
         self.assertEqual(response.status_code, 200)
