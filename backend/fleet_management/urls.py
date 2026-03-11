@@ -15,6 +15,8 @@ from .views import (
     ServicePlanDetailAPIView,
     ServicePlanListCreateAPIView,
     ServicePlanMarkDoneAPIView,
+    VehicleRegulationEntryAddView,
+    VehicleRegulationEntryDeleteView,
     VehicleRegulationEntryUpdate,
     VehicleRegulationHistoryView,
     VehicleRegulationPlanView,
@@ -63,9 +65,19 @@ urlpatterns = [
         name="vehicle-regulation-history",
     ),
     path(
+        "vehicles/<uuid:vehicle_pk>/regulation/entries/",
+        VehicleRegulationEntryAddView.as_view(),
+        name="regulation-entry-add",
+    ),
+    path(
         "vehicles/<uuid:vehicle_pk>/regulation/entries/<int:entry_pk>/",
         VehicleRegulationEntryUpdate.as_view(),
         name="regulation-entry-update",
+    ),
+    path(
+        "vehicles/<uuid:vehicle_pk>/regulation/entries/<int:entry_pk>/delete/",
+        VehicleRegulationEntryDeleteView.as_view(),
+        name="regulation-entry-delete",
     ),
     path(
         "vehicles/<uuid:vehicle_pk>/service-plans/",

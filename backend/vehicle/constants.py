@@ -9,6 +9,7 @@ class ManufacturerChoices(models.TextChoices):
     BMW = "BMW", "BMW"
     LEXUS = "Lexus", "Lexus"
     AUDI = "Audi", "Audi"
+    TESLA = "Tesla", "Tesla"
 
 
 class FuelType(models.TextChoices):

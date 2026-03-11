@@ -10,6 +10,7 @@ v1_patterns = [
     path("vehicle/", include("vehicle.urls")),
     path("fleet/", include("fleet_management.urls")),
     path("expense/", include("expense.urls")),
+    path("notifications/", include("notification.urls")),
 ]
 
 urlpatterns = [
