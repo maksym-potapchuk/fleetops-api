@@ -101,8 +101,11 @@ class ResolveNotificationView(APIView):
                 action=serializer.validated_data["action"],
                 user=request.user,
             )
-        except ValueError as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response(
+                {"detail": "Cannot resolve this notification."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return Response(NotificationSerializer(resolved).data)
 
