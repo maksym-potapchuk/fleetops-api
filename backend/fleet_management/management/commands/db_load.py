@@ -18,6 +18,11 @@ class Command(BaseCommand):
             default="",
             help="Path to fixture file. Default: latest file in backups/",
         )
+        parser.add_argument(
+            "--no-flush",
+            action="store_true",
+            help="Skip flushing database before loading (may cause unique constraint errors)",
+        )
 
     def _find_latest(self):
         pattern = str(self.BACKUP_DIR / "fleet_db_*.json")
@@ -43,6 +48,10 @@ class Command(BaseCommand):
 
         size_kb = path.stat().st_size / 1024
         self.stdout.write(f"Loading fixture ({size_kb:.0f} KB): {path}")
+
+        if not options["no_flush"]:
+            self.stdout.write("Flushing database before loading...")
+            call_command("flush", "--no-input", verbosity=0)
 
         call_command("loaddata", str(path), verbosity=1)
 
