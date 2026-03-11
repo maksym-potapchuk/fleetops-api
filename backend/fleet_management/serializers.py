@@ -223,10 +223,22 @@ class EquipmentListSerializer(serializers.ModelSerializer):
 class VehicleRegulationPlanEntrySerializer(serializers.ModelSerializer):
     item = FleetVehicleRegulationItemSerializer(read_only=True)
     next_due_km = serializers.IntegerField(read_only=True)
+    effective_every_km = serializers.IntegerField(read_only=True)
+    effective_notify_before_km = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = FleetVehicleRegulationEntry
-        fields = ["id", "item", "last_done_km", "next_due_km", "updated_at"]
+        fields = [
+            "id",
+            "item",
+            "last_done_km",
+            "every_km",
+            "notify_before_km",
+            "effective_every_km",
+            "effective_notify_before_km",
+            "next_due_km",
+            "updated_at",
+        ]
 
 
 class _RegulationSchemaShortSerializer(serializers.ModelSerializer):
