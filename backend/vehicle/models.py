@@ -9,7 +9,7 @@ class Vehicle(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     model = models.CharField(max_length=50)
     manufacturer = models.CharField(max_length=50, choices=ManufacturerChoices.choices)
-    year = models.PositiveIntegerField()
+    year = models.PositiveIntegerField(null=True, blank=True)
     cost = models.DecimalField(max_digits=10, decimal_places=2)
     vin_number = models.CharField(max_length=17, unique=True)
     car_number = models.CharField(max_length=10, unique=True, null=True, blank=True)
@@ -42,6 +42,13 @@ class Vehicle(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["status", "status_position"], name="idx_vehicle_status_pos"),
+            models.Index(fields=["-updated_at"], name="idx_vehicle_updated_at"),
+            models.Index(fields=["is_archived", "-updated_at"], name="idx_vehicle_archived_updated"),
+        ]
 
     def __str__(self) -> str:
         plate = self.car_number or "—"

@@ -1,7 +1,7 @@
 """
 Vehicle Photos API Tests
 ========================
-Covers: upload, max 10 limit, delete, list, cascade.
+Covers: upload, delete, list, cascade.
 """
 
 import io
@@ -51,18 +51,6 @@ class VehiclePhotoAPITest(TestCase):
             image_url.startswith("/media/"),
             f"Expected path-only URL, got: {image_url}",
         )
-
-    def test_upload_11th_photo_returns_400(self):
-        """Maximum 10 photos per vehicle enforced by serializer."""
-        for i in range(10):
-            VehiclePhoto.objects.create(
-                vehicle=self.vehicle,
-                image=f"vehicles/photos/test_{i}.jpg",
-            )
-        response = self.client.post(
-            self.url, {"image": _make_image()}, format="multipart"
-        )
-        self.assertEqual(response.status_code, 400)
 
     def test_list_returns_all_photos(self):
         VehiclePhoto.objects.create(vehicle=self.vehicle, image="vehicles/photos/a.jpg")

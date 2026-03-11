@@ -1,114 +1,15 @@
-# create_vehicle_reg_basic_schema.py
-
 from django.core.management.base import BaseCommand
 
+from fleet_management.constants import DEFAULT_EQUIPMENT, DEFAULT_REGULATION_SCHEMA
 from fleet_management.models import (
+    EquipmentDefaultItem,
     FleetVehicleRegulationItem,
     FleetVehicleRegulationSchema,
 )
 
-DEFAULT_SERVICE_SCHEMA = {
-    "regulation_name": "РЕГЛАМЕНТ ОБСЛУГОВУВАННЯ",
-    "regulation_name_pl": "REGULAMIN SERWISOWY",
-    "regulation_name_uk": "РЕГЛАМЕНТ ОБСЛУГОВУВАННЯ",
-    "services": [
-        {
-            "name": "Заміна моторного масла та масляного фільтра",
-            "name_pl": "Wymiana oleju silnikowego i filtra oleju",
-            "name_uk": "Заміна моторного масла та масляного фільтра",
-            "interval_km": 10000,
-            "notify_before_km": 500,
-        },
-        {
-            "name": "Заміна фільтра газової системи",
-            "name_pl": "Wymiana filtra instalacji gazowej",
-            "name_uk": "Заміна фільтра газової системи",
-            "interval_km": 10000,
-            "notify_before_km": 500,
-        },
-        {
-            "name": "Заміна повітряного фільтра двигуна",
-            "name_pl": "Wymiana filtra powietrza silnika",
-            "name_uk": "Заміна повітряного фільтра двигуна",
-            "interval_km": 20000,
-            "notify_before_km": 1000,
-        },
-        {
-            "name": "Заміна салонного фільтра",
-            "name_pl": "Wymiana filtra kabinowego",
-            "name_uk": "Заміна салонного фільтра",
-            "interval_km": 20000,
-            "notify_before_km": 1000,
-        },
-        {
-            "name": "Перевірка стану підвіски",
-            "name_pl": "Kontrola stanu zawieszenia",
-            "name_uk": "Перевірка стану підвіски",
-            "interval_km": 20000,
-            "notify_before_km": 1000,
-        },
-        {
-            "name": "Заміна гальмівної рідини",
-            "name_pl": "Wymiana płynu hamulcowego",
-            "name_uk": "Заміна гальмівної рідини",
-            "interval_km": 30000,
-            "notify_before_km": 2000,
-        },
-        {
-            "name": "Заміна гальмівних колодок",
-            "name_pl": "Wymiana klocków hamulcowych",
-            "name_uk": "Заміна гальмівних колодок",
-            "interval_km": 30000,
-            "notify_before_km": 2000,
-        },
-        {
-            "name": "Перевірка електросистеми та компонентів двигуна",
-            "name_pl": "Kontrola układu elektrycznego i podzespołów silnika",
-            "name_uk": "Перевірка електросистеми та компонентів двигуна",
-            "interval_km": 20000,
-            "notify_before_km": 1000,
-        },
-        {
-            "name": "Заміна рідини гідропідсилювача керма",
-            "name_pl": "Wymiana płynu wspomagania kierownicy",
-            "name_uk": "Заміна рідини гідропідсилювача керма",
-            "interval_km": 48000,
-            "notify_before_km": 2000,
-        },
-        {
-            "name": "Заміна охолоджуючої рідини",
-            "name_pl": "Wymiana płynu chłodniczego",
-            "name_uk": "Заміна охолоджуючої рідини",
-            "interval_km": 60000,
-            "notify_before_km": 3000,
-        },
-        {
-            "name": "Заміна насоса охолодження",
-            "name_pl": "Wymiana pompy wody",
-            "name_uk": "Заміна насоса охолодження",
-            "interval_km": 120000,
-            "notify_before_km": 5000,
-        },
-        {
-            "name": "Заміна масла коробки передач",
-            "name_pl": "Wymiana oleju skrzyni biegów",
-            "name_uk": "Заміна масла коробки передач",
-            "interval_km": 72000,
-            "notify_before_km": 3000,
-        },
-        {
-            "name": "Заміна паливного фільтра",
-            "name_pl": "Wymiana filtra paliwa",
-            "name_uk": "Заміна паливного фільтра",
-            "interval_km": 72000,
-            "notify_before_km": 3000,
-        },
-    ],
-}
-
 
 class Command(BaseCommand):
-    help = "Seeds the default vehicle regulation schema into the database"
+    help = "Seeds the default regulation schema and equipment into the database"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -117,30 +18,33 @@ class Command(BaseCommand):
             help="Delete existing default schema and recreate it",
         )
 
-    def handle(self, *args, **options):
-        title = DEFAULT_SERVICE_SCHEMA["regulation_name"]
+    def _seed_regulation(self, force: bool) -> None:
+        schema_data = DEFAULT_REGULATION_SCHEMA
+        title = schema_data["title"]
 
-        if options["force"]:
+        if force:
             deleted, _ = FleetVehicleRegulationSchema.objects.filter(
                 title=title,
             ).delete()
             self.stdout.write(
-                self.style.WARNING(f"Deleted existing schema: {deleted} record(s)"),
+                self.style.WARNING(
+                    f"Deleted existing schema: {deleted} record(s)",
+                ),
             )
 
         schema, created = FleetVehicleRegulationSchema.objects.get_or_create(
             title=title,
             defaults={
-                "title_pl": DEFAULT_SERVICE_SCHEMA["regulation_name_pl"],
-                "title_uk": DEFAULT_SERVICE_SCHEMA["regulation_name_uk"],
+                "title_pl": schema_data["title_pl"],
+                "title_uk": schema_data["title_uk"],
                 "is_default": True,
             },
         )
 
-        if not created:
+        if not created and not force:
             self.stdout.write(
                 self.style.WARNING(
-                    f'Schema "{title}" already exists. Use --force to recreate it.',
+                    f'Schema "{title}" already exists. Use --force to recreate.',
                 ),
             )
             return
@@ -148,17 +52,42 @@ class Command(BaseCommand):
         items = [
             FleetVehicleRegulationItem(
                 schema=schema,
-                title=service["name"],
-                title_pl=service["name_pl"],
-                title_uk=service["name_uk"],
-                every_km=service["interval_km"],
-                notify_before_km=service["notify_before_km"],
+                title=item["title"],
+                title_pl=item["title_pl"],
+                title_uk=item["title_uk"],
+                every_km=item["every_km"],
+                notify_before_km=item["notify_before_km"],
             )
-            for service in DEFAULT_SERVICE_SCHEMA["services"]
+            for item in schema_data["items"]
         ]
-
         FleetVehicleRegulationItem.objects.bulk_create(items)
 
         self.stdout.write(
-            self.style.SUCCESS(f'Created schema "{title}" with {len(items)} items.'),
+            self.style.SUCCESS(
+                f'Created schema "{title}" with {len(items)} items.',
+            ),
         )
+
+    def _seed_equipment(self) -> None:
+        existing = set(
+            EquipmentDefaultItem.objects.values_list("equipment", flat=True),
+        )
+        new_items = [
+            EquipmentDefaultItem(equipment=name)
+            for name in DEFAULT_EQUIPMENT
+            if name not in existing
+        ]
+
+        if new_items:
+            EquipmentDefaultItem.objects.bulk_create(new_items)
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Created {len(new_items)} equipment items.",
+                ),
+            )
+        else:
+            self.stdout.write("All equipment items already exist.")
+
+    def handle(self, *args, **options):
+        self._seed_regulation(force=options["force"])
+        self._seed_equipment()

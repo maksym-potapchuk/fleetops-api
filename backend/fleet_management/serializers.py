@@ -114,12 +114,18 @@ class AssignRegulationSerializer(serializers.Serializer):
                 f"Items {invalid} do not belong to schema"
             )
 
-        missing = schema_item_ids - provided_items_ids
-        if missing:
-            raise serializers.ValidationError(
-                f"Missing last_done_km for items: {missing}"
-            )
+        if not provided_items_ids:
+            raise serializers.ValidationError("At least one entry is required")
         return data
+
+
+class AddRegulationEntrySerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=155)
+    title_pl = serializers.CharField(max_length=155, required=False, default="")
+    title_uk = serializers.CharField(max_length=155, required=False, default="")
+    every_km = serializers.IntegerField(min_value=1)
+    notify_before_km = serializers.IntegerField(min_value=0, default=500)
+    last_done_km = serializers.IntegerField(min_value=0, default=0)
 
 
 class FleetVehicleRegulationSchemaUpdateSerializer(serializers.ModelSerializer):

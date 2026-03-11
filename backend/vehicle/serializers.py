@@ -21,12 +21,6 @@ class VehiclePhotoSerializer(serializers.ModelSerializer):
         fields = ["id", "image", "uploaded_at", "created_by"]
         read_only_fields = ["id", "uploaded_at", "created_by"]
 
-    def validate(self, attrs):
-        vehicle_id = self.context["view"].kwargs["pk"]
-        if VehiclePhoto.objects.filter(vehicle_id=vehicle_id).count() >= 10:
-            raise serializers.ValidationError("Maximum 10 photos per vehicle.")
-        return attrs
-
     def to_representation(self, instance):
         rep = super().to_representation(instance)
         # Return path-only URL so the frontend can proxy via Next.js /media/ rewrite
@@ -189,21 +183,31 @@ class VehicleSerializer(serializers.ModelSerializer):
             representation["next_inspection_date"] = None
             representation["days_until_inspection"] = None
 
-        # Equipment counts (uses prefetched equipment_list if available)
-        eq_list = list(instance.equipment_list.all())
-        representation["equipment_total"] = len(eq_list)
-        representation["equipment_equipped"] = sum(1 for e in eq_list if e.is_equipped)
+        # Equipment counts (from DB annotations when available, fallback to Python)
+        if hasattr(instance, "equipment_total_count"):
+            representation["equipment_total"] = instance.equipment_total_count
+            representation["equipment_equipped"] = instance.equipment_equipped_count
+        else:
+            eq_list = list(instance.equipment_list.all())
+            representation["equipment_total"] = len(eq_list)
+            representation["equipment_equipped"] = sum(
+                1 for e in eq_list if e.is_equipped
+            )
 
-        # Regulation
-        regs = list(instance.regulations.all())
-        representation["has_regulation"] = len(regs) > 0
-        overdue = 0
-        current_km = instance.initial_km
-        for reg in regs:
-            for entry in reg.entries.all():
-                if current_km >= entry.last_done_km + entry.item.every_km:
-                    overdue += 1
-        representation["regulation_overdue"] = overdue
+        # Regulation (from DB annotations when available, fallback to Python)
+        if hasattr(instance, "has_regulation_flag"):
+            representation["has_regulation"] = instance.has_regulation_flag
+            representation["regulation_overdue"] = instance.regulation_overdue_count
+        else:
+            regs = list(instance.regulations.all())
+            representation["has_regulation"] = len(regs) > 0
+            overdue = 0
+            current_km = instance.initial_km
+            for reg in regs:
+                for entry in reg.entries.all():
+                    if current_km >= entry.last_done_km + entry.item.every_km:
+                        overdue += 1
+            representation["regulation_overdue"] = overdue
 
         # Total cost = purchase price + all expenses
         expenses_total = getattr(instance, "expenses_total", None) or Decimal("0")

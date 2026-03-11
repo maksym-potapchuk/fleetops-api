@@ -23,6 +23,13 @@ CACHES = {
     }
 }
 
+# Use in-memory channel layer — no Redis required for tests
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
+
 # Keep throttle rates very high so tests never hit the limit.
 # ScopedRateThrottle on LoginView/RefreshView requires 'auth' scope to exist.
 # Force local file storage — tests must not depend on S3

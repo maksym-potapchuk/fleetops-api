@@ -1,7 +1,7 @@
 import logging
 
 from django.db import models, transaction
-from django.db.models import DecimalField, Sum, Value
+from django.db.models import Case, Count, DecimalField, F, Prefetch, Q, Sum, Value, When
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
@@ -33,26 +33,57 @@ from .services import assign_owner, create_vehicle, unassign_owner
 
 logger = logging.getLogger(__name__)
 
-_EXPENSES_TOTAL_ANNOTATION = {
+_VEHICLE_ANNOTATIONS = {
     "expenses_total": Coalesce(
         Sum("expenses__amount"),
         Value(0),
         output_field=DecimalField(max_digits=12, decimal_places=2),
-    )
+    ),
+    "equipment_total_count": Count(
+        "equipment_list",
+        distinct=True,
+    ),
+    "equipment_equipped_count": Count(
+        "equipment_list",
+        filter=Q(equipment_list__is_equipped=True),
+        distinct=True,
+    ),
+    "regulation_overdue_count": Count(
+        "regulations__entries",
+        filter=Q(
+            initial_km__gte=F("regulations__entries__last_done_km")
+            + F("regulations__entries__item__every_km"),
+        ),
+        distinct=True,
+    ),
+    "has_regulation_flag": Case(
+        When(regulations__isnull=False, then=Value(True)),
+        default=Value(False),
+        output_field=models.BooleanField(),
+    ),
 }
 
 
+class VehiclePagination(PageNumberPagination):
+    page_size = 200
+    page_size_query_param = "page_size"
+    max_page_size = 500
+
+
 class VehicleListCreateView(generics.ListCreateAPIView):
+    pagination_class = VehiclePagination
     queryset = (
         Vehicle.objects.select_related("current_owner__driver")
         .prefetch_related(
             "photos",
             "inspections",
             "equipment_list",
-            "regulations__entries__item",
+            Prefetch(
+                "regulations__entries__item",
+            ),
         )
         .filter(is_archived=False)
-        .annotate(**_EXPENSES_TOTAL_ANNOTATION)
+        .annotate(**_VEHICLE_ANNOTATIONS)
         .order_by("status_position", "-updated_at")
     )
     serializer_class = VehicleSerializer
@@ -110,10 +141,12 @@ class VehicleRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
             "photos",
             "inspections",
             "equipment_list",
-            "regulations__entries__item",
+            Prefetch(
+                "regulations__entries__item",
+            ),
         )
         .filter(is_archived=False)
-        .annotate(**_EXPENSES_TOTAL_ANNOTATION)
+        .annotate(**_VEHICLE_ANNOTATIONS)
     )
     serializer_class = VehicleSerializer
     permission_classes = [IsAuthenticated]
@@ -243,7 +276,7 @@ class VehicleArchiveListView(generics.ListAPIView):
         Vehicle.objects.select_related("current_owner__driver")
         .prefetch_related("photos", "inspections")
         .filter(is_archived=True)
-        .annotate(**_EXPENSES_TOTAL_ANNOTATION)
+        .annotate(**_VEHICLE_ANNOTATIONS)
         .order_by("-archived_at")
     )
     serializer_class = VehicleSerializer
@@ -287,24 +320,41 @@ class VehicleDeleteCheckView(generics.GenericAPIView):
     http_method_names = ["get"]
 
     def get(self, request, pk):
-        vehicle = self.get_object()
+        vehicle = (
+            Vehicle.objects.filter(pk=pk, is_archived=True)
+            .annotate(
+                _current_owner=Count("current_owner", distinct=True),
+                _ownership_history=Count("ownership_history", distinct=True),
+                _photos=Count("photos", distinct=True),
+                _inspections=Count("inspections", distinct=True),
+                _service_history=Count("service_history", distinct=True),
+                _regulations=Count("regulations", distinct=True),
+                _service_plans=Count("service_plans", distinct=True),
+                _equipment=Count("equipment_list", distinct=True),
+                _mileage_logs=Count("mileage_logs", distinct=True),
+                _expenses=Count("expenses", distinct=True),
+            )
+            .first()
+        )
+        if not vehicle:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        counts = {
+            "current_owner": vehicle._current_owner,
+            "ownership_history": vehicle._ownership_history,
+            "photos": vehicle._photos,
+            "inspections": vehicle._inspections,
+            "service_history": vehicle._service_history,
+            "regulations": vehicle._regulations,
+            "service_plans": vehicle._service_plans,
+            "equipment": vehicle._equipment,
+            "mileage_logs": vehicle._mileage_logs,
+            "expenses": vehicle._expenses,
+        }
         return Response(
             {
-                "has_related_data": vehicle.has_related_data(),
-                "related_counts": {
-                    "current_owner": 1
-                    if VehicleOwner.objects.filter(vehicle=vehicle).exists()
-                    else 0,
-                    "ownership_history": vehicle.ownership_history.count(),
-                    "photos": vehicle.photos.count(),
-                    "inspections": vehicle.inspections.count(),
-                    "service_history": vehicle.service_history.count(),
-                    "regulations": vehicle.regulations.count(),
-                    "service_plans": vehicle.service_plans.count(),
-                    "equipment": vehicle.equipment_list.count(),
-                    "mileage_logs": vehicle.mileage_logs.count(),
-                    "expenses": vehicle.expenses.count(),
-                },
+                "has_related_data": any(v > 0 for v in counts.values()),
+                "related_counts": counts,
             }
         )
 
@@ -351,7 +401,6 @@ class VehiclePhotoListCreateView(generics.ListCreateAPIView):
     """
     GET  /vehicle/<pk>/photos/  -- list all photos for a vehicle.
     POST /vehicle/<pk>/photos/  -- upload a new photo (multipart/form-data, field: image).
-                                  Max 10 photos per vehicle.
     """
 
     serializer_class = VehiclePhotoSerializer
@@ -508,3 +557,8 @@ class MileageLogListCreateView(generics.ListCreateAPIView):
         )
         Vehicle.objects.filter(pk=vehicle_id).update(initial_km=instance.km)
         cache_utils.invalidate_vehicle(vehicle_id)
+
+        instance.vehicle.initial_km = instance.km
+        from notification.services import check_regulation_notifications
+
+        check_regulation_notifications(instance.vehicle)

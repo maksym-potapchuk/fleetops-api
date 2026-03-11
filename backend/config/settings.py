@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     "vehicle",
     "fleet_management",
     "expense",
+    "channels",
+    "notification",
 ]
 
 MIDDLEWARE = [
@@ -142,6 +144,7 @@ TEMPLATES = [
 AUTH_USER_MODEL = "account.User"
 
 WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
 
 # ── DRF ───────────────────────────────────────────────────────────────────────
 
@@ -248,6 +251,17 @@ CACHES = {
     }
 }
 
+# ── Channel Layers (Django Channels + Redis) ─────────────────────────────────
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [REDIS_URL],
+            "prefix": "fleet:channels",
+        },
+    },
+}
+
 # Per-entity TTLs (seconds) — consumed by config.cache_utils
 CACHE_TTL_VEHICLE_LIST = int(os.getenv("CACHE_TTL_VEHICLE_LIST", "30"))
 CACHE_TTL_VEHICLE_DETAIL = int(os.getenv("CACHE_TTL_VEHICLE_DETAIL", "60"))
@@ -319,6 +333,11 @@ LOGGING = {
             "propagate": False,
         },
         "expense": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "notification": {
             "handlers": ["console"],
             "level": LOG_LEVEL,
             "propagate": False,

@@ -24,6 +24,7 @@ from .models import (
     ServicePlan,
 )
 from .serializers import (
+    AddRegulationEntrySerializer,
     AssignRegulationSerializer,
     EquipmentDefaultItemSerializer,
     EquipmentListSerializer,
@@ -298,6 +299,91 @@ class VehicleRegulationEntryUpdate(APIView):
             },
         )
         return Response(VehicleRegulationPlanEntrySerializer(entry).data)
+
+
+class VehicleRegulationEntryAddView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, vehicle_pk):
+        regulation = generics.get_object_or_404(
+            FleetVehicleRegulation,
+            vehicle_id=vehicle_pk,
+        )
+        serializer = AddRegulationEntrySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        d = serializer.validated_data
+
+        item, _ = FleetVehicleRegulationItem.objects.get_or_create(
+            schema=regulation.schema,
+            title=d["title"],
+            defaults={
+                "title_pl": d["title_pl"],
+                "title_uk": d["title_uk"],
+                "every_km": d["every_km"],
+                "notify_before_km": d["notify_before_km"],
+            },
+        )
+
+        entry, created = FleetVehicleRegulationEntry.objects.get_or_create(
+            regulation=regulation,
+            item=item,
+            defaults={"last_done_km": d["last_done_km"]},
+        )
+        if not created:
+            return Response(
+                {"detail": "This regulation item already exists for this vehicle."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        FleetVehicleRegulationHistory.objects.create(
+            entry=entry,
+            event_type=EventType.KM_UPDATED,
+            km_at_event=d["last_done_km"],
+            km_remaining=entry.next_due_km - d["last_done_km"],
+            note="Added manually",
+            created_by=request.user,
+        )
+
+        cache_utils.invalidate_regulation_plan(vehicle_pk)
+        cache_utils.invalidate_schema(regulation.schema_id)
+        logger.info(
+            "Regulation entry added",
+            extra={
+                "operation_type": "REGULATION_ENTRY_ADD",
+                "service": "DJANGO",
+                "vehicle_id": str(vehicle_pk),
+                "item_title": d["title"],
+                "user_id": str(request.user.id),
+            },
+        )
+        return Response(
+            VehicleRegulationPlanEntrySerializer(entry).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class VehicleRegulationEntryDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, vehicle_pk, entry_pk):
+        entry = generics.get_object_or_404(
+            FleetVehicleRegulationEntry,
+            pk=entry_pk,
+            regulation__vehicle_id=vehicle_pk,
+        )
+        entry.delete()
+        cache_utils.invalidate_regulation_plan(vehicle_pk)
+        logger.info(
+            "Regulation entry deleted",
+            extra={
+                "operation_type": "REGULATION_ENTRY_DELETE",
+                "service": "DJANGO",
+                "vehicle_id": str(vehicle_pk),
+                "entry_id": entry_pk,
+                "user_id": str(request.user.id),
+            },
+        )
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class VehicleRegulationPlanView(APIView):
