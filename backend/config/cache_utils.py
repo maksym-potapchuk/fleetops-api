@@ -23,15 +23,17 @@ from django.core.cache import cache
 logger = logging.getLogger(__name__)
 
 # ── TTLs pulled from settings ────────────────────────────────────────────────
-_VEHICLE_LIST_TTL = getattr(settings, "CACHE_TTL_VEHICLE_LIST", 30)
-_VEHICLE_DETAIL_TTL = getattr(settings, "CACHE_TTL_VEHICLE_DETAIL", 60)
+# Version-based lists: TTL is only a safety net — writes bump the version
+# instantly, so higher TTLs reduce cold-start misses without stale data risk.
+_VEHICLE_LIST_TTL = getattr(settings, "CACHE_TTL_VEHICLE_LIST", 300)
+_VEHICLE_DETAIL_TTL = getattr(settings, "CACHE_TTL_VEHICLE_DETAIL", 300)
 _DRIVER_LIST_TTL = getattr(settings, "CACHE_TTL_DRIVER_LIST", 300)
 _SCHEMA_LIST_TTL = getattr(settings, "CACHE_TTL_SCHEMA_LIST", 600)
 _SCHEMA_DETAIL_TTL = getattr(settings, "CACHE_TTL_SCHEMA_DETAIL", 600)
 _REG_PLAN_TTL = getattr(settings, "CACHE_TTL_REGULATION_PLAN", 300)
 _EQUIPMENT_TTL = getattr(settings, "CACHE_TTL_EQUIPMENT", 300)
-_EXPENSE_LIST_TTL = getattr(settings, "CACHE_TTL_EXPENSE_LIST", 30)
-_EXPENSE_DETAIL_TTL = getattr(settings, "CACHE_TTL_EXPENSE_DETAIL", 60)
+_EXPENSE_LIST_TTL = getattr(settings, "CACHE_TTL_EXPENSE_LIST", 300)
+_EXPENSE_DETAIL_TTL = getattr(settings, "CACHE_TTL_EXPENSE_DETAIL", 300)
 
 # ── Version-key names ────────────────────────────────────────────────────────
 _VK_VEHICLE = "v:vehicle"
@@ -141,7 +143,7 @@ def invalidate_vehicle(vehicle_id=None) -> None:
 
 # ── Vehicle Archive ──────────────────────────────────────────────────────────
 
-_ARCHIVE_LIST_TTL = getattr(settings, "CACHE_TTL_ARCHIVE_LIST", 60)
+_ARCHIVE_LIST_TTL = getattr(settings, "CACHE_TTL_ARCHIVE_LIST", 300)
 
 
 def get_archive_list() -> list | None:
