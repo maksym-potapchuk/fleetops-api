@@ -283,6 +283,14 @@ class VehicleArchiveListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     http_method_names = ["get"]
 
+    def list(self, request, *args, **kwargs):
+        cached = cache_utils.get_archive_list()
+        if cached is not None:
+            return Response(cached)
+        response = super().list(request, *args, **kwargs)
+        cache_utils.set_archive_list(response.data)
+        return response
+
 
 class VehicleRestoreView(generics.GenericAPIView):
     """POST /vehicle/<pk>/restore/ -- restore vehicle from archive."""
@@ -320,6 +328,10 @@ class VehicleDeleteCheckView(generics.GenericAPIView):
     http_method_names = ["get"]
 
     def get(self, request, pk):
+        cached = cache_utils.get_delete_check(pk)
+        if cached is not None:
+            return Response(cached)
+
         vehicle = (
             Vehicle.objects.filter(pk=pk, is_archived=True)
             .annotate(
@@ -351,12 +363,12 @@ class VehicleDeleteCheckView(generics.GenericAPIView):
             "mileage_logs": vehicle._mileage_logs,
             "expenses": vehicle._expenses,
         }
-        return Response(
-            {
-                "has_related_data": any(v > 0 for v in counts.values()),
-                "related_counts": counts,
-            }
-        )
+        data = {
+            "has_related_data": any(v > 0 for v in counts.values()),
+            "related_counts": counts,
+        }
+        cache_utils.set_delete_check(pk, data)
+        return Response(data)
 
 
 class VehiclePermanentDeleteView(generics.GenericAPIView):

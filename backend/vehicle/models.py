@@ -45,9 +45,14 @@ class Vehicle(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=["status", "status_position"], name="idx_vehicle_status_pos"),
+            models.Index(
+                fields=["status", "status_position"], name="idx_vehicle_status_pos"
+            ),
             models.Index(fields=["-updated_at"], name="idx_vehicle_updated_at"),
-            models.Index(fields=["is_archived", "-updated_at"], name="idx_vehicle_archived_updated"),
+            models.Index(
+                fields=["is_archived", "-updated_at"],
+                name="idx_vehicle_archived_updated",
+            ),
         ]
 
     def __str__(self) -> str:

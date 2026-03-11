@@ -15,6 +15,7 @@ from .views import (
     ServicePlanDetailAPIView,
     ServicePlanListCreateAPIView,
     ServicePlanMarkDoneAPIView,
+    TranslateTextView,
     VehicleRegulationEntryAddView,
     VehicleRegulationEntryDeleteView,
     VehicleRegulationEntryUpdate,
@@ -32,6 +33,7 @@ router.register(
 
 urlpatterns = [
     path("", include(router.urls)),
+    path("translate/", TranslateTextView.as_view(), name="translate-text"),
     path("service-plans/", AllServicePlansAPIView.as_view(), name="all-service-plans"),
     # Regulation schemas
     path(

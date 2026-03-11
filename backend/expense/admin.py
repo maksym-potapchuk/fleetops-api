@@ -95,7 +95,13 @@ _CODE_INLINES = {
 
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
-    list_display = ["number", "vendor_name", "invoice_date", "total_amount", "created_at"]
+    list_display = [
+        "number",
+        "vendor_name",
+        "invoice_date",
+        "total_amount",
+        "created_at",
+    ]
     search_fields = ["number", "vendor_name"]
     list_filter = ["invoice_date"]
 

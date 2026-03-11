@@ -26,6 +26,7 @@ def _expense_queryset():
         "vehicle",
         "created_by",
         "category",
+        "client_driver",
         "service_detail__service",
         "inspection_detail",
         "inspection_detail__linked_inspection",
@@ -159,9 +160,9 @@ class InvoiceSearchView(generics.ListAPIView):
     def get_queryset(self):
         from django.db.models import Count
 
-        return Invoice.objects.annotate(
-            _expense_count=Count("expenses")
-        ).order_by("-created_at")
+        return Invoice.objects.annotate(_expense_count=Count("expenses")).order_by(
+            "-created_at"
+        )
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())[:20]

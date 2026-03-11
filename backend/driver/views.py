@@ -18,11 +18,11 @@ class DriverModelViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
-        cached = cache_utils.get_driver_list()
+        cached = cache_utils.get_driver_list(request.query_params)
         if cached is not None:
             return Response(cached)
         response = super().list(request, *args, **kwargs)
-        cache_utils.set_driver_list(response.data)
+        cache_utils.set_driver_list(request.query_params, response.data)
         return response
 
     def retrieve(self, request, *args, **kwargs):

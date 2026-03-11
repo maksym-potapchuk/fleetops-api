@@ -51,6 +51,7 @@ class FleetVehicleRegulationSchema(models.Model):
     title = models.CharField(max_length=155, unique=True)
     title_pl = models.CharField(max_length=155, blank=True)
     title_uk = models.CharField(max_length=155, blank=True)
+    title_en = models.CharField(max_length=155, blank=True)
     is_default = models.BooleanField(default=False)
     created_by = models.ForeignKey(
         "account.User",
@@ -97,6 +98,7 @@ class FleetVehicleRegulationItem(models.Model):
     title = models.CharField(max_length=155)
     title_pl = models.CharField(max_length=155, blank=True)
     title_uk = models.CharField(max_length=155, blank=True)
+    title_en = models.CharField(max_length=155, blank=True)
     every_km = models.PositiveIntegerField()
     notify_before_km = models.PositiveIntegerField(default=500)
 
@@ -172,7 +174,11 @@ class FleetVehicleRegulationEntry(models.Model):
 
     @property
     def effective_notify_before_km(self):
-        return self.notify_before_km if self.notify_before_km is not None else self.item.notify_before_km
+        return (
+            self.notify_before_km
+            if self.notify_before_km is not None
+            else self.item.notify_before_km
+        )
 
     @property
     def next_due_km(self):

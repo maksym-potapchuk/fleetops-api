@@ -7,36 +7,110 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('driver', '0001_initial'),
-        ('vehicle', '0008_vehicle_idx_status_position'),
+        ("driver", "0001_initial"),
+        ("vehicle", "0008_vehicle_idx_status_position"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Notification',
+            name="Notification",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('type', models.CharField(choices=[('regulation_approaching', 'Regulation Approaching'), ('regulation_overdue', 'Regulation Overdue'), ('mileage_submitted', 'Mileage Submitted'), ('service_report', 'Service Report')], db_index=True, max_length=30)),
-                ('status', models.CharField(choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected'), ('info', 'Info')], db_index=True, default='info', max_length=20)),
-                ('payload', models.JSONField(default=dict)),
-                ('is_read', models.BooleanField(db_index=True, default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
-                ('read_at', models.DateTimeField(blank=True, null=True)),
-                ('resolved_at', models.DateTimeField(blank=True, null=True)),
-                ('sent_at', models.DateTimeField(blank=True, null=True)),
-                ('sent_to', models.CharField(blank=True, help_text="Channel where the notification was delivered (e.g. 'web', 'telegram').", max_length=50)),
-                ('retry_at', models.DateTimeField(blank=True, db_index=True, help_text='When to re-send this notification. Null means no repeat.', null=True)),
-                ('driver', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='notifications', to='driver.driver')),
-                ('resolved_by', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='resolved_notifications', to=settings.AUTH_USER_MODEL)),
-                ('vehicle', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='notifications', to='vehicle.vehicle')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                (
+                    "type",
+                    models.CharField(
+                        choices=[
+                            ("regulation_approaching", "Regulation Approaching"),
+                            ("regulation_overdue", "Regulation Overdue"),
+                            ("mileage_submitted", "Mileage Submitted"),
+                            ("service_report", "Service Report"),
+                        ],
+                        db_index=True,
+                        max_length=30,
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("pending", "Pending"),
+                            ("approved", "Approved"),
+                            ("rejected", "Rejected"),
+                            ("info", "Info"),
+                        ],
+                        db_index=True,
+                        default="info",
+                        max_length=20,
+                    ),
+                ),
+                ("payload", models.JSONField(default=dict)),
+                ("is_read", models.BooleanField(db_index=True, default=False)),
+                ("created_at", models.DateTimeField(auto_now_add=True, db_index=True)),
+                ("read_at", models.DateTimeField(blank=True, null=True)),
+                ("resolved_at", models.DateTimeField(blank=True, null=True)),
+                ("sent_at", models.DateTimeField(blank=True, null=True)),
+                (
+                    "sent_to",
+                    models.CharField(
+                        blank=True,
+                        help_text="Channel where the notification was delivered (e.g. 'web', 'telegram').",
+                        max_length=50,
+                    ),
+                ),
+                (
+                    "retry_at",
+                    models.DateTimeField(
+                        blank=True,
+                        db_index=True,
+                        help_text="When to re-send this notification. Null means no repeat.",
+                        null=True,
+                    ),
+                ),
+                (
+                    "driver",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="notifications",
+                        to="driver.driver",
+                    ),
+                ),
+                (
+                    "resolved_by",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="resolved_notifications",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "vehicle",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="notifications",
+                        to="vehicle.vehicle",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-created_at'],
+                "ordering": ["-created_at"],
             },
         ),
     ]

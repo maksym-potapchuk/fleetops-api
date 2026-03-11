@@ -37,8 +37,8 @@ class AssignRegulationSerializerTest(TestCase):
         )
         self.assertTrue(s.is_valid(), s.errors)
 
-    def test_missing_schema_item_fails_validation(self):
-        """All schema items must be represented in entries."""
+    def test_partial_schema_items_accepted(self):
+        """Partial submission (not all schema items) is now allowed."""
         s = self._validate(
             {
                 "schema_id": self.schema.id,
@@ -47,8 +47,7 @@ class AssignRegulationSerializerTest(TestCase):
                 ],
             }
         )
-        self.assertFalse(s.is_valid())
-        self.assertIn("Missing last_done_km", str(s.errors))
+        self.assertTrue(s.is_valid(), s.errors)
 
     def test_item_from_foreign_schema_fails_validation(self):
         """Items not belonging to the given schema must be rejected."""

@@ -9,7 +9,7 @@ Strategy
 * All cache ops  → wrapped in try/except so a Redis outage never breaks a request.
 
 Key anatomy:
-    fleet:<entity>:list:v<N>:<params_hash8>
+    fleet:<entity>:list:v<N>:<params_hash16>
     fleet:<entity>:detail:<pk>
     fleet:<entity>:version                    (never expires)
 """
@@ -35,6 +35,7 @@ _EXPENSE_DETAIL_TTL = getattr(settings, "CACHE_TTL_EXPENSE_DETAIL", 60)
 
 # ── Version-key names ────────────────────────────────────────────────────────
 _VK_VEHICLE = "v:vehicle"
+_VK_DRIVER = "v:driver"
 _VK_SCHEMA = "v:schema"
 _VK_EXPENSE = "v:expense"
 
@@ -96,10 +97,10 @@ def _bump_version(version_key: str) -> None:
 
 
 def _params_hash(query_params) -> str:
-    """8-char MD5 of sorted query params → stable, short cache-key segment."""
+    """16-char MD5 of sorted query params → stable cache-key segment."""
     items = sorted((k, v) for k, v in query_params.items())
     raw = "&".join(f"{k}={v}" for k, v in items)
-    return hashlib.md5(raw.encode()).hexdigest()[:8]
+    return hashlib.md5(raw.encode()).hexdigest()[:16]
 
 
 # ── Vehicle ───────────────────────────────────────────────────────────────────
@@ -128,44 +129,73 @@ def set_vehicle_detail(vehicle_id, data) -> None:
 def invalidate_vehicle(vehicle_id=None) -> None:
     """
     Bump the vehicle version → all existing list caches become unreachable.
-    Optionally also delete the specific vehicle's detail cache.
+    Also invalidates archived list and delete-check for the vehicle.
     """
     _bump_version(_VK_VEHICLE)
+    keys_to_delete = ["vehicle:archive:list"]
     if vehicle_id is not None:
-        _safe_delete(f"vehicle:detail:{vehicle_id}")
+        keys_to_delete.append(f"vehicle:detail:{vehicle_id}")
+        keys_to_delete.append(f"vehicle:delete-check:{vehicle_id}")
+    _safe_delete(*keys_to_delete)
+
+
+# ── Vehicle Archive ──────────────────────────────────────────────────────────
+
+_ARCHIVE_LIST_TTL = getattr(settings, "CACHE_TTL_ARCHIVE_LIST", 60)
+
+
+def get_archive_list() -> list | None:
+    return _safe_get("vehicle:archive:list")
+
+
+def set_archive_list(data) -> None:
+    _safe_set("vehicle:archive:list", data, _ARCHIVE_LIST_TTL)
+
+
+# ── Vehicle Delete Check ────────────────────────────────────────────────────
+
+_DELETE_CHECK_TTL = 120
+
+
+def get_delete_check(vehicle_id) -> dict | None:
+    return _safe_get(f"vehicle:delete-check:{vehicle_id}")
+
+
+def set_delete_check(vehicle_id, data) -> None:
+    _safe_set(f"vehicle:delete-check:{vehicle_id}", data, _DELETE_CHECK_TTL)
 
 
 # ── Driver ────────────────────────────────────────────────────────────────────
 
-_DRIVER_LIST_KEY = "driver:list"
-_DRIVER_DETAIL_FMT = "driver:detail:{}"
+
+def get_driver_list(query_params=None) -> list | None:
+    v = _get_version(_VK_DRIVER)
+    ph = _params_hash(query_params) if query_params else "all"
+    return _safe_get(f"driver:list:v{v}:{ph}")
 
 
-def get_driver_list() -> list | None:
-    return _safe_get(_DRIVER_LIST_KEY)
-
-
-def set_driver_list(data) -> None:
-    _safe_set(_DRIVER_LIST_KEY, data, _DRIVER_LIST_TTL)
+def set_driver_list(query_params, data) -> None:
+    v = _get_version(_VK_DRIVER)
+    ph = _params_hash(query_params) if query_params else "all"
+    _safe_set(f"driver:list:v{v}:{ph}", data, _DRIVER_LIST_TTL)
 
 
 def get_driver_detail(driver_id) -> dict | None:
-    return _safe_get(_DRIVER_DETAIL_FMT.format(driver_id))
+    return _safe_get(f"driver:detail:{driver_id}")
 
 
 def set_driver_detail(driver_id, data) -> None:
-    _safe_set(_DRIVER_DETAIL_FMT.format(driver_id), data, _DRIVER_LIST_TTL)
+    _safe_set(f"driver:detail:{driver_id}", data, _DRIVER_LIST_TTL)
 
 
 def invalidate_driver(driver_id=None) -> None:
     """
-    Always clears the full driver list (has_vehicle may have changed).
-    Optionally clears a specific driver's detail cache.
+    Bump the driver version → all existing list caches become unreachable.
+    Optionally also delete the specific driver's detail cache.
     """
-    keys = [_DRIVER_LIST_KEY]
+    _bump_version(_VK_DRIVER)
     if driver_id is not None:
-        keys.append(_DRIVER_DETAIL_FMT.format(driver_id))
-    _safe_delete(*keys)
+        _safe_delete(f"driver:detail:{driver_id}")
 
 
 # ── Regulation Schema ─────────────────────────────────────────────────────────

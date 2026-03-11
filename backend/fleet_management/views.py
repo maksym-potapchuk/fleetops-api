@@ -39,6 +39,7 @@ from .serializers import (
     VehicleRegulationPlanSerializer,
 )
 from .services import assign_regulation_to_vehicle
+from .translation import translate_text_async
 
 logger = logging.getLogger(__name__)
 
@@ -332,6 +333,7 @@ class VehicleRegulationEntryAddView(APIView):
             defaults={
                 "title_pl": d["title_pl"],
                 "title_uk": d["title_uk"],
+                "title_en": d["title_en"],
                 "every_km": d["every_km"],
                 "notify_before_km": d["notify_before_km"],
             },
@@ -512,6 +514,15 @@ class ServicePlanDetailAPIView(generics.RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         return ServicePlan.objects.filter(vehicle_id=self.kwargs["vehicle_pk"])
 
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        cache_utils.invalidate_vehicle(instance.vehicle_id)
+
+    def perform_destroy(self, instance):
+        vehicle_id = instance.vehicle_id
+        instance.delete()
+        cache_utils.invalidate_vehicle(vehicle_id)
+
 
 class ServicePlanMarkDoneAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -533,6 +544,7 @@ class ServicePlanMarkDoneAPIView(APIView):
         try:
             plan.is_done = True
             plan.save(update_fields=["is_done"])
+            cache_utils.invalidate_vehicle(vehicle_pk)
         except Exception:
             logger.error(
                 "Service plan mark-done failed",
@@ -718,3 +730,32 @@ class EquipmentItemToggleAPIView(APIView):
             },
         )
         return Response(EquipmentListSerializer(item).data)
+
+
+class TranslateTextView(APIView):
+    """POST {"text": "...", "source": "uk"} → {"uk": "...", "pl": "...", "en": "..."}
+
+    Translations run concurrently in a thread-pool so the response is fast.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    ALL_LANGS = ["uk", "pl", "en"]
+
+    async def post(self, request):
+        text = (request.data.get("text") or "").strip()
+        source = request.data.get("source", "uk")
+
+        if not text:
+            return Response(
+                {"detail": "text is required"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        if source not in self.ALL_LANGS:
+            return Response(
+                {"detail": f"source must be one of {self.ALL_LANGS}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        target_langs = [lang for lang in self.ALL_LANGS if lang != source]
+        translations = await translate_text_async(text, source, target_langs)
+        return Response(translations)
