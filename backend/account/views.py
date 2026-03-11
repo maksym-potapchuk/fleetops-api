@@ -9,7 +9,8 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .serializers import UserSerializer
+from .models import UserPreferences
+from .serializers import UserPreferencesSerializer, UserSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -299,6 +300,22 @@ class UserMeAPIView(APIView):
                 "user_id": str(request.user.id),
             },
         )
+        return Response(serializer.data)
+
+
+class UserPreferencesAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        prefs, _ = UserPreferences.objects.get_or_create(user=request.user)
+        serializer = UserPreferencesSerializer(prefs)
+        return Response(serializer.data)
+
+    def patch(self, request):
+        prefs, _ = UserPreferences.objects.get_or_create(user=request.user)
+        serializer = UserPreferencesSerializer(prefs, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
         return Response(serializer.data)
 
 
