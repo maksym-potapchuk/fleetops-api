@@ -1,6 +1,6 @@
 from django.urls import path
 
-from expense.views import VehicleExpenseListCreateView
+from expense.views import VehicleExpenseListCreateView, VehicleExpenseSummaryView
 
 from . import views
 
@@ -75,5 +75,10 @@ urlpatterns = [
         "<uuid:pk>/expenses/",
         VehicleExpenseListCreateView.as_view(),
         name="vehicle-expenses",
+    ),
+    path(
+        "<uuid:pk>/expenses/summary/",
+        VehicleExpenseSummaryView.as_view(),
+        name="vehicle-expenses-summary",
     ),
 ]

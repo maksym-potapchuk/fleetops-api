@@ -1,11 +1,14 @@
 import logging
 
+from django.db.models import Sum
+from django.db.models.functions import Coalesce
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from rest_framework.filters import OrderingFilter
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from config import cache_utils
 from config.filters import LayoutAwareSearchFilter as SearchFilter
@@ -223,4 +226,38 @@ class VehicleExpenseListCreateView(generics.ListCreateAPIView):
                 "vehicle_id": str(self.kwargs["pk"]),
                 "user_id": str(self.request.user.id),
             },
+        )
+
+
+class VehicleExpenseSummaryView(APIView):
+    """GET /vehicle/{pk}/expenses/summary/ — per-category totals."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, pk):
+        rows = (
+            Expense.objects.filter(vehicle_id=pk)
+            .values("category__code", "category__name", "category__icon", "category__color")
+            .annotate(total=Coalesce(Sum("amount"), 0))
+            .order_by("-total")
+        )
+        categories = []
+        grand_total = 0
+        for row in rows:
+            total = float(row["total"])
+            grand_total += total
+            categories.append(
+                {
+                    "code": row["category__code"],
+                    "name": row["category__name"],
+                    "icon": row["category__icon"],
+                    "color": row["category__color"],
+                    "total": f"{total:.2f}",
+                }
+            )
+        return Response(
+            {
+                "total": f"{grand_total:.2f}",
+                "categories": categories,
+            }
         )
