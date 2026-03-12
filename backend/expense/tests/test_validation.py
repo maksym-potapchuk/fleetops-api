@@ -52,11 +52,11 @@ class ExpenseCategoryRequiredFieldsTest(TestCase):
         payload.update(extra)
         return payload
 
-    def test_fuel_without_fuel_type_returns_400(self):
-        payload = self._base(self.fuel_cat, liters="40.00")
+    def test_fuel_without_fuel_types_returns_400(self):
+        payload = self._base(self.fuel_cat)
         response = self.client.post(self.BASE_URL, payload, format="multipart")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("fuel_type", response.data)
+        self.assertIn("fuel_types", response.data)
 
     def test_washing_without_wash_type_returns_400(self):
         payload = self._base(self.washing_cat)

@@ -7,7 +7,7 @@ from rest_framework import serializers
 
 from config.storage_utils import media_url
 
-from .constants import ALLOWED_INVOICE_EXTENSIONS, ApprovalStatus, PayerType
+from .constants import ALLOWED_INVOICE_EXTENSIONS, ApprovalStatus, FuelType, PayerType
 from .models import (
     Expense,
     ExpenseCategory,
@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 DETAIL_MAP = {
     "FUEL": {
         "model": FuelExpenseDetail,
-        "fields": ["liters", "fuel_type"],
-        "required": ["liters", "fuel_type"],
+        "fields": ["fuel_types"],
+        "required": ["fuel_types"],
     },
     "SERVICE": {
         "model": ServiceExpenseDetail,
@@ -178,14 +178,15 @@ class ExpenseSerializer(serializers.ModelSerializer):
     )
     created_by = ExpenseCreatedBySerializer(read_only=True)
 
-    # Amount: not required — auto-computed for SERVICE / PARTS / INSPECTION
-    amount = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
+    # Amount: writable primary field
+    amount = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False
+    )
 
     # FUEL detail fields
-    liters = serializers.DecimalField(
-        max_digits=8, decimal_places=2, required=False, allow_null=True
+    fuel_types = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_empty=True
     )
-    fuel_type = serializers.CharField(required=False, allow_blank=True)
 
     # SERVICE detail fields
     service = serializers.PrimaryKeyRelatedField(
@@ -226,7 +227,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
     # SERVICE items — read-only nested output
     service_items = ServiceItemSerializer(many=True, read_only=True)
 
-    # Cost splitting (CLIENT payer_type)
+    # Cost splitting (CLIENT payer only)
     company_amount = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True
     )
@@ -273,8 +274,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
             "client_driver_name",
             "approval_status",
             # FUEL
-            "liters",
-            "fuel_type",
+            "fuel_types",
             # SERVICE
             "service",
             "service_name",
@@ -369,22 +369,42 @@ class ExpenseSerializer(serializers.ModelSerializer):
     def validate(self, data):
         code = self._get_category_code(data)
 
-        # Auto-computed categories: amount derived from line items
-        if (
-            code in ("SERVICE", "PARTS", "INSPECTION", "ACCESSORIES", "DOCUMENTS")
-            and "amount" not in data
-        ):
-            data["amount"] = 0
-
         # Type-specific required fields
         cfg = DETAIL_MAP.get(code)
         if cfg:
             for field in cfg["required"]:
                 val = data.get(field)
-                if val is None or val == "":
+                if val is None or val == "" or val == []:
                     raise serializers.ValidationError(
                         {field: f"Required for {code} expenses."}
                     )
+
+        # Fuel types: parse JSON string from FormData & validate values
+        if code == "FUEL":
+            ft = data.get("fuel_types")
+            if isinstance(ft, str):
+                try:
+                    data["fuel_types"] = json.loads(ft)
+                except (json.JSONDecodeError, TypeError):
+                    data["fuel_types"] = [ft] if ft else []
+            elif isinstance(ft, list) and len(ft) == 1 and isinstance(ft[0], str):
+                try:
+                    parsed = json.loads(ft[0])
+                    if isinstance(parsed, list):
+                        data["fuel_types"] = parsed
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            ft_list = data.get("fuel_types") or []
+            if not ft_list:
+                raise serializers.ValidationError(
+                    {"fuel_types": "Required for FUEL expenses."}
+                )
+            valid_values = {c.value for c in FuelType}
+            invalid = [v for v in ft_list if v not in valid_values]
+            if invalid:
+                raise serializers.ValidationError(
+                    {"fuel_types": f"Invalid fuel types: {', '.join(invalid)}"}
+                )
 
         # Parts: parse JSON string from FormData (PARTS, ACCESSORIES, DOCUMENTS)
         if code in ("PARTS", "ACCESSORIES", "DOCUMENTS"):
@@ -408,21 +428,29 @@ class ExpenseSerializer(serializers.ModelSerializer):
                         {"service_items_json": "Invalid JSON."}
                     ) from None
 
-        # ── Cost splitting validation ──
+        # ── Amount & cost splitting validation ──
         payer_type = data.get("payer_type")
         if payer_type is None and self.instance:
             payer_type = self.instance.payer_type
 
+        auto_amount_codes = ("SERVICE", "PARTS", "INSPECTION", "ACCESSORIES", "DOCUMENTS")
+
         if payer_type == PayerType.COMPANY:
+            # COMPANY: amount is the primary field, clear split fields
             data["company_amount"] = None
             data["client_amount"] = None
             data["client_driver"] = None
             data["approval_status"] = None
+            # amount required on create (except auto-computed)
+            if self.instance is None and data.get("amount") is None and code not in auto_amount_codes:
+                raise serializers.ValidationError({"amount": "Required."})
+            amt = data.get("amount")
+            if amt is not None and amt < 0:
+                raise serializers.ValidationError({"amount": "Must be >= 0."})
         elif payer_type == PayerType.CLIENT:
             company_amt = data.get("company_amount")
             client_amt = data.get("client_amount")
             if self.instance is None:
-                # Create: require split amounts
                 if company_amt is None or client_amt is None:
                     raise serializers.ValidationError(
                         {"company_amount": "Required when payer_type is CLIENT."}
@@ -431,6 +459,9 @@ class ExpenseSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"company_amount": "Must be >= 0."})
             if client_amt is not None and client_amt < 0:
                 raise serializers.ValidationError({"client_amount": "Must be >= 0."})
+            # Compute amount = company_amount + client_amount
+            if company_amt is not None and client_amt is not None:
+                data["amount"] = company_amt + client_amt
             # Default approval_status to DRAFT on create
             if self.instance is None and not data.get("approval_status"):
                 data["approval_status"] = ApprovalStatus.DRAFT
@@ -572,26 +603,22 @@ class ExpenseSerializer(serializers.ModelSerializer):
             )
             return
 
-        # New invoice: need file + number
+        # New invoice: need at least a number
         if not invoice_number or not request:
             return
 
         file = request.FILES.get("invoice_file")
-        if not file:
-            raise serializers.ValidationError(
-                {"invoice_file": "Invoice file is required for a new invoice."}
-            )
-
-        ext = os.path.splitext(file.name)[1].lower()
-        if ext not in ALLOWED_INVOICE_EXTENSIONS:
-            allowed = ", ".join(ALLOWED_INVOICE_EXTENSIONS)
-            raise serializers.ValidationError(
-                {"invoice_file": f"Unsupported file format. Allowed: {allowed}"}
-            )
+        if file:
+            ext = os.path.splitext(file.name)[1].lower()
+            if ext not in ALLOWED_INVOICE_EXTENSIONS:
+                allowed = ", ".join(ALLOWED_INVOICE_EXTENSIONS)
+                raise serializers.ValidationError(
+                    {"invoice_file": f"Unsupported file format. Allowed: {allowed}"}
+                )
 
         invoice = Invoice.objects.create(
             number=invoice_number,
-            file=file,
+            file=file or "",
             vendor_name=request.data.get("vendor_name", ""),
             invoice_date=request.data.get("invoice_date") or None,
             total_amount=request.data.get("invoice_total_amount") or None,
@@ -621,7 +648,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
         invoice_obj = validated_data.pop("_invoice_obj", None)
         invoice_number = validated_data.pop("_invoice_number", None)
 
-        # Auto-computed categories: placeholder amount — will be recomputed from items
+        # Auto-computed categories: placeholder amount — will be recomputed
         code = self._get_category_code(validated_data)
         auto_amount_codes = (
             "SERVICE",
@@ -640,20 +667,24 @@ class ExpenseSerializer(serializers.ModelSerializer):
         if service_items_data is not None:
             self._save_service_items(expense, {"_service_items": service_items_data})
 
-        # Recompute amount from line items
+        # Recompute amount from line items for auto-computed categories
         if code in auto_amount_codes:
-            expense.amount = expense.computed_amount
-            expense.save(update_fields=["amount"])
-
-        # Validate split amounts sum after auto-computation
-        if expense.payer_type == PayerType.CLIENT:
-            if expense.company_amount is not None and expense.client_amount is not None:
-                if expense.company_amount + expense.client_amount != expense.amount:
+            computed = expense.computed_amount
+            if expense.payer_type == PayerType.CLIENT:
+                # CLIENT: validate split sum matches computed total
+                split_sum = (expense.company_amount or 0) + (expense.client_amount or 0)
+                if split_sum != computed:
                     raise serializers.ValidationError(
                         {
-                            "company_amount": "company_amount + client_amount must equal total amount."
+                            "company_amount": f"company_amount + client_amount must equal {computed}."
                         }
                     )
+                expense.amount = computed
+                expense.save(update_fields=["amount"])
+            else:
+                # COMPANY: set amount to computed total
+                expense.amount = computed
+                expense.save(update_fields=["amount"])
 
         # Auto-create TechnicalInspection for INSPECTION expenses
         if code == "INSPECTION":
@@ -695,23 +726,23 @@ class ExpenseSerializer(serializers.ModelSerializer):
         if service_items_data is not None:
             self._save_service_items(instance, {"_service_items": service_items_data})
 
-        # Recompute amount from line items
-        if new_code in ("SERVICE", "PARTS", "INSPECTION", "ACCESSORIES", "DOCUMENTS"):
-            instance.amount = instance.computed_amount
-            instance.save(update_fields=["amount"])
-
-        # Validate split amounts sum after auto-computation
-        if instance.payer_type == PayerType.CLIENT:
-            if (
-                instance.company_amount is not None
-                and instance.client_amount is not None
-            ):
-                if instance.company_amount + instance.client_amount != instance.amount:
+        # Recompute amount from line items for auto-computed categories
+        auto_codes = ("SERVICE", "PARTS", "INSPECTION", "ACCESSORIES", "DOCUMENTS")
+        if new_code in auto_codes:
+            computed = instance.computed_amount
+            if instance.payer_type == PayerType.CLIENT:
+                split_sum = (instance.company_amount or 0) + (instance.client_amount or 0)
+                if split_sum != computed:
                     raise serializers.ValidationError(
                         {
-                            "company_amount": "company_amount + client_amount must equal total amount."
+                            "company_amount": f"company_amount + client_amount must equal {computed}."
                         }
                     )
+                instance.amount = computed
+                instance.save(update_fields=["amount"])
+            else:
+                instance.amount = computed
+                instance.save(update_fields=["amount"])
 
         # Sync linked TechnicalInspection for INSPECTION expenses
         if new_code == "INSPECTION":

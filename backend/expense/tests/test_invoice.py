@@ -5,6 +5,8 @@ Covers: create expense with new invoice, attach existing invoice,
 invoice_existing flag, search endpoint, auth guard, file validation.
 """
 
+from decimal import Decimal
+
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -95,13 +97,15 @@ class InvoiceExpenseTest(TestCase):
         self.assertEqual(Invoice.objects.count(), 1)
         self.assertEqual(invoice.expenses.count(), 2)
 
-    def test_invoice_number_without_file_returns_400(self):
-        """invoice_number without matching Invoice AND no file → 400 validation error."""
+    def test_invoice_number_without_file_creates_invoice(self):
+        """invoice_number without file → creates Invoice with empty file field."""
         payload = self._base(self.parts_cat, invoice_number="FAK-NO-FILE-001")
         response = self.client.post(self.BASE_URL, payload, format="multipart")
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("invoice_file", response.data)
-        self.assertEqual(Invoice.objects.count(), 0)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Invoice.objects.count(), 1)
+        inv = Invoice.objects.first()
+        self.assertEqual(inv.number, "FAK-NO-FILE-001")
+        self.assertFalse(inv.file)
 
     def test_invoice_jpg_file_rejected(self):
         """Only .pdf, .doc, .docx allowed — .jpg must be rejected."""
@@ -215,7 +219,7 @@ class InvoiceSearchTest(TestCase):
             Expense.objects.create(
                 vehicle=vehicle,
                 category=cat,
-                amount="100.00",
+                amount=Decimal("100.00"),
                 expense_date="2026-03-01",
                 invoice=invoice,
                 created_by=user,
