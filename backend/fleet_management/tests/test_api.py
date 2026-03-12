@@ -247,7 +247,7 @@ class VehicleRegulationEntryUpdateAPITest(BaseAPITest):
         ).first()
         self.assertEqual(history.note, "Changed to synthetic oil")
 
-    def test_missing_km_returns_400(self):
+    def test_empty_payload_returns_400(self):
         response = self.client.patch(self.url, {}, format="json")
         self.assertEqual(response.status_code, 400)
 
@@ -281,6 +281,77 @@ class VehicleRegulationEntryUpdateAPITest(BaseAPITest):
             self.url, {"last_done_km": 10_000}, format="json"
         )
         self.assertEqual(response.status_code, 401)
+
+    # --- Edit entry (interval / notify) without marking done ---
+
+    def test_edit_interval_only_returns_200(self):
+        response = self.client.patch(
+            self.url, {"every_km": 15_000}, format="json"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.entry.refresh_from_db()
+        self.assertEqual(self.entry.every_km, 15_000)
+
+    def test_edit_interval_creates_km_updated_history(self):
+        self.client.patch(self.url, {"every_km": 15_000}, format="json")
+        history = FleetVehicleRegulationHistory.objects.filter(
+            entry=self.entry, event_type=EventType.KM_UPDATED
+        ).last()
+        self.assertIsNotNone(history)
+        self.assertIn("interval", history.note)
+
+    def test_edit_notify_before_km_only_returns_200(self):
+        response = self.client.patch(
+            self.url, {"notify_before_km": 1_000}, format="json"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.entry.refresh_from_db()
+        self.assertEqual(self.entry.notify_before_km, 1_000)
+
+    def test_edit_both_settings_updates_entry_and_creates_history(self):
+        response = self.client.patch(
+            self.url, {"every_km": 12_000, "notify_before_km": 2_000}, format="json"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.entry.refresh_from_db()
+        self.assertEqual(self.entry.every_km, 12_000)
+        self.assertEqual(self.entry.notify_before_km, 2_000)
+        history = FleetVehicleRegulationHistory.objects.filter(
+            entry=self.entry, event_type=EventType.KM_UPDATED
+        ).last()
+        self.assertIn("interval", history.note)
+        self.assertIn("notify", history.note)
+
+    def test_edit_with_same_values_creates_no_history(self):
+        self.client.patch(
+            self.url, {"every_km": 10_000, "notify_before_km": 500}, format="json"
+        )
+        history_count = FleetVehicleRegulationHistory.objects.filter(
+            entry=self.entry, event_type=EventType.KM_UPDATED
+        ).exclude(note="Initial assignment").count()
+        self.assertEqual(history_count, 0)
+
+    def test_edit_interval_zero_is_rejected(self):
+        response = self.client.patch(
+            self.url, {"every_km": 0}, format="json"
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_mark_done_with_interval_override_creates_performed_history(self):
+        response = self.client.patch(
+            self.url,
+            {"last_done_km": 20_000, "every_km": 15_000},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.entry.refresh_from_db()
+        self.assertEqual(self.entry.last_done_km, 20_000)
+        self.assertEqual(self.entry.every_km, 15_000)
+        history = FleetVehicleRegulationHistory.objects.filter(
+            entry=self.entry, event_type=EventType.PERFORMED
+        ).last()
+        self.assertIsNotNone(history)
+        self.assertEqual(history.km_at_event, 20_000)
 
 
 # ---------------------------------------------------------------------------

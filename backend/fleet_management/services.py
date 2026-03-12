@@ -78,11 +78,16 @@ def assign_regulation_to_vehicle(vehicle_pk, schema_id, entries_data, user):
 
     created_entries = []
     for entry_data in entries_data:
-        entry = FleetVehicleRegulationEntry.objects.create(
-            regulation=regulation,
-            item_id=entry_data["item_id"],
-            last_done_km=entry_data["last_done_km"],
-        )
+        create_kwargs = {
+            "regulation": regulation,
+            "item_id": entry_data["item_id"],
+            "last_done_km": entry_data["last_done_km"],
+        }
+        if entry_data.get("every_km") is not None:
+            create_kwargs["every_km"] = entry_data["every_km"]
+        if entry_data.get("notify_before_km") is not None:
+            create_kwargs["notify_before_km"] = entry_data["notify_before_km"]
+        entry = FleetVehicleRegulationEntry.objects.create(**create_kwargs)
         FleetVehicleRegulationHistory.objects.create(
             entry=entry,
             event_type=EventType.KM_UPDATED,
