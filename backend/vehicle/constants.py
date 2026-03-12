@@ -21,6 +21,11 @@ class FuelType(models.TextChoices):
     HYBRID = "HYBRID", "Hybrid"
 
 
+class DistanceUnit(models.TextChoices):
+    KM = "km", "Kilometers"
+    MI = "mi", "Miles"
+
+
 class VehicleStatus(models.TextChoices):
     AUCTION = "AUCTION", "Auction Selection"
     FOCUS = "FOCUS", "Focus"

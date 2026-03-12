@@ -2,7 +2,7 @@ import uuid
 
 from django.db import models
 
-from .constants import FuelType, ManufacturerChoices, VehicleStatus
+from .constants import DistanceUnit, FuelType, ManufacturerChoices, VehicleStatus
 
 
 class Vehicle(models.Model):
@@ -22,6 +22,11 @@ class Vehicle(models.Model):
         blank=True,
     )
     initial_km = models.PositiveIntegerField(default=0)
+    distance_unit = models.CharField(
+        max_length=2,
+        choices=DistanceUnit.choices,
+        default=DistanceUnit.KM,
+    )
     is_selected = models.BooleanField(default=True)
     status = models.CharField(
         max_length=20,
