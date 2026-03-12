@@ -39,7 +39,9 @@ DEFAULT_REGULATION_SCHEMA = {
             "title_uk": "Заміна моторного масла та масляного фільтра",
             "title_en": "Engine oil and oil filter replacement",
             "every_km": 10_000,
+            "every_mi": 6_200,
             "notify_before_km": 500,
+            "notify_before_mi": 300,
         },
         {
             "title": "Заміна фільтра газової системи",
@@ -47,7 +49,9 @@ DEFAULT_REGULATION_SCHEMA = {
             "title_uk": "Заміна фільтра газової системи",
             "title_en": "Gas system filter replacement",
             "every_km": 10_000,
+            "every_mi": 6_200,
             "notify_before_km": 500,
+            "notify_before_mi": 300,
         },
         {
             "title": "Заміна повітряного фільтра двигуна",
@@ -55,7 +59,9 @@ DEFAULT_REGULATION_SCHEMA = {
             "title_uk": "Заміна повітряного фільтра двигуна",
             "title_en": "Engine air filter replacement",
             "every_km": 20_000,
+            "every_mi": 12_400,
             "notify_before_km": 1_000,
+            "notify_before_mi": 600,
         },
         {
             "title": "Заміна салонного фільтра",
@@ -63,7 +69,9 @@ DEFAULT_REGULATION_SCHEMA = {
             "title_uk": "Заміна салонного фільтра",
             "title_en": "Cabin filter replacement",
             "every_km": 20_000,
+            "every_mi": 12_400,
             "notify_before_km": 1_000,
+            "notify_before_mi": 600,
         },
         {
             "title": "Перевірка стану підвіски",
@@ -71,7 +79,9 @@ DEFAULT_REGULATION_SCHEMA = {
             "title_uk": "Перевірка стану підвіски",
             "title_en": "Suspension condition check",
             "every_km": 20_000,
+            "every_mi": 12_400,
             "notify_before_km": 1_000,
+            "notify_before_mi": 600,
         },
         {
             "title": "Заміна гальмівної рідини",
@@ -79,7 +89,9 @@ DEFAULT_REGULATION_SCHEMA = {
             "title_uk": "Заміна гальмівної рідини",
             "title_en": "Brake fluid replacement",
             "every_km": 30_000,
+            "every_mi": 18_600,
             "notify_before_km": 2_000,
+            "notify_before_mi": 1_200,
         },
         {
             "title": "Заміна гальмівних колодок",
@@ -87,7 +99,9 @@ DEFAULT_REGULATION_SCHEMA = {
             "title_uk": "Заміна гальмівних колодок",
             "title_en": "Brake pad replacement",
             "every_km": 30_000,
+            "every_mi": 18_600,
             "notify_before_km": 2_000,
+            "notify_before_mi": 1_200,
         },
         {
             "title": "Перевірка електросистеми та компонентів двигуна",
@@ -95,7 +109,9 @@ DEFAULT_REGULATION_SCHEMA = {
             "title_uk": "Перевірка електросистеми та компонентів двигуна",
             "title_en": "Electrical system and engine components check",
             "every_km": 20_000,
+            "every_mi": 12_400,
             "notify_before_km": 1_000,
+            "notify_before_mi": 600,
         },
         {
             "title": "Заміна рідини гідропідсилювача керма",
@@ -103,7 +119,9 @@ DEFAULT_REGULATION_SCHEMA = {
             "title_uk": "Заміна рідини гідропідсилювача керма",
             "title_en": "Power steering fluid replacement",
             "every_km": 50_000,
+            "every_mi": 31_000,
             "notify_before_km": 2_000,
+            "notify_before_mi": 1_200,
         },
         {
             "title": "Заміна охолоджуючої рідини",
@@ -111,7 +129,9 @@ DEFAULT_REGULATION_SCHEMA = {
             "title_uk": "Заміна охолоджуючої рідини",
             "title_en": "Coolant replacement",
             "every_km": 60_000,
+            "every_mi": 37_200,
             "notify_before_km": 3_000,
+            "notify_before_mi": 1_800,
         },
         {
             "title": "Заміна помпи інвертора",
@@ -119,7 +139,9 @@ DEFAULT_REGULATION_SCHEMA = {
             "title_uk": "Заміна помпи інвертора",
             "title_en": "Inverter coolant pump replacement",
             "every_km": 120_000,
+            "every_mi": 74_400,
             "notify_before_km": 5_000,
+            "notify_before_mi": 3_100,
         },
         {
             "title": "Заміна помпи охолодження",
@@ -127,7 +149,9 @@ DEFAULT_REGULATION_SCHEMA = {
             "title_uk": "Заміна помпи охолодження",
             "title_en": "Engine coolant pump replacement",
             "every_km": 120_000,
+            "every_mi": 74_400,
             "notify_before_km": 5_000,
+            "notify_before_mi": 3_100,
         },
         {
             "title": "Заміна масла коробки передач",
@@ -135,7 +159,9 @@ DEFAULT_REGULATION_SCHEMA = {
             "title_uk": "Заміна масла коробки передач",
             "title_en": "Transmission oil replacement",
             "every_km": 70_000,
+            "every_mi": 43_400,
             "notify_before_km": 3_000,
+            "notify_before_mi": 1_800,
         },
         {
             "title": "Заміна паливного фільтра",
@@ -143,7 +169,9 @@ DEFAULT_REGULATION_SCHEMA = {
             "title_uk": "Заміна паливного фільтра",
             "title_en": "Fuel filter replacement",
             "every_km": 70_000,
+            "every_mi": 43_400,
             "notify_before_km": 3_000,
+            "notify_before_mi": 1_800,
         },
     ],
 }

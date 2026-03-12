@@ -100,7 +100,17 @@ class FleetVehicleRegulationItem(models.Model):
     title_uk = models.CharField(max_length=155, blank=True)
     title_en = models.CharField(max_length=155, blank=True)
     every_km = models.PositiveIntegerField()
+    every_mi = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Display-only mile interval. Calculations always use every_km.",
+    )
     notify_before_km = models.PositiveIntegerField(default=500)
+    notify_before_mi = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Display-only mile threshold. Calculations always use notify_before_km.",
+    )
 
     class Meta:
         unique_together = ("schema", "title")
@@ -155,10 +165,25 @@ class FleetVehicleRegulationEntry(models.Model):
         blank=True,
         help_text="Vehicle-specific override. Falls back to item.every_km when null.",
     )
+    every_mi = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Vehicle-specific display-only mile interval override.",
+    )
     notify_before_km = models.PositiveIntegerField(
         null=True,
         blank=True,
         help_text="Vehicle-specific override. Falls back to item.notify_before_km when null.",
+    )
+    notify_before_mi = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Vehicle-specific display-only mile threshold override.",
+    )
+    next_due_km_override = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="One-time override for next_due_km. Cleared on next mark-done.",
     )
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -173,6 +198,12 @@ class FleetVehicleRegulationEntry(models.Model):
         return self.every_km if self.every_km is not None else self.item.every_km
 
     @property
+    def effective_every_mi(self):
+        if self.every_mi is not None:
+            return self.every_mi
+        return self.item.every_mi
+
+    @property
     def effective_notify_before_km(self):
         return (
             self.notify_before_km
@@ -181,7 +212,15 @@ class FleetVehicleRegulationEntry(models.Model):
         )
 
     @property
+    def effective_notify_before_mi(self):
+        if self.notify_before_mi is not None:
+            return self.notify_before_mi
+        return self.item.notify_before_mi
+
+    @property
     def next_due_km(self):
+        if self.next_due_km_override is not None:
+            return self.next_due_km_override
         return self.last_done_km + self.effective_every_km
 
     def is_due(self, current_km: int) -> bool:

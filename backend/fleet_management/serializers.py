@@ -55,7 +55,9 @@ class FleetVehicleRegulationItemSerializer(serializers.ModelSerializer):
             "title_uk",
             "title_en",
             "every_km",
+            "every_mi",
             "notify_before_km",
+            "notify_before_mi",
         ]
 
 
@@ -87,6 +89,10 @@ class FleetVehicleRegulationSchemaSerializer(serializers.ModelSerializer):
 class RegulationEntryInitialSerializer(serializers.Serializer):
     item_id = serializers.IntegerField()
     last_done_km = serializers.IntegerField(min_value=0)
+    every_km = serializers.IntegerField(min_value=1, required=False, default=None)
+    notify_before_km = serializers.IntegerField(
+        min_value=0, required=False, default=None
+    )
 
     def validate_item_id(self, value):
         if not FleetVehicleRegulationItem.objects.filter(pk=value).exists():
@@ -127,7 +133,9 @@ class AddRegulationEntrySerializer(serializers.Serializer):
     title_uk = serializers.CharField(max_length=155, required=False, default="")
     title_en = serializers.CharField(max_length=155, required=False, default="")
     every_km = serializers.IntegerField(min_value=1)
+    every_mi = serializers.IntegerField(min_value=1, required=False, default=None)
     notify_before_km = serializers.IntegerField(min_value=0, default=500)
+    notify_before_mi = serializers.IntegerField(min_value=0, required=False, default=None)
     last_done_km = serializers.IntegerField(min_value=0, default=0)
 
 
@@ -227,7 +235,9 @@ class VehicleRegulationPlanEntrySerializer(serializers.ModelSerializer):
     item = FleetVehicleRegulationItemSerializer(read_only=True)
     next_due_km = serializers.IntegerField(read_only=True)
     effective_every_km = serializers.IntegerField(read_only=True)
+    effective_every_mi = serializers.IntegerField(read_only=True)
     effective_notify_before_km = serializers.IntegerField(read_only=True)
+    effective_notify_before_mi = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = FleetVehicleRegulationEntry
@@ -236,9 +246,14 @@ class VehicleRegulationPlanEntrySerializer(serializers.ModelSerializer):
             "item",
             "last_done_km",
             "every_km",
+            "every_mi",
             "notify_before_km",
+            "notify_before_mi",
+            "next_due_km_override",
             "effective_every_km",
+            "effective_every_mi",
             "effective_notify_before_km",
+            "effective_notify_before_mi",
             "next_due_km",
             "updated_at",
         ]

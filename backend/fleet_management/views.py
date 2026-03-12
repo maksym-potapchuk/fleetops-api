@@ -263,40 +263,123 @@ class VehicleRegulationEntryUpdate(APIView):
             pk=entry_pk,
             regulation__vehicle_id=vehicle_pk,
         )
-        km = request.data.get("last_done_km")
-        if km is None or not str(km).isdigit():
+
+        km_raw = request.data.get("last_done_km")
+        new_every = request.data.get("every_km")
+        new_every_mi = request.data.get("every_mi")
+        new_notify = request.data.get("notify_before_km")
+        new_notify_mi = request.data.get("notify_before_mi")
+        new_next_override = request.data.get("next_due_km_override")
+
+        has_km = km_raw is not None
+        has_settings = (
+            new_every is not None
+            or new_notify is not None
+            or new_next_override is not None
+            or new_every_mi is not None
+            or new_notify_mi is not None
+        )
+
+        if not has_km and not has_settings:
             return Response(
-                {
-                    "detail": "last_done_km is required and must be a non-negative integer."
-                },
+                {"detail": "Provide last_done_km and/or every_km / notify_before_km."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        km = int(km)
-        update_fields = ["last_done_km", "updated_at"]
-        entry.last_done_km = km
+        update_fields = ["updated_at"]
+        history_parts = []
 
-        # Allow per-vehicle override of interval
-        new_every = request.data.get("every_km")
-        if new_every is not None and str(new_every).isdigit() and int(new_every) > 0:
+        # ── Mark-done (last_done_km) ──
+        if has_km:
+            if not str(km_raw).isdigit():
+                return Response(
+                    {"detail": "last_done_km must be a non-negative integer."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            entry.last_done_km = int(km_raw)
+            update_fields.append("last_done_km")
+            # Reset one-time override on mark-done
+            if entry.next_due_km_override is not None:
+                entry.next_due_km_override = None
+                update_fields.append("next_due_km_override")
+
+        # ── Interval override ──
+        if new_every is not None:
+            if not str(new_every).isdigit() or int(new_every) <= 0:
+                return Response(
+                    {"detail": "every_km must be a positive integer."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            old_every = entry.effective_every_km
             entry.every_km = int(new_every)
             update_fields.append("every_km")
+            if int(new_every) != old_every:
+                history_parts.append(f"interval: {old_every} → {int(new_every)} km")
 
-        new_notify = request.data.get("notify_before_km")
-        if new_notify is not None and str(new_notify).isdigit():
+        if new_every_mi is not None:
+            if not str(new_every_mi).isdigit() or int(new_every_mi) <= 0:
+                return Response(
+                    {"detail": "every_mi must be a positive integer."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            entry.every_mi = int(new_every_mi)
+            update_fields.append("every_mi")
+
+        if new_notify is not None:
+            if not str(new_notify).isdigit():
+                return Response(
+                    {"detail": "notify_before_km must be a non-negative integer."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            old_notify = entry.effective_notify_before_km
             entry.notify_before_km = int(new_notify)
             update_fields.append("notify_before_km")
+            if int(new_notify) != old_notify:
+                history_parts.append(
+                    f"notify: {old_notify} → {int(new_notify)} km"
+                )
+
+        if new_notify_mi is not None:
+            if not str(new_notify_mi).isdigit():
+                return Response(
+                    {"detail": "notify_before_mi must be a non-negative integer."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            entry.notify_before_mi = int(new_notify_mi)
+            update_fields.append("notify_before_mi")
+
+        # ── One-time next-due override ──
+        if new_next_override is not None:
+            if not str(new_next_override).isdigit() or int(new_next_override) <= 0:
+                return Response(
+                    {"detail": "next_due_km_override must be a positive integer."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            entry.next_due_km_override = int(new_next_override)
+            update_fields.append("next_due_km_override")
 
         entry.save(update_fields=update_fields)
 
-        FleetVehicleRegulationHistory.objects.create(
-            entry=entry,
-            event_type=EventType.PERFORMED,
-            km_at_event=km,
-            km_remaining=entry.next_due_km - km,
-            note=request.data.get("note", ""),
-            created_by=request.user,
-        )
+        # ── History event ──
+        if has_km:
+            km = int(km_raw)
+            FleetVehicleRegulationHistory.objects.create(
+                entry=entry,
+                event_type=EventType.PERFORMED,
+                km_at_event=km,
+                km_remaining=entry.next_due_km - km,
+                note=request.data.get("note", ""),
+                created_by=request.user,
+            )
+        elif history_parts:
+            FleetVehicleRegulationHistory.objects.create(
+                entry=entry,
+                event_type=EventType.KM_UPDATED,
+                km_at_event=entry.last_done_km,
+                km_remaining=entry.next_due_km - entry.last_done_km,
+                note="; ".join(history_parts),
+                created_by=request.user,
+            )
 
         cache_utils.invalidate_regulation_plan(vehicle_pk)
         logger.info(
@@ -308,7 +391,6 @@ class VehicleRegulationEntryUpdate(APIView):
                 "service": "DJANGO",
                 "vehicle_id": str(vehicle_pk),
                 "entry_id": entry_pk,
-                "km": km,
                 "user_id": str(request.user.id),
             },
         )
@@ -327,28 +409,40 @@ class VehicleRegulationEntryAddView(APIView):
         serializer.is_valid(raise_exception=True)
         d = serializer.validated_data
 
+        item_defaults = {
+            "title_pl": d["title_pl"],
+            "title_uk": d["title_uk"],
+            "title_en": d["title_en"],
+            "every_km": d["every_km"],
+            "notify_before_km": d["notify_before_km"],
+        }
+        if d.get("every_mi") is not None:
+            item_defaults["every_mi"] = d["every_mi"]
+        if d.get("notify_before_mi") is not None:
+            item_defaults["notify_before_mi"] = d["notify_before_mi"]
+
         item, _ = FleetVehicleRegulationItem.objects.get_or_create(
             schema=regulation.schema,
             title=d["title"],
-            defaults={
-                "title_pl": d["title_pl"],
-                "title_uk": d["title_uk"],
-                "title_en": d["title_en"],
-                "every_km": d["every_km"],
-                "notify_before_km": d["notify_before_km"],
-            },
+            defaults=item_defaults,
         )
 
         # Store every_km / notify_before_km on the entry (vehicle-level override)
         # so changing values for one vehicle doesn't affect others.
+        entry_defaults = {
+            "last_done_km": d["last_done_km"],
+            "every_km": d["every_km"],
+            "notify_before_km": d["notify_before_km"],
+        }
+        if d.get("every_mi") is not None:
+            entry_defaults["every_mi"] = d["every_mi"]
+        if d.get("notify_before_mi") is not None:
+            entry_defaults["notify_before_mi"] = d["notify_before_mi"]
+
         entry, created = FleetVehicleRegulationEntry.objects.get_or_create(
             regulation=regulation,
             item=item,
-            defaults={
-                "last_done_km": d["last_done_km"],
-                "every_km": d["every_km"],
-                "notify_before_km": d["notify_before_km"],
-            },
+            defaults=entry_defaults,
         )
         if not created:
             return Response(
