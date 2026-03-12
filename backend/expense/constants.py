@@ -29,6 +29,7 @@ class PayerType(models.TextChoices):
 class SupplierType(models.TextChoices):
     DISASSEMBLY = "DISASSEMBLY", "Disassembly"
     INDIVIDUAL = "INDIVIDUAL", "Individual"
+    SHOP = "SHOP", "Shop"
 
 
 class ApprovalStatus(models.TextChoices):
