@@ -105,6 +105,7 @@ class VehicleSerializer(serializers.ModelSerializer):
             "color",
             "fuel_type",
             "initial_km",
+            "distance_unit",
             "is_selected",
             "status",
             "photos",
