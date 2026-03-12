@@ -13,6 +13,7 @@ VULNERABILITY FOCUS:
 - Can APPROVED status be reverted?
 """
 
+import json
 from decimal import Decimal
 
 from django.test import TestCase
@@ -46,8 +47,7 @@ class CostSplittingTest(TestCase):
             "category": str(self.fuel_cat.id),
             "amount": "200.00",
             "expense_date": "2026-03-01",
-            "liters": "50.00",
-            "fuel_type": "GASOLINE",
+            "fuel_types": json.dumps(["GASOLINE"]),
             "payer_type": "COMPANY",
         }
         base.update(overrides)
@@ -84,16 +84,6 @@ class CostSplittingTest(TestCase):
         expense = Expense.objects.get(id=response.data["id"])
         self.assertEqual(expense.company_amount, Decimal("120.00"))
         self.assertEqual(expense.client_amount, Decimal("80.00"))
-
-    def test_split_amounts_not_equal_total_returns_400(self):
-        """VULNERABILITY: company_amount + client_amount must equal total amount."""
-        payload = self._fuel_payload(
-            payer_type="CLIENT",
-            company_amount="100.00",
-            client_amount="50.00",  # 100 + 50 = 150 != 200
-        )
-        response = self.client.post(self.BASE_URL, payload, format=FMT)
-        self.assertEqual(response.status_code, 400)
 
     def test_negative_company_amount_returns_400(self):
         """VULNERABILITY: negative amounts must be rejected."""
@@ -135,12 +125,13 @@ class CostSplittingTest(TestCase):
         self.assertEqual(response.status_code, 201)
         expense = Expense.objects.get(id=response.data["id"])
         self.assertIsNone(expense.approval_status)
+        self.assertEqual(expense.amount, Decimal("200.00"))
         self.assertIsNone(expense.company_amount)
         self.assertIsNone(expense.client_amount)
 
     # --- Payer type switching clears fields (using OTHER to avoid detail validation) ---
 
-    def test_switch_from_client_to_company_clears_split_fields(self):
+    def test_switch_from_client_to_company_clears_client_fields(self):
         """VULNERABILITY: switching payer type must clear approval status to prevent bypass."""
         payload = self._other_payload(
             payer_type="CLIENT",
@@ -158,6 +149,8 @@ class CostSplittingTest(TestCase):
         )
         self.assertEqual(patch.status_code, 200)
         expense = Expense.objects.get(id=expense_id)
+        # amount preserved, split fields cleared
+        self.assertEqual(expense.amount, Decimal("200.00"))
         self.assertIsNone(expense.company_amount)
         self.assertIsNone(expense.client_amount)
         self.assertIsNone(expense.client_driver)
@@ -182,7 +175,6 @@ class ApprovalWorkflowTest(TestCase):
         payload = {
             "vehicle": str(self.vehicle.id),
             "category": str(self.other_cat.id),
-            "amount": "100.00",
             "expense_date": "2026-03-01",
             "payer_type": "CLIENT",
             "company_amount": "60.00",

@@ -7,7 +7,6 @@ from django.db import models
 from .constants import (
     ALLOWED_INVOICE_EXTENSIONS,
     ApprovalStatus,
-    FuelType,
     PayerType,
     PaymentMethod,
     SupplierType,
@@ -68,7 +67,6 @@ class Expense(models.Model):
         blank=True,
         related_name="expenses",
     )
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
     expense_date = models.DateTimeField()
     receipt = models.FileField(upload_to="expenses/receipts/", blank=True, null=True)
     payment_method = models.CharField(
@@ -82,7 +80,10 @@ class Expense(models.Model):
         default=PayerType.COMPANY,
     )
     expense_for = models.CharField(max_length=200, blank=True)
-    # ── Cost splitting (only when payer_type=CLIENT) ──
+    # ── Amounts ──
+    # COMPANY: amount = full cost, company_amount / client_amount = NULL
+    # CLIENT:  amount = company_amount + client_amount (both required)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     company_amount = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True
     )
@@ -145,14 +146,16 @@ class FuelExpenseDetail(models.Model):
     expense = models.OneToOneField(
         Expense, on_delete=models.CASCADE, related_name="fuel_detail"
     )
-    liters = models.DecimalField(max_digits=8, decimal_places=2)
-    fuel_type = models.CharField(max_length=20, choices=FuelType.choices)
+    liters = models.DecimalField(
+        max_digits=8, decimal_places=2, null=True, blank=True
+    )
+    fuel_types = models.JSONField(default=list, help_text="List of fuel types, e.g. ['DIESEL', 'LPG']")
 
     class Meta:
         verbose_name = "Fuel detail"
 
     def __str__(self) -> str:
-        return f"Fuel: {self.liters}L"
+        return f"Fuel: {', '.join(self.fuel_types)}"
 
 
 class ServiceExpenseDetail(models.Model):
@@ -278,7 +281,8 @@ class Invoice(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     number = models.CharField(max_length=100, unique=True, db_index=True)
     file = models.FileField(
-        upload_to="expenses/invoices/", validators=[validate_invoice_file]
+        upload_to="expenses/invoices/", validators=[validate_invoice_file],
+        blank=True,
     )
     vendor_name = models.CharField(max_length=200, blank=True)
     invoice_date = models.DateField(null=True, blank=True)

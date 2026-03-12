@@ -52,8 +52,7 @@ class ExpenseAPITest(TestCase):
             "category": str(self.fuel_cat.id),
             "amount": "150.00",
             "expense_date": "2026-02-15",
-            "liters": "45.00",
-            "fuel_type": "GASOLINE",
+            "fuel_types": json.dumps(["GASOLINE"]),
         }
         base.update(overrides)
         return base
@@ -69,12 +68,12 @@ class ExpenseAPITest(TestCase):
         expense = Expense.objects.first()
         self.assertTrue(hasattr(expense, "fuel_detail"))
 
-    def test_create_fuel_without_liters_returns_400(self):
+    def test_create_fuel_without_fuel_types_returns_400(self):
         payload = self._fuel_payload()
-        del payload["liters"]
+        del payload["fuel_types"]
         response = self.client.post(self.BASE_URL, payload, format="multipart")
         self.assertEqual(response.status_code, 400)
-        self.assertIn("liters", response.data)
+        self.assertIn("fuel_types", response.data)
 
     def test_create_service_with_fleet_service_and_items(self):
         fleet_svc = FleetService.objects.create(name="AutoService Plus")

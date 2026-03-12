@@ -53,8 +53,7 @@ class VehicleExpenseCreateTest(TestCase):
                 "category": str(self.fuel_cat.id),
                 "expense_date": "2026-03-01",
                 "amount": "100.00",
-                "liters": "40.00",
-                "fuel_type": "DIESEL",
+                "fuel_types": json.dumps(["DIESEL"]),
             },
             format="multipart",
         )
@@ -171,12 +170,12 @@ class VehicleExpenseCreateTest(TestCase):
                 "category": str(self.fuel_cat.id),
                 "expense_date": "2026-03-01",
                 "amount": "100.00",
-                # missing liters and fuel_type
+                # missing fuel_types
             },
             format="multipart",
         )
         self.assertEqual(response.status_code, 400)
-        self.assertIn("liters", response.data)
+        self.assertIn("fuel_types", response.data)
 
     def test_unauthenticated_returns_401(self):
         client = APIClient()

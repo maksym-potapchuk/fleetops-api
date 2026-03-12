@@ -115,6 +115,8 @@ class ExpenseAdmin(admin.ModelAdmin):
         "vehicle",
         "category",
         "amount",
+        "company_amount",
+        "client_amount",
         "expense_date",
         "payment_method",
         "payer_type",
