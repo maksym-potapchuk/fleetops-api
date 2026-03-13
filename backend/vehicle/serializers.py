@@ -31,7 +31,24 @@ class VehiclePhotoSerializer(serializers.ModelSerializer):
         return rep
 
 
+class LinkedExpenseSerializer(serializers.Serializer):
+    """Read-only nested representation of expense linked to an inspection."""
+
+    id = serializers.UUIDField()
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    official_cost = serializers.DecimalField(max_digits=10, decimal_places=2)
+    additional_cost = serializers.DecimalField(max_digits=10, decimal_places=2)
+    payment_method = serializers.CharField()
+    receipt = serializers.CharField(allow_null=True)
+    registration_certificate = serializers.CharField(allow_null=True)
+    invoice_number = serializers.CharField(allow_null=True)
+    invoice_file = serializers.CharField(allow_null=True)
+    expense_date = serializers.DateTimeField()
+
+
 class TechnicalInspectionSerializer(serializers.ModelSerializer):
+    linked_expense = serializers.SerializerMethodField()
+
     class Meta:
         model = TechnicalInspection
         fields = [
@@ -42,8 +59,38 @@ class TechnicalInspectionSerializer(serializers.ModelSerializer):
             "notes",
             "created_by",
             "created_at",
+            "linked_expense",
         ]
-        read_only_fields = ["id", "created_by", "created_at"]
+        read_only_fields = ["id", "created_by", "created_at", "linked_expense"]
+
+    def get_linked_expense(self, obj):
+        detail = getattr(obj, "expense_detail", None)
+        if not detail:
+            return None
+        expense = detail.expense
+        invoice = expense.invoice
+        return LinkedExpenseSerializer(
+            {
+                "id": expense.id,
+                "amount": expense.amount,
+                "official_cost": detail.official_cost,
+                "additional_cost": detail.additional_cost,
+                "payment_method": expense.payment_method,
+                "receipt": media_url(expense.receipt.url)
+                if expense.receipt
+                else None,
+                "registration_certificate": media_url(
+                    detail.registration_certificate.url
+                )
+                if detail.registration_certificate
+                else None,
+                "invoice_number": invoice.number if invoice else None,
+                "invoice_file": media_url(invoice.file.url)
+                if invoice and invoice.file
+                else None,
+                "expense_date": expense.expense_date,
+            }
+        ).data
 
     def validate_inspection_date(self, value):
         if value > date.today():
