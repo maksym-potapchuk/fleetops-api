@@ -69,7 +69,7 @@ class ExpenseListCreateView(generics.ListCreateAPIView):
     filterset_class = ExpenseFilter
     search_fields = ["vehicle__car_number", "vehicle__manufacturer", "vehicle__model"]
     ordering_fields = ["expense_date", "amount", "created_at"]
-    ordering = ["-expense_date"]
+    ordering = ["-created_at"]
 
     def list(self, request, *args, **kwargs):
         cached = cache_utils.get_expense_list(request.query_params)
@@ -183,7 +183,7 @@ class VehicleExpenseListCreateView(generics.ListCreateAPIView):
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = ExpenseFilter
     ordering_fields = ["expense_date", "amount", "created_at"]
-    ordering = ["-expense_date"]
+    ordering = ["-created_at"]
 
     def get_queryset(self):
         return _expense_queryset().filter(vehicle_id=self.kwargs["pk"])
