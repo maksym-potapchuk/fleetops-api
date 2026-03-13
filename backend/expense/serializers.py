@@ -351,6 +351,16 @@ class ExpenseSerializer(serializers.ModelSerializer):
             queryset=Driver.objects.all(), required=False, allow_null=True
         )
 
+    # DRF run_validators() calls copy.deepcopy(value) which fails on
+    # TemporaryUploadedFile (large uploads stored on disk as BufferedRandom).
+    # We pop file fields before deepcopy and restore them after.
+    _FILE_FIELDS = ("receipt", "invoice_file", "registration_certificate")
+
+    def run_validators(self, value):
+        files = {k: value.pop(k) for k in self._FILE_FIELDS if k in value}
+        super().run_validators(value)
+        value.update(files)
+
     # ── Helpers ──
 
     def _get_category_code(self, data):

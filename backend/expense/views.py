@@ -196,11 +196,9 @@ class VehicleExpenseListCreateView(generics.ListCreateAPIView):
                     data._mutable = True
                     data["vehicle"] = self.kwargs["pk"]
                     data._mutable = False
-                    kwargs["data"] = data
                 else:
-                    mutable = dict(data)
-                    mutable["vehicle"] = self.kwargs["pk"]
-                    kwargs["data"] = mutable
+                    data["vehicle"] = self.kwargs["pk"]
+                kwargs["data"] = data
         return super().get_serializer(*args, **kwargs)
 
     def list(self, request, *args, **kwargs):
