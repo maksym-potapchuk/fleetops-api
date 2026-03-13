@@ -87,6 +87,8 @@ def assign_regulation_to_vehicle(vehicle_pk, schema_id, entries_data, user):
             create_kwargs["every_km"] = entry_data["every_km"]
         if entry_data.get("notify_before_km") is not None:
             create_kwargs["notify_before_km"] = entry_data["notify_before_km"]
+        if entry_data.get("next_due_km_override") is not None:
+            create_kwargs["next_due_km_override"] = entry_data["next_due_km_override"]
         entry = FleetVehicleRegulationEntry.objects.create(**create_kwargs)
         FleetVehicleRegulationHistory.objects.create(
             entry=entry,
