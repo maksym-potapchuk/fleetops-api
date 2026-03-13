@@ -524,11 +524,36 @@ class TechnicalInspectionListCreateView(generics.ListCreateAPIView):
     parser_classes = [MultiPartParser]
 
     def get_queryset(self):
-        return TechnicalInspection.objects.filter(vehicle_id=self.kwargs["pk"])
+        return TechnicalInspection.objects.filter(
+            vehicle_id=self.kwargs["pk"]
+        ).select_related(
+            "expense_detail__expense__invoice",
+        )
 
     def perform_create(self, serializer):
-        serializer.save(vehicle_id=self.kwargs["pk"], created_by=self.request.user)
+        instance = serializer.save(
+            vehicle_id=self.kwargs["pk"], created_by=self.request.user
+        )
+        self._link_orphan_expense(instance)
         cache_utils.invalidate_vehicle(self.kwargs["pk"])
+
+    @staticmethod
+    def _link_orphan_expense(inspection):
+        """Auto-link to an unlinked INSPECTION expense with matching date."""
+        from expense.models import InspectionExpenseDetail
+
+        detail = (
+            InspectionExpenseDetail.objects.filter(
+                expense__vehicle_id=inspection.vehicle_id,
+                inspection_date=inspection.inspection_date,
+                linked_inspection__isnull=True,
+            )
+            .select_related("expense")
+            .first()
+        )
+        if detail:
+            detail.linked_inspection = inspection
+            detail.save(update_fields=["linked_inspection"])
 
 
 class TechnicalInspectionUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
@@ -538,7 +563,11 @@ class TechnicalInspectionUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView
     http_method_names = ["get", "patch", "delete"]
 
     def get_queryset(self):
-        return TechnicalInspection.objects.filter(vehicle_id=self.kwargs["pk"])
+        return TechnicalInspection.objects.filter(
+            vehicle_id=self.kwargs["pk"]
+        ).select_related(
+            "expense_detail__expense__invoice",
+        )
 
     def get_object(self):
         return generics.get_object_or_404(
