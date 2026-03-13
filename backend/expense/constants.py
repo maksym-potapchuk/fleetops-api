@@ -1,13 +1,15 @@
 from django.db import models
 
-ALLOWED_INVOICE_EXTENSIONS = (".pdf", ".doc", ".docx")
+ALLOWED_INVOICE_EXTENSIONS = (".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png", ".webp")
 
 
 class FuelType(models.TextChoices):
     GASOLINE = "GASOLINE", "Gasoline"
     DIESEL = "DIESEL", "Diesel"
     LPG = "LPG", "LPG"
+    LPG_GASOLINE = "LPG_GASOLINE", "LPG + Gasoline"
     ELECTRIC = "ELECTRIC", "Electric"
+    HYBRID = "HYBRID", "Hybrid"
 
 
 class WashType(models.TextChoices):
