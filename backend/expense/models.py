@@ -220,6 +220,9 @@ class InspectionExpenseDetail(models.Model):
     official_cost = models.DecimalField(max_digits=10, decimal_places=2)
     additional_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     next_inspection_date = models.DateField(null=True, blank=True)
+    registration_certificate = models.FileField(
+        upload_to="expenses/certificates/", blank=True, null=True
+    )
     linked_inspection = models.OneToOneField(
         "vehicle.TechnicalInspection",
         on_delete=models.SET_NULL,

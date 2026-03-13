@@ -59,6 +59,7 @@ DETAIL_MAP = {
             "official_cost",
             "additional_cost",
             "next_inspection_date",
+            "registration_certificate",
         ],
         "required": ["inspection_date", "official_cost"],
     },
@@ -216,6 +217,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
         max_digits=10, decimal_places=2, required=False, allow_null=True
     )
     next_inspection_date = serializers.DateField(required=False, allow_null=True)
+    registration_certificate = serializers.FileField(required=False, allow_null=True)
 
     # PARTS detail fields
     source_name = serializers.CharField(required=False, allow_blank=True)
@@ -291,6 +293,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
             "official_cost",
             "additional_cost",
             "next_inspection_date",
+            "registration_certificate",
             # PARTS
             "source_name",
             "supplier_type",
@@ -546,22 +549,32 @@ class ExpenseSerializer(serializers.ModelSerializer):
         if not inspection_date:
             return
 
-        next_date = detail_data.get("next_inspection_date")
-        if not next_date:
-            try:
-                next_date = inspection_date.replace(year=inspection_date.year + 1)
-            except ValueError:
-                next_date = inspection_date.replace(
-                    year=inspection_date.year + 1, day=28
-                )
-
-        inspection = TechnicalInspection.objects.create(
+        # Try to find an existing unlinked inspection with the same date
+        existing = TechnicalInspection.objects.filter(
             vehicle=expense.vehicle,
             inspection_date=inspection_date,
-            next_inspection_date=next_date,
-            notes=f"Auto-created from expense #{expense.id}",
-            created_by=expense.created_by,
-        )
+            expense_detail__isnull=True,
+        ).first()
+
+        if existing:
+            inspection = existing
+        else:
+            next_date = detail_data.get("next_inspection_date")
+            if not next_date:
+                try:
+                    next_date = inspection_date.replace(year=inspection_date.year + 1)
+                except ValueError:
+                    next_date = inspection_date.replace(
+                        year=inspection_date.year + 1, day=28
+                    )
+
+            inspection = TechnicalInspection.objects.create(
+                vehicle=expense.vehicle,
+                inspection_date=inspection_date,
+                next_inspection_date=next_date,
+                notes=f"Auto-created from expense #{expense.id}",
+                created_by=expense.created_by,
+            )
 
         detail = getattr(expense, "inspection_detail", None)
         if detail:
@@ -776,6 +789,8 @@ class ExpenseSerializer(serializers.ModelSerializer):
                     elif field_name == "service":
                         rep[field_name] = val.pk if val else None
                         rep["service_name"] = val.name if val else ""
+                    elif field_name == "registration_certificate":
+                        rep[field_name] = media_url(val.url) if val else None
                     else:
                         rep[field_name] = val
             else:
