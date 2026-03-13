@@ -47,6 +47,11 @@ urlpatterns = [
         name="vehicle-photo-delete",
     ),
     path(
+        "<uuid:pk>/photos/<int:photo_pk>/cover/",
+        views.VehiclePhotoCoverView.as_view(),
+        name="vehicle-photo-cover",
+    ),
+    path(
         "<uuid:pk>/owner/",
         views.VehicleOwnerView.as_view(),
         name="vehicle-owner",

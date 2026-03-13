@@ -19,6 +19,7 @@ class FuelType(models.TextChoices):
     LPG_GASOLINE = "LPG_GASOLINE", "LPG + Gasoline"
     ELECTRIC = "ELECTRIC", "Electric"
     HYBRID = "HYBRID", "Hybrid"
+    GAS_GASOLINE_HYBRID = "GAS_GASOLINE_HYBRID", "Gas + Gasoline + Hybrid"
 
 
 class DistanceUnit(models.TextChoices):
