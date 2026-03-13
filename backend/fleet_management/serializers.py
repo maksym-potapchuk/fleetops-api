@@ -93,6 +93,9 @@ class RegulationEntryInitialSerializer(serializers.Serializer):
     notify_before_km = serializers.IntegerField(
         min_value=0, required=False, default=None
     )
+    next_due_km_override = serializers.IntegerField(
+        min_value=1, required=False, default=None
+    )
 
     def validate_item_id(self, value):
         if not FleetVehicleRegulationItem.objects.filter(pk=value).exists():
