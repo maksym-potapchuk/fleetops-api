@@ -143,6 +143,7 @@ class VehiclePhoto(models.Model):
         related_name="photos",
     )
     image = models.ImageField(upload_to=vehicle_photo_path)
+    is_cover = models.BooleanField(default=False)
     created_by = models.ForeignKey(
         "account.User",
         on_delete=models.SET_NULL,
@@ -152,7 +153,7 @@ class VehiclePhoto(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["uploaded_at"]
+        ordering = ["-is_cover", "uploaded_at"]
 
     def __str__(self) -> str:
         return f"Photo for {self.vehicle}"

@@ -445,6 +445,25 @@ class VehiclePhotoDestroyView(generics.DestroyAPIView):
         cache_utils.invalidate_vehicle(self.kwargs["pk"])
 
 
+class VehiclePhotoCoverView(generics.GenericAPIView):
+    """POST /vehicle/<pk>/photos/<photo_pk>/cover/ -- set photo as cover."""
+
+    permission_classes = [IsAuthenticated]
+    http_method_names = ["post"]
+
+    def post(self, request, pk, photo_pk):
+        photo = generics.get_object_or_404(
+            VehiclePhoto.objects.filter(vehicle_id=pk), pk=photo_pk
+        )
+        VehiclePhoto.objects.filter(vehicle_id=pk, is_cover=True).update(
+            is_cover=False
+        )
+        photo.is_cover = True
+        photo.save(update_fields=["is_cover"])
+        cache_utils.invalidate_vehicle(pk)
+        return Response(VehiclePhotoSerializer(photo).data)
+
+
 class VehicleOwnerView(generics.GenericAPIView):
     """
     GET    /vehicle/<pk>/owner/  -- current owner (or 404)

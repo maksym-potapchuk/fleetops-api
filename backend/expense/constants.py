@@ -7,9 +7,7 @@ class FuelType(models.TextChoices):
     GASOLINE = "GASOLINE", "Gasoline"
     DIESEL = "DIESEL", "Diesel"
     LPG = "LPG", "LPG"
-    LPG_GASOLINE = "LPG_GASOLINE", "LPG + Gasoline"
     ELECTRIC = "ELECTRIC", "Electric"
-    HYBRID = "HYBRID", "Hybrid"
 
 
 class WashType(models.TextChoices):

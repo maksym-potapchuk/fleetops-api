@@ -18,7 +18,7 @@ from .models import (
 class VehiclePhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = VehiclePhoto
-        fields = ["id", "image", "uploaded_at", "created_by"]
+        fields = ["id", "image", "is_cover", "uploaded_at", "created_by"]
         read_only_fields = ["id", "uploaded_at", "created_by"]
 
     def to_representation(self, instance):

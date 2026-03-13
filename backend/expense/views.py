@@ -192,9 +192,15 @@ class VehicleExpenseListCreateView(generics.ListCreateAPIView):
         if self.request.method == "POST":
             data = kwargs.get("data")
             if data is not None:
-                mutable = data.copy() if hasattr(data, "copy") else dict(data)
-                mutable["vehicle"] = self.kwargs["pk"]
-                kwargs["data"] = mutable
+                if hasattr(data, "_mutable"):
+                    data._mutable = True
+                    data["vehicle"] = self.kwargs["pk"]
+                    data._mutable = False
+                    kwargs["data"] = data
+                else:
+                    mutable = dict(data)
+                    mutable["vehicle"] = self.kwargs["pk"]
+                    kwargs["data"] = mutable
         return super().get_serializer(*args, **kwargs)
 
     def list(self, request, *args, **kwargs):
