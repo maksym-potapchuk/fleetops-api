@@ -285,9 +285,7 @@ class VehicleRegulationEntryUpdateAPITest(BaseAPITest):
     # --- Edit entry (interval / notify) without marking done ---
 
     def test_edit_interval_only_returns_200(self):
-        response = self.client.patch(
-            self.url, {"every_km": 15_000}, format="json"
-        )
+        response = self.client.patch(self.url, {"every_km": 15_000}, format="json")
         self.assertEqual(response.status_code, 200)
         self.entry.refresh_from_db()
         self.assertEqual(self.entry.every_km, 15_000)
@@ -326,15 +324,17 @@ class VehicleRegulationEntryUpdateAPITest(BaseAPITest):
         self.client.patch(
             self.url, {"every_km": 10_000, "notify_before_km": 500}, format="json"
         )
-        history_count = FleetVehicleRegulationHistory.objects.filter(
-            entry=self.entry, event_type=EventType.KM_UPDATED
-        ).exclude(note="Initial assignment").count()
+        history_count = (
+            FleetVehicleRegulationHistory.objects.filter(
+                entry=self.entry, event_type=EventType.KM_UPDATED
+            )
+            .exclude(note="Initial assignment")
+            .count()
+        )
         self.assertEqual(history_count, 0)
 
     def test_edit_interval_zero_is_rejected(self):
-        response = self.client.patch(
-            self.url, {"every_km": 0}, format="json"
-        )
+        response = self.client.patch(self.url, {"every_km": 0}, format="json")
         self.assertEqual(response.status_code, 400)
 
     def test_mark_done_with_interval_override_creates_performed_history(self):

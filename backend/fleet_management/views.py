@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 
 from config import cache_utils
 from config.filters import LayoutAwareSearchFilter as SearchFilter
+from vehicle.models import TechnicalInspection
 
 from .constants import EventType
 from .filters import FleetVehicleRegulationSchemaFilter, RegulationHistoryFilter
@@ -26,6 +27,7 @@ from .models import (
 from .serializers import (
     AddRegulationEntrySerializer,
     AssignRegulationSerializer,
+    CalendarInspectionSerializer,
     EquipmentDefaultItemSerializer,
     EquipmentListSerializer,
     FleetServiceSerializer,
@@ -335,9 +337,7 @@ class VehicleRegulationEntryUpdate(APIView):
             entry.notify_before_km = int(new_notify)
             update_fields.append("notify_before_km")
             if int(new_notify) != old_notify:
-                history_parts.append(
-                    f"notify: {old_notify} → {int(new_notify)} km"
-                )
+                history_parts.append(f"notify: {old_notify} → {int(new_notify)} km")
 
         if new_notify_mi is not None:
             if not str(new_notify_mi).isdigit():
@@ -599,6 +599,28 @@ class AllServicePlansAPIView(generics.ListAPIView):
 
     def get_queryset(self):
         return ServicePlan.objects.select_related("vehicle").all()
+
+
+class CalendarInspectionsAPIView(generics.ListAPIView):
+    """GET /fleet/calendar-inspections/ — upcoming technical inspections for the calendar."""
+
+    serializer_class = CalendarInspectionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        from django.db.models import Max, Subquery
+
+        latest_ids = (
+            TechnicalInspection.objects.values("vehicle")
+            .annotate(latest_id=Max("id"))
+            .values("latest_id")
+        )
+        return (
+            TechnicalInspection.objects.filter(id__in=Subquery(latest_ids))
+            .select_related("vehicle")
+            .exclude(next_inspection_date__isnull=True)
+            .order_by("next_inspection_date")
+        )
 
 
 class ServicePlanDetailAPIView(generics.RetrieveUpdateDestroyAPIView):

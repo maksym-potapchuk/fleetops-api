@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from vehicle.models import TechnicalInspection
+
 from .models import (
     EquipmentDefaultItem,
     EquipmentList,
@@ -138,7 +140,9 @@ class AddRegulationEntrySerializer(serializers.Serializer):
     every_km = serializers.IntegerField(min_value=1)
     every_mi = serializers.IntegerField(min_value=1, required=False, default=None)
     notify_before_km = serializers.IntegerField(min_value=0, default=500)
-    notify_before_mi = serializers.IntegerField(min_value=0, required=False, default=None)
+    notify_before_mi = serializers.IntegerField(
+        min_value=0, required=False, default=None
+    )
     last_done_km = serializers.IntegerField(min_value=0, default=0)
 
 
@@ -196,6 +200,25 @@ class ServicePlanWithVehicleSerializer(serializers.ModelSerializer):
             "vehicle_car_number",
             "created_by",
             "created_at",
+        ]
+
+
+class CalendarInspectionSerializer(serializers.ModelSerializer):
+    """Serializes next_inspection_date as a calendar-compatible event."""
+
+    vehicle = serializers.UUIDField(source="vehicle.id", read_only=True)
+    vehicle_car_number = serializers.CharField(
+        source="vehicle.car_number", read_only=True
+    )
+    planned_at = serializers.DateField(source="next_inspection_date", read_only=True)
+
+    class Meta:
+        model = TechnicalInspection
+        fields = [
+            "id",
+            "vehicle",
+            "vehicle_car_number",
+            "planned_at",
         ]
 
 

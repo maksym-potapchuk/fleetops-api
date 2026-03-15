@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     AllServicePlansAPIView,
     AssignRegulationView,
+    CalendarInspectionsAPIView,
     EquipmentDefaultItemViewSet,
     EquipmentItemDestroyAPIView,
     EquipmentItemToggleAPIView,
@@ -35,6 +36,11 @@ urlpatterns = [
     path("", include(router.urls)),
     path("translate/", TranslateTextView.as_view(), name="translate-text"),
     path("service-plans/", AllServicePlansAPIView.as_view(), name="all-service-plans"),
+    path(
+        "calendar-inspections/",
+        CalendarInspectionsAPIView.as_view(),
+        name="calendar-inspections",
+    ),
     # Regulation schemas
     path(
         "regulation/schemas/",
