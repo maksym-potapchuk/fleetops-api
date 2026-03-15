@@ -15,7 +15,6 @@ def populate_amount(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("expense", "0010_restore_amount_field"),
     ]

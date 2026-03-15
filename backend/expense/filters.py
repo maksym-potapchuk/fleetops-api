@@ -13,12 +13,8 @@ class ExpenseFilter(django_filters.FilterSet):
     date_to = django_filters.DateFilter(
         field_name="expense_date", lookup_expr="date__lte"
     )
-    min_amount = django_filters.NumberFilter(
-        field_name="amount", lookup_expr="gte"
-    )
-    max_amount = django_filters.NumberFilter(
-        field_name="amount", lookup_expr="lte"
-    )
+    min_amount = django_filters.NumberFilter(field_name="amount", lookup_expr="gte")
+    max_amount = django_filters.NumberFilter(field_name="amount", lookup_expr="lte")
     payment_method = django_filters.CharFilter(field_name="payment_method")
     payer_type = django_filters.CharFilter(field_name="payer_type")
     approval_status = django_filters.CharFilter(field_name="approval_status")

@@ -13,8 +13,8 @@ VULNERABILITY FOCUS:
 - Can APPROVED status be reverted?
 """
 
-import json
 from decimal import Decimal
+import json
 
 from django.test import TestCase
 from rest_framework.test import APIClient

@@ -5,15 +5,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('expense', '0008_remove_amount_use_company_client'),
+        ("expense", "0008_remove_amount_use_company_client"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='invoice',
-            name='file',
-            field=models.FileField(blank=True, upload_to='expenses/invoices/', validators=[expense.models.validate_invoice_file]),
+            model_name="invoice",
+            name="file",
+            field=models.FileField(
+                blank=True,
+                upload_to="expenses/invoices/",
+                validators=[expense.models.validate_invoice_file],
+            ),
         ),
     ]

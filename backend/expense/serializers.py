@@ -180,9 +180,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
     created_by = ExpenseCreatedBySerializer(read_only=True)
 
     # Amount: writable primary field
-    amount = serializers.DecimalField(
-        max_digits=10, decimal_places=2, required=False
-    )
+    amount = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
 
     # FUEL detail fields
     fuel_types = serializers.ListField(
@@ -446,7 +444,13 @@ class ExpenseSerializer(serializers.ModelSerializer):
         if payer_type is None and self.instance:
             payer_type = self.instance.payer_type
 
-        auto_amount_codes = ("SERVICE", "PARTS", "INSPECTION", "ACCESSORIES", "DOCUMENTS")
+        auto_amount_codes = (
+            "SERVICE",
+            "PARTS",
+            "INSPECTION",
+            "ACCESSORIES",
+            "DOCUMENTS",
+        )
 
         if payer_type == PayerType.COMPANY:
             # COMPANY: amount is the primary field, clear split fields
@@ -455,7 +459,11 @@ class ExpenseSerializer(serializers.ModelSerializer):
             data["client_driver"] = None
             data["approval_status"] = None
             # amount required on create (except auto-computed)
-            if self.instance is None and data.get("amount") is None and code not in auto_amount_codes:
+            if (
+                self.instance is None
+                and data.get("amount") is None
+                and code not in auto_amount_codes
+            ):
                 raise serializers.ValidationError({"amount": "Required."})
             amt = data.get("amount")
             if amt is not None and amt < 0:
@@ -754,7 +762,9 @@ class ExpenseSerializer(serializers.ModelSerializer):
         if new_code in auto_codes:
             computed = instance.computed_amount
             if instance.payer_type == PayerType.CLIENT:
-                split_sum = (instance.company_amount or 0) + (instance.client_amount or 0)
+                split_sum = (instance.company_amount or 0) + (
+                    instance.client_amount or 0
+                )
                 if split_sum != computed:
                     raise serializers.ValidationError(
                         {

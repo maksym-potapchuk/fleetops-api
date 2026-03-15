@@ -28,7 +28,6 @@ def convert_fuel_types_back(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("expense", "0006_add_company_client_amounts"),
     ]

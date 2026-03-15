@@ -1,6 +1,6 @@
 import logging
 
-from django.db.models import Sum
+from django.db.models import DecimalField, Sum, Value
 from django.db.models.functions import Coalesce
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
@@ -241,8 +241,12 @@ class VehicleExpenseSummaryView(APIView):
     def get(self, request, pk):
         rows = (
             Expense.objects.filter(vehicle_id=pk)
-            .values("category__code", "category__name", "category__icon", "category__color")
-            .annotate(total=Coalesce(Sum("amount"), 0))
+            .values(
+                "category__code", "category__name", "category__icon", "category__color"
+            )
+            .annotate(
+                total=Coalesce(Sum("amount"), Value(0, output_field=DecimalField()))
+            )
             .order_by("-total")
         )
         categories = []
