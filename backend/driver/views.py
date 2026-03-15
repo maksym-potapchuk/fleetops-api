@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class DriverModelViewSet(viewsets.ModelViewSet):
-    queryset = Driver.objects.all()
+    queryset = Driver.objects.all().order_by("last_name", "first_name")
     serializer_class = DriverSerializer
     permission_classes = [IsAuthenticated]
 
