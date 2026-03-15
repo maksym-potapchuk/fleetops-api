@@ -2,7 +2,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("expense", "0012_alter_partsexpensedetail_supplier_type"),
     ]

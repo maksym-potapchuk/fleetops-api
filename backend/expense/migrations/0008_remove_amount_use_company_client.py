@@ -25,7 +25,6 @@ def reverse_populate(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("expense", "0007_fuel_remove_liters_req_and_fuel_types_json"),
     ]
@@ -37,9 +36,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="expense",
             name="company_amount",
-            field=models.DecimalField(
-                decimal_places=2, default=0, max_digits=10
-            ),
+            field=models.DecimalField(decimal_places=2, default=0, max_digits=10),
         ),
         # 3. Remove the amount column
         migrations.RemoveField(

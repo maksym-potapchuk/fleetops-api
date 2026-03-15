@@ -146,10 +146,10 @@ class FuelExpenseDetail(models.Model):
     expense = models.OneToOneField(
         Expense, on_delete=models.CASCADE, related_name="fuel_detail"
     )
-    liters = models.DecimalField(
-        max_digits=8, decimal_places=2, null=True, blank=True
+    liters = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
+    fuel_types = models.JSONField(
+        default=list, help_text="List of fuel types, e.g. ['DIESEL', 'LPG']"
     )
-    fuel_types = models.JSONField(default=list, help_text="List of fuel types, e.g. ['DIESEL', 'LPG']")
 
     class Meta:
         verbose_name = "Fuel detail"
@@ -284,7 +284,8 @@ class Invoice(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     number = models.CharField(max_length=100, unique=True, db_index=True)
     file = models.FileField(
-        upload_to="expenses/invoices/", validators=[validate_invoice_file],
+        upload_to="expenses/invoices/",
+        validators=[validate_invoice_file],
         blank=True,
     )
     vendor_name = models.CharField(max_length=200, blank=True)

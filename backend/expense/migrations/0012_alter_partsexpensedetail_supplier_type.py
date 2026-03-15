@@ -4,15 +4,22 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('expense', '0011_populate_amount_from_company_client'),
+        ("expense", "0011_populate_amount_from_company_client"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='partsexpensedetail',
-            name='supplier_type',
-            field=models.CharField(choices=[('DISASSEMBLY', 'Disassembly'), ('INDIVIDUAL', 'Individual'), ('SHOP', 'Shop')], default='DISASSEMBLY', max_length=20),
+            model_name="partsexpensedetail",
+            name="supplier_type",
+            field=models.CharField(
+                choices=[
+                    ("DISASSEMBLY", "Disassembly"),
+                    ("INDIVIDUAL", "Individual"),
+                    ("SHOP", "Shop"),
+                ],
+                default="DISASSEMBLY",
+                max_length=20,
+            ),
         ),
     ]

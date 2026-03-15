@@ -10,7 +10,7 @@ import json
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from expense.models import Expense, ExpenseCategory, FuelExpenseDetail
+from expense.models import ExpenseCategory, FuelExpenseDetail
 
 from .helpers import authenticate, make_user, make_vehicle
 
