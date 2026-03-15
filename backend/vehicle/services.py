@@ -6,7 +6,7 @@ from django.utils import timezone
 from fleet_management.services import grant_equipment_to_vehicle
 
 from .constants import VehicleStatus
-from .models import OwnerHistory, Vehicle, VehicleOwner
+from .models import OwnerHistory, Vehicle, VehicleOwner, VehicleStatusHistory
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,14 @@ def create_vehicle(validated_data: dict, user=None) -> Vehicle:
         validated_data["status_position"] = min_pos - 1000
     vehicle = Vehicle.objects.create(**validated_data)
     grant_equipment_to_vehicle(vehicle.id)
+
+    record_status_change(
+        vehicle,
+        old_status=None,
+        new_status=vehicle.status,
+        user=user,
+        source=VehicleStatusHistory.ChangeSource.CREATION,
+    )
 
     if driver:
         assign_owner(vehicle, driver, agreement_number=agreement_number, user=user)
@@ -105,6 +113,25 @@ def unassign_owner(vehicle):
         old_driver.save(update_fields=["has_vehicle"])
 
     transaction.on_commit(lambda: _invalidate_caches(vehicle.id, old_driver.id))
+
+
+def record_status_change(
+    vehicle,
+    old_status,
+    new_status,
+    user=None,
+    source=VehicleStatusHistory.ChangeSource.MANUAL,
+):
+    """Record a status transition in the history log."""
+    if old_status == new_status:
+        return None
+    return VehicleStatusHistory.objects.create(
+        vehicle=vehicle,
+        old_status=old_status,
+        new_status=new_status,
+        source=source,
+        changed_by=user,
+    )
 
 
 def _invalidate_caches(vehicle_id, driver_id=None):

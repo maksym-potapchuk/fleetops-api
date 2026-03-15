@@ -20,6 +20,7 @@ from .models import (
     Vehicle,
     VehicleOwner,
     VehiclePhoto,
+    VehicleStatusHistory,
 )
 from .serializers import (
     MileageLogSerializer,
@@ -29,7 +30,7 @@ from .serializers import (
     VehiclePhotoSerializer,
     VehicleSerializer,
 )
-from .services import assign_owner, create_vehicle, unassign_owner
+from .services import assign_owner, create_vehicle, record_status_change, unassign_owner
 
 logger = logging.getLogger(__name__)
 
@@ -165,18 +166,25 @@ class VehicleRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         try:
             old_status = serializer.instance.status
             instance = serializer.save()
-            if (
-                instance.status != old_status
-                and "status_position" not in self.request.data
-            ):
-                max_pos = (
-                    Vehicle.objects.filter(status=instance.status, is_archived=False)
-                    .exclude(pk=instance.pk)
-                    .aggregate(m=models.Max("status_position"))["m"]
-                    or 0
+            if instance.status != old_status:
+                record_status_change(
+                    instance,
+                    old_status=old_status,
+                    new_status=instance.status,
+                    user=self.request.user,
+                    source=VehicleStatusHistory.ChangeSource.MANUAL,
                 )
-                instance.status_position = max_pos + 1000
-                instance.save(update_fields=["status_position"])
+                if "status_position" not in self.request.data:
+                    max_pos = (
+                        Vehicle.objects.filter(
+                            status=instance.status, is_archived=False
+                        )
+                        .exclude(pk=instance.pk)
+                        .aggregate(m=models.Max("status_position"))["m"]
+                        or 0
+                    )
+                    instance.status_position = max_pos + 1000
+                    instance.save(update_fields=["status_position"])
             cache_utils.invalidate_vehicle(instance.id)
             logger.info(
                 "Vehicle updated successfully",
@@ -255,15 +263,30 @@ class VehicleReorderView(generics.GenericAPIView):
 
         with transaction.atomic():
             to_update = []
+            status_changes = []
             for item in items:
                 v = vehicles_map.get(item["id"])
                 if not v:
                     continue
-                v.status = item.get("status", v.status)
+                old_status = v.status
+                new_status = item.get("status", v.status)
+                if old_status != new_status:
+                    status_changes.append(
+                        VehicleStatusHistory(
+                            vehicle=v,
+                            old_status=old_status,
+                            new_status=new_status,
+                            source=VehicleStatusHistory.ChangeSource.REORDER,
+                            changed_by=request.user,
+                        )
+                    )
+                v.status = new_status
                 v.status_position = item["status_position"]
                 to_update.append(v)
             if to_update:
                 Vehicle.objects.bulk_update(to_update, ["status", "status_position"])
+            if status_changes:
+                VehicleStatusHistory.objects.bulk_create(status_changes)
 
         cache_utils.invalidate_vehicle()
         return Response({"updated": len(to_update)})
@@ -455,9 +478,7 @@ class VehiclePhotoCoverView(generics.GenericAPIView):
         photo = generics.get_object_or_404(
             VehiclePhoto.objects.filter(vehicle_id=pk), pk=photo_pk
         )
-        VehiclePhoto.objects.filter(vehicle_id=pk, is_cover=True).update(
-            is_cover=False
-        )
+        VehiclePhoto.objects.filter(vehicle_id=pk, is_cover=True).update(is_cover=False)
         photo.is_cover = True
         photo.save(update_fields=["is_cover"])
         cache_utils.invalidate_vehicle(pk)
