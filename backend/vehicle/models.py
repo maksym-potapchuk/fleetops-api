@@ -159,6 +159,56 @@ class VehiclePhoto(models.Model):
         return f"Photo for {self.vehicle}"
 
 
+class VehicleStatusHistory(models.Model):
+    """Immutable log of every vehicle status transition."""
+
+    class ChangeSource(models.TextChoices):
+        MANUAL = "MANUAL", "Manual update"
+        REORDER = "REORDER", "Batch reorder"
+        CREATION = "CREATION", "Vehicle creation"
+
+    vehicle = models.ForeignKey(
+        "vehicle.Vehicle",
+        on_delete=models.CASCADE,
+        related_name="status_history",
+    )
+    old_status = models.CharField(
+        max_length=20,
+        choices=VehicleStatus.choices,
+        null=True,
+        blank=True,
+    )
+    new_status = models.CharField(
+        max_length=20,
+        choices=VehicleStatus.choices,
+    )
+    source = models.CharField(
+        max_length=10,
+        choices=ChangeSource.choices,
+        default=ChangeSource.MANUAL,
+    )
+    changed_by = models.ForeignKey(
+        "account.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="vehicle_status_changes",
+    )
+    changed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-changed_at"]
+        indexes = [
+            models.Index(
+                fields=["vehicle", "-changed_at"],
+                name="idx_status_hist_vehicle_date",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        old = self.old_status or "—"
+        return f"{self.vehicle} {old} → {self.new_status} ({self.changed_at})"
+
+
 class MileageLog(models.Model):
     vehicle = models.ForeignKey(
         "vehicle.Vehicle",

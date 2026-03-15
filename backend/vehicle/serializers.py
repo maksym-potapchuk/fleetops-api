@@ -76,9 +76,7 @@ class TechnicalInspectionSerializer(serializers.ModelSerializer):
                 "official_cost": detail.official_cost,
                 "additional_cost": detail.additional_cost,
                 "payment_method": expense.payment_method,
-                "receipt": media_url(expense.receipt.url)
-                if expense.receipt
-                else None,
+                "receipt": media_url(expense.receipt.url) if expense.receipt else None,
                 "registration_certificate": media_url(
                     detail.registration_certificate.url
                 )
