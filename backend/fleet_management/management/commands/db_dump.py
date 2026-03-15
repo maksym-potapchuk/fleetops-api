@@ -50,8 +50,6 @@ class Command(BaseCommand):
         with open(out_path, "w", encoding="utf-8") as f:
             call_command(
                 "dumpdata",
-                "--natural-foreign",
-                "--natural-primary",
                 f"--indent={options['indent']}",
                 *[f"--exclude={e}" for e in exclude],
                 stdout=f,
