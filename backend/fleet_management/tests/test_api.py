@@ -294,7 +294,7 @@ class VehicleRegulationEntryUpdateAPITest(BaseAPITest):
         self.client.patch(self.url, {"every_km": 15_000}, format="json")
         history = FleetVehicleRegulationHistory.objects.filter(
             entry=self.entry, event_type=EventType.KM_UPDATED
-        ).last()
+        ).exclude(note="Initial assignment").last()
         self.assertIsNotNone(history)
         self.assertIn("interval", history.note)
 
@@ -316,7 +316,7 @@ class VehicleRegulationEntryUpdateAPITest(BaseAPITest):
         self.assertEqual(self.entry.notify_before_km, 2_000)
         history = FleetVehicleRegulationHistory.objects.filter(
             entry=self.entry, event_type=EventType.KM_UPDATED
-        ).last()
+        ).exclude(note="Initial assignment").last()
         self.assertIn("interval", history.note)
         self.assertIn("notify", history.note)
 

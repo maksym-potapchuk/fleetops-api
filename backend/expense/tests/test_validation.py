@@ -160,8 +160,8 @@ class ExpenseEdgeCasesTest(TestCase):
         self.assertEqual(len(response.data["results"]), 1)
         self.assertEqual(response.data["results"][0]["amount"], "500.00")
 
-    def test_invoice_jpg_rejected(self):
-        """Invoice files only accept .pdf, .doc, .docx — not images."""
+    def test_invoice_jpg_accepted(self):
+        """Image files (.jpg) are now allowed for invoice uploads."""
         jpg = SimpleUploadedFile(
             "photo.jpg", b"\xff\xd8\xff", content_type="image/jpeg"
         )
@@ -177,5 +177,4 @@ class ExpenseEdgeCasesTest(TestCase):
             },
             format="multipart",
         )
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("invoice_file", response.data)
+        self.assertEqual(response.status_code, 201)
