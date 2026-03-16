@@ -107,8 +107,8 @@ class InvoiceExpenseTest(TestCase):
         self.assertEqual(inv.number, "FAK-NO-FILE-001")
         self.assertFalse(inv.file)
 
-    def test_invoice_jpg_file_rejected(self):
-        """Only .pdf, .doc, .docx allowed — .jpg must be rejected."""
+    def test_invoice_jpg_file_accepted(self):
+        """Image files (.jpg) are now allowed for invoice uploads."""
         jpg = SimpleUploadedFile(
             "photo.jpg", b"\xff\xd8\xff", content_type="image/jpeg"
         )
@@ -118,8 +118,7 @@ class InvoiceExpenseTest(TestCase):
             invoice_file=jpg,
         )
         response = self.client.post(self.BASE_URL, payload, format="multipart")
-        self.assertEqual(response.status_code, 400)
-        self.assertIn("invoice_file", response.data)
+        self.assertEqual(response.status_code, 201)
 
     def test_expense_without_invoice_number_creates_no_invoice(self):
         """Expense without invoice_number → no Invoice created, invoice_data=null."""
