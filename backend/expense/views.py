@@ -28,6 +28,7 @@ def _expense_queryset():
     return Expense.objects.select_related(
         "vehicle",
         "created_by",
+        "edited_by",
         "category",
         "client_driver",
         "service_detail__service",
@@ -80,7 +81,10 @@ class ExpenseListCreateView(generics.ListCreateAPIView):
         return response
 
     def perform_create(self, serializer):
-        instance = serializer.save(created_by=self.request.user)
+        instance = serializer.save(
+            created_by=self.request.user,
+            edited_by=self.request.user,
+        )
         cache_utils.invalidate_expense()
         cache_utils.invalidate_vehicle(instance.vehicle_id)
         logger.info(
@@ -116,7 +120,7 @@ class ExpenseRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
         return response
 
     def perform_update(self, serializer):
-        instance = serializer.save()
+        instance = serializer.save(edited_by=self.request.user)
         cache_utils.invalidate_expense(instance.id)
         cache_utils.invalidate_vehicle(instance.vehicle_id)
         logger.info(
@@ -218,6 +222,7 @@ class VehicleExpenseListCreateView(generics.ListCreateAPIView):
         instance = serializer.save(
             vehicle_id=self.kwargs["pk"],
             created_by=self.request.user,
+            edited_by=self.request.user,
         )
         cache_utils.invalidate_expense()
         cache_utils.invalidate_vehicle(self.kwargs["pk"])

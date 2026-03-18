@@ -109,6 +109,12 @@ class Expense(models.Model):
         null=True,
         related_name="expenses",
     )
+    edited_by = models.ForeignKey(
+        "account.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="edited_expenses",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
