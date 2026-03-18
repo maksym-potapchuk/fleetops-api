@@ -157,12 +157,12 @@ class ServiceItemSerializer(serializers.ModelSerializer):
 # ── Main expense serializer ──
 
 
-class ExpenseCreatedBySerializer(serializers.ModelSerializer):
+class ExpenseUserSerializer(serializers.ModelSerializer):
     class Meta:
         from account.models import User
 
         model = User
-        fields = ["id", "username", "email"]
+        fields = ["id", "username", "email", "color"]
 
 
 class ExpenseSerializer(serializers.ModelSerializer):
@@ -177,7 +177,8 @@ class ExpenseSerializer(serializers.ModelSerializer):
     vehicle_vin_number = serializers.CharField(
         source="vehicle.vin_number", read_only=True
     )
-    created_by = ExpenseCreatedBySerializer(read_only=True)
+    created_by = ExpenseUserSerializer(read_only=True)
+    edited_by = ExpenseUserSerializer(read_only=True)
 
     # Amount: writable primary field
     amount = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
@@ -303,6 +304,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
             "invoice_existing",
             # Meta
             "created_by",
+            "edited_by",
             "created_at",
             "updated_at",
         ]
@@ -321,6 +323,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
             "invoice_existing",
             "client_driver_name",
             "created_by",
+            "edited_by",
             "created_at",
             "updated_at",
         ]
