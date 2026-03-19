@@ -69,6 +69,13 @@ DEFAULTS = [
         "color": "#6366F1",
         "order": 10,
     },
+    {
+        "code": "PARKING",
+        "name": "Паркінг",
+        "icon": "circle-parking",
+        "color": "#14B8A6",
+        "order": 11,
+    },
 ]
 
 

@@ -103,6 +103,7 @@ class Expense(models.Model):
         null=True,
         blank=True,
     )
+    exclude_from_cost = models.BooleanField(default=False)
     created_by = models.ForeignKey(
         "account.User",
         on_delete=models.SET_NULL,
