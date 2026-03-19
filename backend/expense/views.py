@@ -244,8 +244,11 @@ class VehicleExpenseSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, pk):
+        qs = Expense.objects.filter(vehicle_id=pk)
+
+        # Main summary — only expenses that count toward vehicle cost
         rows = (
-            Expense.objects.filter(vehicle_id=pk)
+            qs.filter(exclude_from_cost=False)
             .values(
                 "category__code", "category__name", "category__icon", "category__color"
             )
@@ -268,9 +271,17 @@ class VehicleExpenseSummaryView(APIView):
                     "total": f"{total:.2f}",
                 }
             )
+
+        # Excluded expenses total (client-only, not in vehicle cost)
+        excluded = qs.filter(exclude_from_cost=True).aggregate(
+            total=Coalesce(Sum("amount"), Value(0, output_field=DecimalField()))
+        )
+        excluded_total = float(excluded["total"])
+
         return Response(
             {
                 "total": f"{grand_total:.2f}",
+                "excluded_total": f"{excluded_total:.2f}",
                 "categories": categories,
             }
         )

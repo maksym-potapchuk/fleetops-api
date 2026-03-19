@@ -243,6 +243,9 @@ class ExpenseSerializer(serializers.ModelSerializer):
         required=False, allow_null=True, allow_blank=True
     )
 
+    # Exclude from vehicle cost (CLIENT payer only)
+    exclude_from_cost = serializers.BooleanField(required=False, default=False)
+
     # Invoice
     invoice_number = serializers.CharField(
         required=False, allow_blank=True, write_only=True
@@ -274,6 +277,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
             "client_driver",
             "client_driver_name",
             "approval_status",
+            "exclude_from_cost",
             # FUEL
             "fuel_types",
             # SERVICE
@@ -461,6 +465,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
             data["client_amount"] = None
             data["client_driver"] = None
             data["approval_status"] = None
+            data["exclude_from_cost"] = False
             # amount required on create (except auto-computed)
             if (
                 self.instance is None
