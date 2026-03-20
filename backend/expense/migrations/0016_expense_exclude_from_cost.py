@@ -4,15 +4,14 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('expense', '0015_populate_edited_by_from_created_by'),
+        ("expense", "0015_populate_edited_by_from_created_by"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='expense',
-            name='exclude_from_cost',
+            model_name="expense",
+            name="exclude_from_cost",
             field=models.BooleanField(default=False),
         ),
     ]

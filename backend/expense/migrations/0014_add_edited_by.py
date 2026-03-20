@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("expense", "0013_inspectionexpensedetail_registration_certificate"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

@@ -4,15 +4,27 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('vehicle', '0015_vehiclestatushistory'),
+        ("vehicle", "0015_vehiclestatushistory"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='vehicle',
-            name='fuel_type',
-            field=models.CharField(blank=True, choices=[('GASOLINE', 'Gasoline'), ('DIESEL', 'Diesel'), ('LPG', 'LPG'), ('LPG_GASOLINE', 'LPG + Gasoline'), ('ELECTRIC', 'Electric'), ('HYBRID', 'Hybrid'), ('GAS_GASOLINE_HYBRID', 'LPG + Gasoline + Hybrid')], max_length=20, null=True),
+            model_name="vehicle",
+            name="fuel_type",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("GASOLINE", "Gasoline"),
+                    ("DIESEL", "Diesel"),
+                    ("LPG", "LPG"),
+                    ("LPG_GASOLINE", "LPG + Gasoline"),
+                    ("ELECTRIC", "Electric"),
+                    ("HYBRID", "Hybrid"),
+                    ("GAS_GASOLINE_HYBRID", "LPG + Gasoline + Hybrid"),
+                ],
+                max_length=20,
+                null=True,
+            ),
         ),
     ]
