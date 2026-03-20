@@ -41,3 +41,6 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
     "user": "10000/minute",
     "auth": "10000/minute",
 }
+
+# Force unmanaged models to be managed during test DB creation
+TEST_RUNNER = "config.test_runner.UnmanagedModelTestRunner"

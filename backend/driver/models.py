@@ -3,7 +3,6 @@ import uuid
 from django.db import models
 
 
-# Create your models here.
 class Driver(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     first_name = models.CharField(max_length=50)
@@ -18,3 +17,31 @@ class Driver(models.Model):
 
     def __str__(self) -> str:
         return f"{self.first_name} {self.last_name}"
+
+
+class DriverVehicleDeal(models.Model):
+    id = models.UUIDField(primary_key=True)
+    vehicle = models.ForeignKey(
+        "vehicle.Vehicle",
+        on_delete=models.DO_NOTHING,
+        null=True,
+        blank=True,
+        related_name="deals",
+        db_column="vehicle_id",
+    )
+    driver = models.ForeignKey(
+        "driver.Driver",
+        on_delete=models.DO_NOTHING,
+        related_name="deals",
+        db_column="driver_id",
+    )
+    deal_id = models.UUIDField()
+
+    class Meta:
+        managed = False
+        db_table = "driver_vehicle_deal"
+
+    def __str__(self) -> str:
+        return (
+            f"Deal {self.deal_id} — driver={self.driver_id} vehicle={self.vehicle_id}"
+        )

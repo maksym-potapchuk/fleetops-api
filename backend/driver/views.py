@@ -1,19 +1,31 @@
 import logging
 
+from django.db.models import Exists, OuterRef
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from config import cache_utils
 
-from .models import Driver
+from .models import Driver, DriverVehicleDeal
 from .serializers import DriverSerializer
 
 logger = logging.getLogger(__name__)
 
 
 class DriverModelViewSet(viewsets.ModelViewSet):
-    queryset = Driver.objects.all().order_by("last_name", "first_name")
+    queryset = (
+        Driver.objects.annotate(
+            has_vehicle_deal=Exists(
+                DriverVehicleDeal.objects.filter(
+                    driver_id=OuterRef("pk"),
+                    vehicle__isnull=False,
+                )
+            ),
+        )
+        .all()
+        .order_by("last_name", "first_name")
+    )
     serializer_class = DriverSerializer
     permission_classes = [IsAuthenticated]
 
