@@ -52,16 +52,6 @@ urlpatterns = [
         name="vehicle-photo-cover",
     ),
     path(
-        "<uuid:pk>/owner/",
-        views.VehicleOwnerView.as_view(),
-        name="vehicle-owner",
-    ),
-    path(
-        "<uuid:pk>/owner/history/",
-        views.OwnerHistoryListView.as_view(),
-        name="vehicle-owner-history",
-    ),
-    path(
         "<uuid:pk>/inspections/",
         views.TechnicalInspectionListCreateView.as_view(),
         name="vehicle-inspections",

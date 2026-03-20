@@ -4,6 +4,8 @@ from .models import Driver
 
 
 class DriverSerializer(serializers.ModelSerializer):
+    has_vehicle = serializers.SerializerMethodField()
+
     class Meta:
         model = Driver
         fields = (
@@ -25,6 +27,11 @@ class DriverSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
+
+    def get_has_vehicle(self, obj):
+        if hasattr(obj, "has_vehicle_deal"):
+            return obj.has_vehicle_deal
+        return obj.has_vehicle
 
     def validate_phone_number(self, values):
         if not values.isdigit():

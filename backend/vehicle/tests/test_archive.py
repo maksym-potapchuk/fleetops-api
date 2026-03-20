@@ -6,8 +6,7 @@ Vehicle Archive / Restore / Permanent Delete API Tests
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from vehicle.models import OwnerHistory, VehicleOwner
-from vehicle.services import assign_owner
+from vehicle.models import VehicleOwner
 
 from .helpers import authenticate, make_driver, make_user, make_vehicle
 
@@ -39,18 +38,6 @@ class VehicleArchiveTest(TestCase):
         ids = [v["id"] for v in response.data["results"]]
         self.assertIn(str(v1.id), ids)
         self.assertNotIn(str(v2.id), ids)
-
-    def test_archive_unassigns_owner(self):
-        driver = make_driver()
-        vehicle = make_vehicle()
-        assign_owner(vehicle, driver)
-
-        self.client.delete(f"{self.BASE_URL}{vehicle.id}/")
-
-        vehicle.refresh_from_db()
-        self.assertTrue(vehicle.is_archived)
-        self.assertFalse(VehicleOwner.objects.filter(vehicle=vehicle).exists())
-        self.assertEqual(OwnerHistory.objects.filter(vehicle=vehicle).count(), 1)
 
     def test_archive_list_returns_only_archived(self):
         make_vehicle(car_number="ACTIVE02", vin_number="VIN00000000000003")

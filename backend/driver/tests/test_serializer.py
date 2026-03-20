@@ -1,13 +1,15 @@
 """
 DriverSerializer Validation Tests
 ==================================
-Covers: validate_phone_number logic.
+Covers: validate_phone_number logic, has_vehicle computed field.
 Rules: digits only, 10–15 chars, must start with "48" (Polish country code).
 """
 
 from django.test import TestCase
 
 from driver.serializers import DriverSerializer
+
+from .helpers import make_driver
 
 
 class DriverSerializerValidationTest(TestCase):
@@ -116,6 +118,17 @@ class DriverSerializerValidationTest(TestCase):
         )
         self.assertTrue(s.is_valid(), s.errors)
         self.assertNotIn("has_vehicle", s.validated_data)
+
+    def test_has_vehicle_uses_annotation_when_available(self):
+        driver = make_driver()
+        driver.has_vehicle_deal = True
+        s = DriverSerializer(driver)
+        self.assertTrue(s.data["has_vehicle"])
+
+    def test_has_vehicle_falls_back_to_model_field(self):
+        driver = make_driver()
+        s = DriverSerializer(driver)
+        self.assertFalse(s.data["has_vehicle"])
 
     def test_read_only_is_active_driver_cannot_be_set_via_serializer(self):
         s = self._validate(
