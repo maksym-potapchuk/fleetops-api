@@ -14,7 +14,6 @@ def populate_edited_by(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("expense", "0014_add_edited_by"),
     ]
