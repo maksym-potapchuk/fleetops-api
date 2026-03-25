@@ -18,7 +18,9 @@ from .models import Expense, ExpenseCategory, Invoice
 from .serializers import (
     ExpenseCategorySerializer,
     ExpenseSerializer,
+    InvoiceDetailSerializer,
     InvoiceSearchSerializer,
+    InvoiceSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -150,6 +152,100 @@ class ExpenseRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
                 "operation_type": "EXPENSE_DELETE",
                 "service": "DJANGO",
                 "expense_id": str(expense_id),
+                "user_id": str(self.request.user.id),
+            },
+        )
+
+
+class InvoiceListView(generics.ListAPIView):
+    """GET /expense/invoices/list/ — paginated list of all invoices.
+
+    Filters:
+      ?search=       — number, file name, or vehicle car_number
+      ?date_from=    — created_at >= date
+      ?date_to=      — created_at <= date (end of day)
+    """
+
+    serializer_class = InvoiceSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = [
+        "number",
+        "vendor_name",
+        "file",
+        "expenses__vehicle__car_number",
+    ]
+    ordering_fields = ["created_at"]
+    ordering = ["-created_at"]
+
+    def get_queryset(self):
+        from django.db.models import Count
+
+        qs = Invoice.objects.annotate(
+            _expense_count=Count("expenses", distinct=True),
+            _expenses_total=Sum("expenses__amount"),
+        )
+
+        date_from = self.request.query_params.get("date_from")
+        date_to = self.request.query_params.get("date_to")
+        if date_from:
+            qs = qs.filter(created_at__date__gte=date_from)
+        if date_to:
+            qs = qs.filter(created_at__date__lte=date_to)
+
+        return qs.order_by("-created_at").distinct()
+
+
+class InvoiceRetrieveDestroyView(generics.RetrieveDestroyAPIView):
+    """GET/DELETE /expense/invoices/<uuid:pk>/
+
+    DELETE cascades: removes all linked expenses (and their details,
+    linked inspections, parts, etc.) before deleting the invoice itself.
+    """
+
+    serializer_class = InvoiceDetailSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        from django.db.models import Count
+
+        return Invoice.objects.annotate(
+            _expense_count=Count("expenses", distinct=True),
+            _expenses_total=Sum("expenses__amount"),
+        ).prefetch_related("expenses__vehicle", "expenses__category")
+
+    def perform_destroy(self, instance):
+        expenses = instance.expenses.select_related("category").all()
+        expense_ids = []
+        vehicle_ids = set()
+        for expense in expenses:
+            expense_ids.append(str(expense.id))
+            vehicle_ids.add(expense.vehicle_id)
+            # Delete linked TechnicalInspection for INSPECTION expenses
+            if expense.category.code == "INSPECTION":
+                detail = getattr(expense, "inspection_detail", None)
+                if detail and detail.linked_inspection_id:
+                    detail.linked_inspection.delete()
+
+        # Bulk delete all linked expenses
+        deleted_count = instance.expenses.all().delete()[0]
+        invoice_id = str(instance.id)
+        invoice_number = instance.number
+        instance.delete()
+
+        # Invalidate caches for affected vehicles
+        for vid in vehicle_ids:
+            cache_utils.invalidate_vehicle(vid)
+        cache_utils.invalidate_expense()
+
+        logger.info(
+            "Invoice deleted with expenses",
+            extra={
+                "operation_type": "INVOICE_DELETE",
+                "service": "DJANGO",
+                "invoice_id": invoice_id,
+                "invoice_number": invoice_number,
+                "deleted_expenses": deleted_count,
                 "user_id": str(self.request.user.id),
             },
         )

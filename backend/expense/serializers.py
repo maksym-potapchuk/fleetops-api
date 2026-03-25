@@ -3,6 +3,7 @@ import logging
 import os
 
 from django.db import transaction
+from django.db.models import Sum
 from rest_framework import serializers
 
 from config.storage_utils import media_url
@@ -101,6 +102,7 @@ class ExpensePartSerializer(serializers.ModelSerializer):
 
 class InvoiceSerializer(serializers.ModelSerializer):
     expense_count = serializers.SerializerMethodField()
+    expenses_total = serializers.SerializerMethodField()
 
     class Meta:
         model = Invoice
@@ -112,12 +114,22 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "invoice_date",
             "total_amount",
             "expense_count",
+            "expenses_total",
             "created_at",
         ]
-        read_only_fields = ["id", "expense_count", "created_at"]
+        read_only_fields = ["id", "expense_count", "expenses_total", "created_at"]
 
     def get_expense_count(self, obj):
+        if hasattr(obj, "_expense_count"):
+            return obj._expense_count
         return obj.expenses.count()
+
+    def get_expenses_total(self, obj):
+        if hasattr(obj, "_expenses_total"):
+            val = obj._expenses_total
+            return f"{val:.2f}" if val is not None else "0.00"
+        total = obj.expenses.aggregate(t=Sum("amount"))["t"]
+        return f"{total:.2f}" if total is not None else "0.00"
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)
@@ -125,6 +137,47 @@ class InvoiceSerializer(serializers.ModelSerializer):
         if file_url:
             rep["file"] = media_url(file_url)
         return rep
+
+
+class InvoiceExpenseSerializer(serializers.ModelSerializer):
+    """Lightweight read-only serializer for expenses nested inside invoice detail."""
+
+    vehicle_car_number = serializers.CharField(
+        source="vehicle.car_number", read_only=True
+    )
+    vehicle_vin_number = serializers.CharField(
+        source="vehicle.vin_number", read_only=True
+    )
+    category_code = serializers.CharField(source="category.code", read_only=True)
+    category_name = serializers.CharField(source="category.name", read_only=True)
+    category_icon = serializers.CharField(source="category.icon", read_only=True)
+    category_color = serializers.CharField(source="category.color", read_only=True)
+
+    class Meta:
+        model = Expense
+        fields = [
+            "id",
+            "vehicle_car_number",
+            "vehicle_vin_number",
+            "category_code",
+            "category_name",
+            "category_icon",
+            "category_color",
+            "amount",
+            "expense_date",
+            "payer_type",
+            "payment_method",
+            "expense_for",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
+class InvoiceDetailSerializer(InvoiceSerializer):
+    expenses = InvoiceExpenseSerializer(many=True, read_only=True)
+
+    class Meta(InvoiceSerializer.Meta):
+        fields = [*InvoiceSerializer.Meta.fields, "expenses"]
 
 
 class InvoiceSearchSerializer(serializers.ModelSerializer):

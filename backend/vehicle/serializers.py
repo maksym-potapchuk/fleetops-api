@@ -213,6 +213,7 @@ class VehicleSerializer(serializers.ModelSerializer):
                 "id": str(deal.driver.id),
                 "first_name": deal.driver.first_name,
                 "last_name": deal.driver.last_name,
+                "phone_number": deal.driver.phone_number,
             }
         else:
             representation["driver"] = None
