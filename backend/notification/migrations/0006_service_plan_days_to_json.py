@@ -1,14 +1,42 @@
-from django.db import migrations, models
+from django.db import connection, migrations, models
 
 
-def convert_int_to_list(apps, schema_editor):
-    """Convert existing integer value to a JSON list, e.g. 4 → [4]."""
-    NotificationPreferences = apps.get_model("notification", "NotificationPreferences")
-    for pref in NotificationPreferences.objects.all():
-        val = pref.service_plan_notify_days
-        if isinstance(val, int):
-            pref.service_plan_notify_days = [val] if val else [3, 1]
-            pref.save(update_fields=["service_plan_notify_days"])
+def forwards(apps, schema_editor):
+    """Convert service_plan_notify_days from integer to JSON array."""
+    if connection.vendor == "sqlite":
+        # SQLite: AlterField handles this natively (no type constraints)
+        return
+
+    # PostgreSQL: manual type conversion needed
+    with schema_editor.connection.cursor() as cursor:
+        # Drop check constraint
+        cursor.execute("""
+            DO $$
+            DECLARE r RECORD;
+            BEGIN
+                FOR r IN
+                    SELECT con.conname
+                    FROM pg_constraint con
+                    JOIN pg_class rel ON rel.oid = con.conrelid
+                    WHERE rel.relname = 'notification_notificationpreferences'
+                      AND con.contype = 'c'
+                      AND pg_get_constraintdef(con.oid) LIKE '%%service_plan_notify_days%%'
+                LOOP
+                    EXECUTE 'ALTER TABLE notification_notificationpreferences DROP CONSTRAINT ' || r.conname;
+                END LOOP;
+            END $$;
+        """)
+        # Convert integer → jsonb
+        cursor.execute("""
+            ALTER TABLE notification_notificationpreferences
+            ALTER COLUMN service_plan_notify_days
+            TYPE jsonb USING to_jsonb(ARRAY[service_plan_notify_days]);
+        """)
+        # Set default
+        cursor.execute("""
+            ALTER TABLE notification_notificationpreferences
+            ALTER COLUMN service_plan_notify_days SET DEFAULT '[]'::jsonb;
+        """)
 
 
 class Migration(migrations.Migration):
@@ -17,6 +45,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # For SQLite (tests): standard AlterField works
         migrations.AlterField(
             model_name="notificationpreferences",
             name="service_plan_notify_days",
@@ -25,5 +54,6 @@ class Migration(migrations.Migration):
                 help_text="Days before service plan to notify, e.g. [7, 3, 1]",
             ),
         ),
-        migrations.RunPython(convert_int_to_list, migrations.RunPython.noop),
+        # For PostgreSQL (prod): RunPython handles the actual type conversion
+        migrations.RunPython(forwards, migrations.RunPython.noop),
     ]
