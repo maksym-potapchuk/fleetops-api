@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Notification
+from .models import Notification, NotificationPreferences
 
 
 class NotificationSerializer(serializers.ModelSerializer):
@@ -18,6 +18,7 @@ class NotificationSerializer(serializers.ModelSerializer):
             "vehicle_display",
             "driver_display",
             "payload",
+            "dedup_key",
             "is_read",
             "created_at",
             "read_at",
@@ -50,3 +51,25 @@ class MileageSubmitSerializer(serializers.Serializer):
 class ResolveNotificationSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=["approve", "reject"])
     reason = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class NotificationPreferencesSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NotificationPreferences
+        fields = [
+            "inspection_enabled",
+            "regulation_enabled",
+            "service_plan_enabled",
+            "mileage_enabled",
+            "inspection_notify_days",
+            "service_plan_notify_days",
+            "updated_at",
+        ]
+        read_only_fields = ["updated_at"]
+
+    def validate_inspection_notify_days(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Must be a list of integers.")
+        if not all(isinstance(d, int) and 1 <= d <= 90 for d in value):
+            raise serializers.ValidationError("Each value must be an integer between 1 and 90.")
+        return sorted(set(value), reverse=True)
