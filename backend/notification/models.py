@@ -2,7 +2,7 @@ import uuid
 
 from django.db import models
 
-from .constants import NotificationStatus, NotificationType
+from .constants import NotificationSource, NotificationStatus, NotificationType
 
 
 class Notification(models.Model):
@@ -32,6 +32,13 @@ class Notification(models.Model):
         null=True,
         blank=True,
         related_name="notifications",
+    )
+
+    source = models.CharField(
+        max_length=20,
+        choices=NotificationSource.choices,
+        default=NotificationSource.SYSTEM,
+        db_index=True,
     )
 
     payload = models.JSONField(default=dict)
@@ -97,9 +104,25 @@ class NotificationPreferences(models.Model):
         default=list,
         help_text="Days before inspection to notify, e.g. [7, 3, 1]",
     )
-    service_plan_notify_days = models.PositiveIntegerField(
+    service_plan_notify_days = models.JSONField(
+        default=list,
+        help_text="Days before service plan to notify, e.g. [7, 3, 1]",
+    )
+
+    # ── Regulation threshold ─────────────────────────────────────────────────
+    regulation_notify_before_km = models.PositiveIntegerField(
+        default=500,
+        help_text="Global km threshold for regulation approaching notifications. Overrides per-item settings.",
+    )
+
+    # ── Overdue reminders ────────────────────────────────────────────────────
+    overdue_reminder_interval = models.PositiveIntegerField(
+        default=7,
+        help_text="Days between overdue reminder notifications.",
+    )
+    overdue_reminder_max = models.PositiveIntegerField(
         default=3,
-        help_text="Days before service plan date to notify.",
+        help_text="Maximum number of overdue reminders per item.",
     )
 
     updated_at = models.DateTimeField(auto_now=True)
@@ -110,4 +133,6 @@ class NotificationPreferences(models.Model):
     def save(self, *args, **kwargs):
         if not self.inspection_notify_days:
             self.inspection_notify_days = [7, 3, 1]
+        if not self.service_plan_notify_days:
+            self.service_plan_notify_days = [3, 1]
         super().save(*args, **kwargs)
