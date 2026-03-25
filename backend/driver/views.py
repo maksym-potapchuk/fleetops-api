@@ -2,6 +2,7 @@ import logging
 
 from django.db.models import Exists, OuterRef
 from rest_framework import viewsets
+from rest_framework.filters import SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -28,6 +29,8 @@ class DriverModelViewSet(viewsets.ModelViewSet):
     )
     serializer_class = DriverSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [SearchFilter]
+    search_fields = ["first_name", "last_name"]
 
     def list(self, request, *args, **kwargs):
         cached = cache_utils.get_driver_list(request.query_params)

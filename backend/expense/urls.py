@@ -9,6 +9,16 @@ urlpatterns = [
         name="expense-categories",
     ),
     path(
+        "invoices/list/",
+        views.InvoiceListView.as_view(),
+        name="invoice-list",
+    ),
+    path(
+        "invoices/<uuid:pk>/",
+        views.InvoiceRetrieveDestroyView.as_view(),
+        name="invoice-detail",
+    ),
+    path(
         "invoices/",
         views.InvoiceSearchView.as_view(),
         name="invoice-search",
