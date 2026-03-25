@@ -1,5 +1,5 @@
-import logging
 from datetime import date
+import logging
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -7,7 +7,7 @@ from django.db import transaction
 from django.db.models import OuterRef, Subquery
 from django.utils import timezone
 
-from .constants import NotificationStatus, NotificationType
+from .constants import NotificationSource, NotificationStatus, NotificationType
 from .models import Notification
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,10 @@ MANAGERS_GROUP = "notifications_managers"
 
 # ── Default thresholds (used when no preferences exist) ──────────────────────
 DEFAULT_INSPECTION_DAYS = [7, 3, 1]
-DEFAULT_SERVICE_PLAN_DAYS = 3
+DEFAULT_SERVICE_PLAN_DAYS = [3, 1]
+DEFAULT_OVERDUE_INTERVAL = 7
+DEFAULT_OVERDUE_MAX = 3
+DEFAULT_REGULATION_NOTIFY_BEFORE_KM = 500
 
 
 def _get_global_preferences():
@@ -27,6 +30,47 @@ def _get_global_preferences():
     if prefs:
         return prefs
     return None
+
+
+def _should_send_overdue_reminder(
+    dedup_prefix: str,
+    overdue_days: int,
+    interval: int,
+    max_reminders: int,
+) -> tuple[bool, int]:
+    """Determine if an overdue reminder should be sent.
+
+    Returns (should_send, reminder_number).
+    Reminder #0 = first overdue notification (day 0).
+    Reminder #1 = first repeat (after `interval` days), etc.
+    """
+    if overdue_days < 0:
+        return False, 0
+
+    # Count existing overdue notifications for this item
+    existing_count = Notification.objects.filter(
+        dedup_key__startswith=dedup_prefix,
+    ).count()
+
+    if existing_count >= max_reminders:
+        return False, 0
+
+    if existing_count == 0:
+        # First overdue — always send
+        return True, 0
+
+    # Check if enough days passed since last reminder
+    last = (
+        Notification.objects.filter(dedup_key__startswith=dedup_prefix)
+        .order_by("-created_at")
+        .values_list("created_at", flat=True)
+        .first()
+    )
+    if last:
+        days_since_last = (timezone.now() - last).days
+        if days_since_last >= interval:
+            return True, existing_count
+    return False, 0
 
 
 def _push_to_managers(notification: Notification) -> None:
@@ -58,6 +102,7 @@ def create_notification(
     driver=None,
     payload: dict | None = None,
     status: str = NotificationStatus.INFO,
+    source: str = NotificationSource.SYSTEM,
     push: bool = True,
     retry_at=None,
     dedup_key: str | None = None,
@@ -78,6 +123,7 @@ def create_notification(
     notification = Notification.objects.create(
         type=notification_type,
         status=status,
+        source=source,
         vehicle=vehicle,
         driver=driver,
         payload=payload or {},
@@ -103,6 +149,13 @@ def check_regulation_notifications(vehicle) -> list[Notification]:
     if prefs and not prefs.regulation_enabled:
         return []
 
+    # Global threshold overrides per-item settings
+    global_notify_before = (
+        prefs.regulation_notify_before_km
+        if prefs
+        else DEFAULT_REGULATION_NOTIFY_BEFORE_KM
+    )
+
     current_km = vehicle.initial_km
     entries = FleetVehicleRegulationEntry.objects.filter(
         regulation__vehicle=vehicle,
@@ -111,7 +164,7 @@ def check_regulation_notifications(vehicle) -> list[Notification]:
     created = []
     for entry in entries:
         remaining = entry.km_remaining(current_km)
-        notify_before = entry.effective_notify_before_km
+        notify_before = global_notify_before
 
         if remaining <= 0:
             n_type = NotificationType.REGULATION_OVERDUE
@@ -165,9 +218,14 @@ def check_inspection_notifications() -> list[Notification]:
         return []
 
     threshold_days = (
-        prefs.inspection_notify_days if prefs and prefs.inspection_notify_days
+        prefs.inspection_notify_days
+        if prefs and prefs.inspection_notify_days
         else DEFAULT_INSPECTION_DAYS
     )
+    overdue_interval = (
+        prefs.overdue_reminder_interval if prefs else DEFAULT_OVERDUE_INTERVAL
+    )
+    overdue_max = prefs.overdue_reminder_max if prefs else DEFAULT_OVERDUE_MAX
     today = date.today()
 
     # Subquery: latest inspection per vehicle that has a next_inspection_date
@@ -194,12 +252,24 @@ def check_inspection_notifications() -> list[Notification]:
         days_remaining = (insp.next_inspection_date - today).days
 
         if days_remaining <= 0:
+            overdue_days = abs(days_remaining)
+            dedup_prefix = f"inspection_expired:{insp.vehicle_id}:{insp.id}"
+            should_send, reminder_num = _should_send_overdue_reminder(
+                dedup_prefix,
+                overdue_days,
+                overdue_interval,
+                overdue_max,
+            )
+            if not should_send:
+                continue
+
             n_type = NotificationType.INSPECTION_EXPIRED
-            dedup = f"inspection_expired:{insp.vehicle_id}:{insp.id}"
+            dedup = f"{dedup_prefix}:r{reminder_num}"
             payload = {
                 "inspection_id": insp.id,
                 "next_inspection_date": str(insp.next_inspection_date),
-                "overdue_days": abs(days_remaining),
+                "overdue_days": overdue_days,
+                "reminder_number": reminder_num,
             }
         elif days_remaining in threshold_days:
             n_type = NotificationType.INSPECTION_EXPIRING
@@ -236,9 +306,14 @@ def check_service_plan_notifications() -> list[Notification]:
         return []
 
     notify_days = (
-        prefs.service_plan_notify_days if prefs
+        prefs.service_plan_notify_days
+        if prefs and prefs.service_plan_notify_days
         else DEFAULT_SERVICE_PLAN_DAYS
     )
+    overdue_interval = (
+        prefs.overdue_reminder_interval if prefs else DEFAULT_OVERDUE_INTERVAL
+    )
+    overdue_max = prefs.overdue_reminder_max if prefs else DEFAULT_OVERDUE_MAX
     today = date.today()
 
     plans = (
@@ -255,17 +330,29 @@ def check_service_plan_notifications() -> list[Notification]:
         days_remaining = (plan.planned_at - today).days
 
         if days_remaining <= 0:
+            overdue_days = abs(days_remaining)
+            dedup_prefix = f"service_plan_overdue:{plan.vehicle_id}:{plan.id}"
+            should_send, reminder_num = _should_send_overdue_reminder(
+                dedup_prefix,
+                overdue_days,
+                overdue_interval,
+                overdue_max,
+            )
+            if not should_send:
+                continue
+
             n_type = NotificationType.SERVICE_PLAN_OVERDUE
-            dedup = f"service_plan_overdue:{plan.vehicle_id}:{plan.id}"
+            dedup = f"{dedup_prefix}:r{reminder_num}"
             payload = {
                 "plan_id": plan.id,
                 "plan_title": plan.title,
                 "planned_at": str(plan.planned_at),
-                "overdue_days": abs(days_remaining),
+                "overdue_days": overdue_days,
+                "reminder_number": reminder_num,
             }
-        elif days_remaining <= notify_days:
+        elif days_remaining in notify_days:
             n_type = NotificationType.SERVICE_PLAN_DUE
-            dedup = f"service_plan_due:{plan.vehicle_id}:{plan.id}"
+            dedup = f"service_plan_due:{plan.vehicle_id}:{plan.id}:{days_remaining}d"
             payload = {
                 "plan_id": plan.id,
                 "plan_title": plan.title,

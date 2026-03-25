@@ -6,35 +6,80 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('notification', '0001_initial'),
+        ("notification", "0001_initial"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='notification',
-            name='dedup_key',
-            field=models.CharField(blank=True, db_index=True, help_text='Unique key for deduplication. Format: {type}:{vehicle_id}:{entity_id}', max_length=255, null=True),
+            model_name="notification",
+            name="dedup_key",
+            field=models.CharField(
+                blank=True,
+                db_index=True,
+                help_text="Unique key for deduplication. Format: {type}:{vehicle_id}:{entity_id}",
+                max_length=255,
+                null=True,
+            ),
         ),
         migrations.AlterField(
-            model_name='notification',
-            name='type',
-            field=models.CharField(choices=[('regulation_approaching', 'Regulation Approaching'), ('regulation_overdue', 'Regulation Overdue'), ('regulation_performed', 'Regulation Performed'), ('mileage_submitted', 'Mileage Submitted'), ('service_report', 'Service Report'), ('inspection_expiring', 'Technical Inspection Expiring'), ('inspection_expired', 'Technical Inspection Expired'), ('service_plan_due', 'Service Plan Due'), ('service_plan_overdue', 'Service Plan Overdue')], db_index=True, max_length=30),
+            model_name="notification",
+            name="type",
+            field=models.CharField(
+                choices=[
+                    ("regulation_approaching", "Regulation Approaching"),
+                    ("regulation_overdue", "Regulation Overdue"),
+                    ("regulation_performed", "Regulation Performed"),
+                    ("mileage_submitted", "Mileage Submitted"),
+                    ("service_report", "Service Report"),
+                    ("inspection_expiring", "Technical Inspection Expiring"),
+                    ("inspection_expired", "Technical Inspection Expired"),
+                    ("service_plan_due", "Service Plan Due"),
+                    ("service_plan_overdue", "Service Plan Overdue"),
+                ],
+                db_index=True,
+                max_length=30,
+            ),
         ),
         migrations.CreateModel(
-            name='NotificationPreferences',
+            name="NotificationPreferences",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('inspection_enabled', models.BooleanField(default=True)),
-                ('regulation_enabled', models.BooleanField(default=True)),
-                ('service_plan_enabled', models.BooleanField(default=True)),
-                ('mileage_enabled', models.BooleanField(default=True)),
-                ('inspection_notify_days', models.JSONField(default=list, help_text='Days before inspection to notify, e.g. [7, 3, 1]')),
-                ('service_plan_notify_days', models.PositiveIntegerField(default=3, help_text='Days before service plan date to notify.')),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='notification_preferences', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("inspection_enabled", models.BooleanField(default=True)),
+                ("regulation_enabled", models.BooleanField(default=True)),
+                ("service_plan_enabled", models.BooleanField(default=True)),
+                ("mileage_enabled", models.BooleanField(default=True)),
+                (
+                    "inspection_notify_days",
+                    models.JSONField(
+                        default=list,
+                        help_text="Days before inspection to notify, e.g. [7, 3, 1]",
+                    ),
+                ),
+                (
+                    "service_plan_notify_days",
+                    models.PositiveIntegerField(
+                        default=3, help_text="Days before service plan date to notify."
+                    ),
+                ),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "user",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="notification_preferences",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
     ]

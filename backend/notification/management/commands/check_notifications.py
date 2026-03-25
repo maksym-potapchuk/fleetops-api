@@ -9,9 +9,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         results = check_all_scheduled_notifications()
 
-        self.stdout.write(
-            f"Inspections: {results['inspections']} new notifications"
-        )
+        self.stdout.write(f"Inspections: {results['inspections']} new notifications")
         self.stdout.write(
             f"Service plans: {results['service_plans']} new notifications"
         )

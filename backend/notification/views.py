@@ -122,7 +122,9 @@ class NotificationPreferencesView(APIView):
 
     def patch(self, request):
         prefs, _ = NotificationPreferences.objects.get_or_create(user=request.user)
-        serializer = NotificationPreferencesSerializer(prefs, data=request.data, partial=True)
+        serializer = NotificationPreferencesSerializer(
+            prefs, data=request.data, partial=True
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)

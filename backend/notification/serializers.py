@@ -13,6 +13,7 @@ class NotificationSerializer(serializers.ModelSerializer):
             "id",
             "type",
             "status",
+            "source",
             "vehicle",
             "driver",
             "vehicle_display",
@@ -63,6 +64,9 @@ class NotificationPreferencesSerializer(serializers.ModelSerializer):
             "mileage_enabled",
             "inspection_notify_days",
             "service_plan_notify_days",
+            "regulation_notify_before_km",
+            "overdue_reminder_interval",
+            "overdue_reminder_max",
             "updated_at",
         ]
         read_only_fields = ["updated_at"]
@@ -71,5 +75,16 @@ class NotificationPreferencesSerializer(serializers.ModelSerializer):
         if not isinstance(value, list):
             raise serializers.ValidationError("Must be a list of integers.")
         if not all(isinstance(d, int) and 1 <= d <= 90 for d in value):
-            raise serializers.ValidationError("Each value must be an integer between 1 and 90.")
+            raise serializers.ValidationError(
+                "Each value must be an integer between 1 and 90."
+            )
+        return sorted(set(value), reverse=True)
+
+    def validate_service_plan_notify_days(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Must be a list of integers.")
+        if not all(isinstance(d, int) and 1 <= d <= 90 for d in value):
+            raise serializers.ValidationError(
+                "Each value must be an integer between 1 and 90."
+            )
         return sorted(set(value), reverse=True)
