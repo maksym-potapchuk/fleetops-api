@@ -11,9 +11,10 @@ from driver.models import Driver
 from vehicle.models import Vehicle
 
 from .constants import NotificationStatus, NotificationType
-from .models import Notification
+from .models import Notification, NotificationPreferences
 from .serializers import (
     MileageSubmitSerializer,
+    NotificationPreferencesSerializer,
     NotificationSerializer,
     ResolveNotificationSerializer,
 )
@@ -108,6 +109,23 @@ class ResolveNotificationView(APIView):
             )
 
         return Response(NotificationSerializer(resolved).data)
+
+
+class NotificationPreferencesView(APIView):
+    """GET / PATCH notification preferences for the current user."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        prefs, _ = NotificationPreferences.objects.get_or_create(user=request.user)
+        return Response(NotificationPreferencesSerializer(prefs).data)
+
+    def patch(self, request):
+        prefs, _ = NotificationPreferences.objects.get_or_create(user=request.user)
+        serializer = NotificationPreferencesSerializer(prefs, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class MileageSubmitView(APIView):

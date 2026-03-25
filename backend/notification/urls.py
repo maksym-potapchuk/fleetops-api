@@ -17,6 +17,11 @@ urlpatterns = [
         name="notification-resolve",
     ),
     path(
+        "preferences/",
+        views.NotificationPreferencesView.as_view(),
+        name="notification-preferences",
+    ),
+    path(
         "mileage-submit/",
         views.MileageSubmitView.as_view(),
         name="notification-mileage-submit",
