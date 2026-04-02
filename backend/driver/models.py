@@ -36,6 +36,7 @@ class DriverVehicleDeal(models.Model):
         db_column="driver_id",
     )
     deal_id = models.UUIDField()
+    status = models.CharField(max_length=50)
 
     class Meta:
         managed = False

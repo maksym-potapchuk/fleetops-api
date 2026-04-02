@@ -21,6 +21,7 @@ class DriverModelViewSet(viewsets.ModelViewSet):
                 DriverVehicleDeal.objects.filter(
                     driver_id=OuterRef("pk"),
                     vehicle__isnull=False,
+                    status="active",
                 )
             ),
         )
