@@ -79,7 +79,7 @@ class Expense(models.Model):
         choices=PayerType.choices,
         default=PayerType.COMPANY,
     )
-    expense_for = models.CharField(max_length=200, blank=True)
+    expense_for = models.CharField(max_length=500, blank=True)
     # ── Amounts ──
     # COMPANY: amount = full cost, company_amount / client_amount = NULL
     # CLIENT:  amount = company_amount + client_amount (both required)
@@ -269,7 +269,7 @@ class PartsExpenseDetail(models.Model):
 class ExpensePart(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     expense = models.ForeignKey(Expense, on_delete=models.CASCADE, related_name="parts")
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=500)
     quantity = models.PositiveIntegerField(default=1)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
 
@@ -315,7 +315,7 @@ class ServiceItem(models.Model):
     expense = models.ForeignKey(
         Expense, on_delete=models.CASCADE, related_name="service_items"
     )
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=500)
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
