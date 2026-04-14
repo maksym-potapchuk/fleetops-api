@@ -19,6 +19,15 @@ class Driver(models.Model):
         return f"{self.first_name} {self.last_name}"
 
 
+class Deal(models.Model):
+    id = models.UUIDField(primary_key=True)
+    status = models.CharField(max_length=50)
+
+    class Meta:
+        managed = False
+        db_table = "deal"
+
+
 class DriverVehicleDeal(models.Model):
     id = models.UUIDField(primary_key=True)
     vehicle = models.ForeignKey(
@@ -35,8 +44,12 @@ class DriverVehicleDeal(models.Model):
         related_name="deals",
         db_column="driver_id",
     )
-    deal_id = models.UUIDField()
-    status = models.CharField(max_length=50)
+    deal = models.ForeignKey(
+        Deal,
+        on_delete=models.DO_NOTHING,
+        related_name="vehicle_deals",
+        db_column="deal_id",
+    )
 
     class Meta:
         managed = False

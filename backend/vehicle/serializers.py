@@ -203,8 +203,8 @@ class VehicleSerializer(serializers.ModelSerializer):
             deal = deals[0] if deals else None
         else:
             deal = (
-                DriverVehicleDeal.objects.filter(vehicle=instance, status="active")
-                .select_related("driver")
+                DriverVehicleDeal.objects.filter(vehicle=instance, deal__status="active")
+                .select_related("driver", "deal")
                 .first()
             )
 
