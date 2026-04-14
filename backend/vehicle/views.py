@@ -80,7 +80,7 @@ class VehicleListCreateView(generics.ListCreateAPIView):
             ),
             Prefetch(
                 "deals",
-                queryset=DriverVehicleDeal.objects.filter(status="active").select_related("driver"),
+                queryset=DriverVehicleDeal.objects.filter(deal__status="active").select_related("driver", "deal"),
             ),
         )
         .filter(is_archived=False)
@@ -146,7 +146,7 @@ class VehicleRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
             ),
             Prefetch(
                 "deals",
-                queryset=DriverVehicleDeal.objects.filter(status="active").select_related("driver"),
+                queryset=DriverVehicleDeal.objects.filter(deal__status="active").select_related("driver", "deal"),
             ),
         )
         .filter(is_archived=False)
@@ -217,7 +217,7 @@ class VehicleRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
             raise
 
     def perform_destroy(self, instance):
-        if DriverVehicleDeal.objects.filter(vehicle=instance, status="active").exists():
+        if DriverVehicleDeal.objects.filter(vehicle=instance, deal__status="active").exists():
             raise serializers.ValidationError(
                 {"detail": "Cannot archive vehicle because it has an active deal."}
             )
@@ -307,7 +307,7 @@ class VehicleArchiveListView(generics.ListAPIView):
             "inspections",
             Prefetch(
                 "deals",
-                queryset=DriverVehicleDeal.objects.filter(status="active").select_related("driver"),
+                queryset=DriverVehicleDeal.objects.filter(deal__status="active").select_related("driver", "deal"),
             ),
         )
         .filter(is_archived=True)
