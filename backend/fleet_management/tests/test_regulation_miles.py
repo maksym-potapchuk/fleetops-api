@@ -26,8 +26,12 @@ class MiVehicleRegulationTest(TestCase):
         self.vehicle = make_vehicle(distance_unit="MI")
         self.schema = make_schema(title="MI Schema", user=self.user)
         self.item = make_item(
-            self.schema, title="Oil Change", every_km=16000,
-            every_mi=10000, notify_before_km=800, notify_before_mi=500,
+            self.schema,
+            title="Oil Change",
+            every_km=16000,
+            every_mi=10000,
+            notify_before_km=800,
+            notify_before_mi=500,
         )
 
     def _assign(self, last_done_km=161000, last_done_mi=100000, **entry_kw):
@@ -112,13 +116,23 @@ class MiVehicleRegulationTest(TestCase):
 
     def test_non_standard_mi_98876_plus_6213(self):
         item2 = make_item(
-            self.schema, title="Brake Fluid", every_km=10000, every_mi=6213,
+            self.schema,
+            title="Brake Fluid",
+            every_km=10000,
+            every_mi=6213,
         )
         self.client.post(
             f"/api/v1/fleet/regulation/{self.vehicle.id}/assign/",
-            {"schema_id": self.schema.id, "entries": [
-                {"item_id": item2.id, "last_done_km": 159100, "last_done_mi": 98876},
-            ]},
+            {
+                "schema_id": self.schema.id,
+                "entries": [
+                    {
+                        "item_id": item2.id,
+                        "last_done_km": 159100,
+                        "last_done_mi": 98876,
+                    },
+                ],
+            },
             format="json",
         )
         entry = FleetVehicleRegulationEntry.objects.get(item=item2)

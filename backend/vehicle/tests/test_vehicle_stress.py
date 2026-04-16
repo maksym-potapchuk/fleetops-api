@@ -57,7 +57,11 @@ class VINEdgeCasesTest(TestCase):
             ("A" * 18, False, "18 chars — too long"),
             ("1234567890ABCDEFG", True, "alphanumeric 17"),
             # BUG: leading space in VIN accepted — no strip/validation
-            (" 1HGBH41JXMN10918", True, "leading space — KNOWN BUG: no whitespace strip"),
+            (
+                " 1HGBH41JXMN10918",
+                True,
+                "leading space — KNOWN BUG: no whitespace strip",
+            ),
             ("1HGBH41JXMN10918 ", False, "trailing space"),
             ("a" * 17, True, "lowercase 17 chars"),
         ]
@@ -76,16 +80,16 @@ class VINEdgeCasesTest(TestCase):
                     f"{desc}: expected pass, got {res.status_code} {str(res.data)[:200]}"
                 )
             else:
-                results["fail_expected"].append(
-                    f"{desc}: expected fail, got 201"
-                )
+                results["fail_expected"].append(f"{desc}: expected fail, got 201")
 
         self.assertEqual(
-            results["fail_unexpected"], [],
+            results["fail_unexpected"],
+            [],
             f"Unexpected failures: {results['fail_unexpected']}",
         )
         self.assertEqual(
-            results["fail_expected"], [],
+            results["fail_expected"],
+            [],
             f"Should have been rejected: {results['fail_expected']}",
         )
 
@@ -188,7 +192,9 @@ class StatusTransitionTest(TestCase):
     def _patch_status(self, status, **extra):
         payload = {"status": status, **extra}
         return self.client.patch(
-            f"{self.BASE_URL}{self.vehicle.id}/", payload, format="json",
+            f"{self.BASE_URL}{self.vehicle.id}/",
+            payload,
+            format="json",
         )
 
     def test_all_valid_statuses_accepted(self):
@@ -216,21 +222,29 @@ class StatusTransitionTest(TestCase):
 
     def test_status_change_creates_history(self):
         from vehicle.models import VehicleStatusHistory
-        initial_count = VehicleStatusHistory.objects.filter(vehicle=self.vehicle).count()
+
+        initial_count = VehicleStatusHistory.objects.filter(
+            vehicle=self.vehicle
+        ).count()
         self._patch_status(VehicleStatus.READY)
         new_count = VehicleStatusHistory.objects.filter(vehicle=self.vehicle).count()
         self.assertEqual(new_count, initial_count + 1)
 
     def test_status_history_records_old_and_new(self):
         from vehicle.models import VehicleStatusHistory
+
         self.vehicle.status = VehicleStatus.SERVICE
         self.vehicle.save(update_fields=["status"])
 
         self._patch_status(VehicleStatus.READY)
 
-        latest = VehicleStatusHistory.objects.filter(
-            vehicle=self.vehicle,
-        ).order_by("-changed_at").first()
+        latest = (
+            VehicleStatusHistory.objects.filter(
+                vehicle=self.vehicle,
+            )
+            .order_by("-changed_at")
+            .first()
+        )
         self.assertEqual(latest.old_status, VehicleStatus.SERVICE)
         self.assertEqual(latest.new_status, VehicleStatus.READY)
 
@@ -247,39 +261,43 @@ class VehicleBulkPerformanceTest(TestCase):
 
     def test_create_1000_vehicles_via_orm(self):
         t0 = time.time()
-        Vehicle.objects.bulk_create([
-            Vehicle(
-                model="Car",
-                manufacturer=ManufacturerChoices.TOYOTA,
-                year=2022,
-                cost="25000.00",
-                vin_number=f"BULK{i:013d}",
-                car_number=f"BK{i:04d}XX",
-                color="#FFFFFF",
-                initial_km=i * 100,
-                status=VehicleStatus.AUCTION,
-            )
-            for i in range(1000)
-        ])
+        Vehicle.objects.bulk_create(
+            [
+                Vehicle(
+                    model="Car",
+                    manufacturer=ManufacturerChoices.TOYOTA,
+                    year=2022,
+                    cost="25000.00",
+                    vin_number=f"BULK{i:013d}",
+                    car_number=f"BK{i:04d}XX",
+                    color="#FFFFFF",
+                    initial_km=i * 100,
+                    status=VehicleStatus.AUCTION,
+                )
+                for i in range(1000)
+            ]
+        )
         elapsed = time.time() - t0
         self.assertEqual(Vehicle.objects.count(), 1000)
         self.assertLess(elapsed, 5, f"1000 vehicles took {elapsed:.1f}s")
 
     def test_list_1000_vehicles_paginated(self):
-        Vehicle.objects.bulk_create([
-            Vehicle(
-                model="Car",
-                manufacturer=ManufacturerChoices.TOYOTA,
-                year=2022,
-                cost="25000.00",
-                vin_number=f"LIST{i:013d}",
-                car_number=f"LS{i:04d}XX",
-                color="#FFFFFF",
-                initial_km=0,
-                status=VehicleStatus.AUCTION,
-            )
-            for i in range(1000)
-        ])
+        Vehicle.objects.bulk_create(
+            [
+                Vehicle(
+                    model="Car",
+                    manufacturer=ManufacturerChoices.TOYOTA,
+                    year=2022,
+                    cost="25000.00",
+                    vin_number=f"LIST{i:013d}",
+                    car_number=f"LS{i:04d}XX",
+                    color="#FFFFFF",
+                    initial_km=0,
+                    status=VehicleStatus.AUCTION,
+                )
+                for i in range(1000)
+            ]
+        )
 
         t0 = time.time()
         res = self.client.get(self.BASE_URL)
@@ -290,20 +308,22 @@ class VehicleBulkPerformanceTest(TestCase):
         self.assertLess(elapsed, 5, f"List 1k vehicles took {elapsed:.1f}s")
 
     def test_filter_by_status_with_1000_vehicles(self):
-        Vehicle.objects.bulk_create([
-            Vehicle(
-                model="Car",
-                manufacturer=ManufacturerChoices.TOYOTA,
-                year=2022,
-                cost="25000.00",
-                vin_number=f"FILT{i:013d}",
-                car_number=f"FT{i:04d}XX",
-                color="#FFFFFF",
-                initial_km=0,
-                status=VehicleStatus.READY if i < 500 else VehicleStatus.AUCTION,
-            )
-            for i in range(1000)
-        ])
+        Vehicle.objects.bulk_create(
+            [
+                Vehicle(
+                    model="Car",
+                    manufacturer=ManufacturerChoices.TOYOTA,
+                    year=2022,
+                    cost="25000.00",
+                    vin_number=f"FILT{i:013d}",
+                    car_number=f"FT{i:04d}XX",
+                    color="#FFFFFF",
+                    initial_km=0,
+                    status=VehicleStatus.READY if i < 500 else VehicleStatus.AUCTION,
+                )
+                for i in range(1000)
+            ]
+        )
 
         t0 = time.time()
         res = self.client.get(f"{self.BASE_URL}?status=READY")

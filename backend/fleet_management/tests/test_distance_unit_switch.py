@@ -26,14 +26,20 @@ class KmToMiSwitchTest(TestCase):
         self.vehicle = make_vehicle(distance_unit="KM")
         self.schema = make_schema(title="Switch Schema", user=self.user)
         self.item = make_item(
-            self.schema, title="Oil Change", every_km=10000,
-            every_mi=6000, notify_before_mi=300,
+            self.schema,
+            title="Oil Change",
+            every_km=10000,
+            every_mi=6000,
+            notify_before_mi=300,
         )
         self.client.post(
             f"/api/v1/fleet/regulation/{self.vehicle.id}/assign/",
-            {"schema_id": self.schema.id, "entries": [
-                {"item_id": self.item.id, "last_done_km": 50000},
-            ]},
+            {
+                "schema_id": self.schema.id,
+                "entries": [
+                    {"item_id": self.item.id, "last_done_km": 50000},
+                ],
+            },
             format="json",
         )
         self.entry = FleetVehicleRegulationEntry.objects.first()
@@ -90,18 +96,29 @@ class MiToKmSwitchTest(TestCase):
         self.user = make_user(email="mi@test.com", username="miuser")
         authenticate(self.client, self.user)
         self.vehicle = make_vehicle(
-            distance_unit="MI", vin_number="MIVIN00000000001", car_number="MI0001AA",
+            distance_unit="MI",
+            vin_number="MIVIN00000000001",
+            car_number="MI0001AA",
         )
         self.schema = make_schema(title="MI→KM Schema", user=self.user)
         self.item = make_item(
-            self.schema, title="Brake Pads", every_km=16000,
+            self.schema,
+            title="Brake Pads",
+            every_km=16000,
             every_mi=10000,
         )
         self.client.post(
             f"/api/v1/fleet/regulation/{self.vehicle.id}/assign/",
-            {"schema_id": self.schema.id, "entries": [
-                {"item_id": self.item.id, "last_done_km": 161000, "last_done_mi": 100000},
-            ]},
+            {
+                "schema_id": self.schema.id,
+                "entries": [
+                    {
+                        "item_id": self.item.id,
+                        "last_done_km": 161000,
+                        "last_done_mi": 100000,
+                    },
+                ],
+            },
             format="json",
         )
         self.entry = FleetVehicleRegulationEntry.objects.first()
@@ -141,15 +158,20 @@ class MiToKmSwitchTest(TestCase):
 
     def test_switch_does_not_affect_other_vehicle(self):
         v2 = make_vehicle(
-            distance_unit="MI", vin_number="OTHER0000000001", car_number="OT0001AA",
+            distance_unit="MI",
+            vin_number="OTHER0000000001",
+            car_number="OT0001AA",
         )
         schema2 = make_schema(title="Other Schema", user=self.user)
         item2 = make_item(schema2, title="Other Item", every_km=5000)
         self.client.post(
             f"/api/v1/fleet/regulation/{v2.id}/assign/",
-            {"schema_id": schema2.id, "entries": [
-                {"item_id": item2.id, "last_done_km": 80000, "last_done_mi": 49710},
-            ]},
+            {
+                "schema_id": schema2.id,
+                "entries": [
+                    {"item_id": item2.id, "last_done_km": 80000, "last_done_mi": 49710},
+                ],
+            },
             format="json",
         )
         self._switch("KM")

@@ -215,17 +215,13 @@ class MarkDoneNonStandardTest(RegulationCalcBaseTest):
 class OverrideNonStandardTest(RegulationCalcBaseTest):
     def test_override_256980_stored_exactly(self):
         self._assign(last_done_km=250_000)
-        self.client.patch(
-            self.url, {"next_due_km_override": 256_980}, format="json"
-        )
+        self.client.patch(self.url, {"next_due_km_override": 256_980}, format="json")
         self.entry.refresh_from_db()
         self.assertEqual(self.entry.next_due_km, 256_980)
 
     def test_override_13579_stored_exactly(self):
         self._assign(last_done_km=10_000)
-        self.client.patch(
-            self.url, {"next_due_km_override": 13_579}, format="json"
-        )
+        self.client.patch(self.url, {"next_due_km_override": 13_579}, format="json")
         self.entry.refresh_from_db()
         self.assertEqual(self.entry.next_due_km, 13_579)
 
@@ -240,9 +236,7 @@ class OverrideNonStandardTest(RegulationCalcBaseTest):
 
     def test_override_777777(self):
         self._assign(last_done_km=0)
-        self.client.patch(
-            self.url, {"next_due_km_override": 777_777}, format="json"
-        )
+        self.client.patch(self.url, {"next_due_km_override": 777_777}, format="json")
         self.entry.refresh_from_db()
         self.assertEqual(self.entry.next_due_km, 777_777)
 
@@ -394,11 +388,13 @@ class LastDoneMiDisplayTest(RegulationCalcBaseTest):
         result = assign_regulation_to_vehicle(
             vehicle_pk=self.vehicle.id,
             schema_id=self.schema.id,
-            entries_data=[{
-                "item_id": self.item.id,
-                "last_done_km": 413_247,
-                "last_done_mi": 256_780,
-            }],
+            entries_data=[
+                {
+                    "item_id": self.item.id,
+                    "last_done_km": 413_247,
+                    "last_done_mi": 256_780,
+                }
+            ],
             user=self.user,
         )
         self.assertEqual(result["entries_created"], 1)
@@ -425,6 +421,5 @@ class LastDoneMiDisplayTest(RegulationCalcBaseTest):
             )
             self.entry.refresh_from_db()
             self.assertEqual(
-                self.entry.last_done_mi, mi,
-                f"last_done_mi={mi} not stored correctly"
+                self.entry.last_done_mi, mi, f"last_done_mi={mi} not stored correctly"
             )

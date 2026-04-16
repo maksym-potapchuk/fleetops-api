@@ -285,9 +285,7 @@ class ExpenseSerializer(serializers.ModelSerializer):
     payment_method = serializers.ChoiceField(
         choices=["CASH", "CASHLESS"], required=False
     )
-    payer_type = serializers.ChoiceField(
-        choices=["COMPANY", "CLIENT"], required=False
-    )
+    payer_type = serializers.ChoiceField(choices=["COMPANY", "CLIENT"], required=False)
 
     # Cost splitting (CLIENT payer only)
     company_amount = serializers.DecimalField(

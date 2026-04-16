@@ -27,6 +27,7 @@ def _make_user():
 
 def _auth(client, user):
     from rest_framework_simplejwt.tokens import RefreshToken
+
     client.cookies["access_token"] = str(RefreshToken.for_user(user).access_token)
 
 
@@ -41,23 +42,35 @@ class VehicleFilterTest(TestCase):
         _auth(self.client, self.user)
         for i in range(5):
             Vehicle.objects.create(
-                model="Camry", manufacturer=ManufacturerChoices.TOYOTA,
-                year=2022, cost="25000", vin_number=f"VFRT{i:013d}",
-                car_number=f"RT{i:04d}XX", color="#FFF",
+                model="Camry",
+                manufacturer=ManufacturerChoices.TOYOTA,
+                year=2022,
+                cost="25000",
+                vin_number=f"VFRT{i:013d}",
+                car_number=f"RT{i:04d}XX",
+                color="#FFF",
                 status=VehicleStatus.READY,
             )
         for i in range(3):
             Vehicle.objects.create(
-                model="X5", manufacturer="BMW",
-                year=2023, cost="50000", vin_number=f"VFAB{i:013d}",
-                car_number=f"AB{i:04d}XX", color="#000",
+                model="X5",
+                manufacturer="BMW",
+                year=2023,
+                cost="50000",
+                vin_number=f"VFAB{i:013d}",
+                car_number=f"AB{i:04d}XX",
+                color="#000",
                 status=VehicleStatus.AUCTION,
             )
         for i in range(2):
             Vehicle.objects.create(
-                model="Corolla", manufacturer=ManufacturerChoices.TOYOTA,
-                year=2021, cost="18000", vin_number=f"VFST{i:013d}",
-                car_number=f"ST{i:04d}XX", color="#AAA",
+                model="Corolla",
+                manufacturer=ManufacturerChoices.TOYOTA,
+                year=2021,
+                cost="18000",
+                vin_number=f"VFST{i:013d}",
+                car_number=f"ST{i:04d}XX",
+                color="#AAA",
                 status=VehicleStatus.SERVICE,
             )
 
@@ -93,14 +106,20 @@ class ExpenseFilterTest(TestCase):
 
     def setUp(self):
         from django.core.cache import cache
+
         cache.clear()
         self.client = APIClient()
         self.user = _make_user()
         _auth(self.client, self.user)
         self.vehicle = Vehicle.objects.create(
-            model="Test", manufacturer=ManufacturerChoices.TOYOTA,
-            year=2022, cost="20000", vin_number="EXPFILT000000001",
-            car_number="EF0001XX", color="#FFF", status=VehicleStatus.AUCTION,
+            model="Test",
+            manufacturer=ManufacturerChoices.TOYOTA,
+            year=2022,
+            cost="20000",
+            vin_number="EXPFILT000000001",
+            car_number="EF0001XX",
+            color="#FFF",
+            status=VehicleStatus.AUCTION,
         )
         self.fuel_cat = ExpenseCategory.objects.get_or_create(
             code="FUEL", defaults={"name": "Fuel", "is_system": True, "order": 1}
@@ -110,24 +129,33 @@ class ExpenseFilterTest(TestCase):
         )[0]
         for i in range(5):
             Expense.objects.create(
-                vehicle=self.vehicle, category=self.fuel_cat,
+                vehicle=self.vehicle,
+                category=self.fuel_cat,
                 expense_date=f"2026-01-{i + 1:02d}T12:00:00Z",
-                amount=Decimal("100.00"), payment_method="CASH",
-                payer_type="COMPANY", created_by=self.user,
+                amount=Decimal("100.00"),
+                payment_method="CASH",
+                payer_type="COMPANY",
+                created_by=self.user,
             )
         for i in range(3):
             Expense.objects.create(
-                vehicle=self.vehicle, category=self.other_cat,
+                vehicle=self.vehicle,
+                category=self.other_cat,
                 expense_date=f"2026-03-{i + 1:02d}T12:00:00Z",
-                amount=Decimal("250.00"), payment_method="CASHLESS",
-                payer_type="COMPANY", created_by=self.user,
+                amount=Decimal("250.00"),
+                payment_method="CASHLESS",
+                payer_type="COMPANY",
+                created_by=self.user,
             )
         for i in range(2):
             Expense.objects.create(
-                vehicle=self.vehicle, category=self.fuel_cat,
+                vehicle=self.vehicle,
+                category=self.fuel_cat,
                 expense_date=f"2026-06-{i + 1:02d}T12:00:00Z",
-                amount=Decimal("500.00"), payment_method="CASH",
-                payer_type="COMPANY", created_by=self.user,
+                amount=Decimal("500.00"),
+                payment_method="CASH",
+                payer_type="COMPANY",
+                created_by=self.user,
             )
 
     def test_filter_by_category_code(self):
@@ -171,6 +199,7 @@ class SchemaFilterTest(TestCase):
 
     def setUp(self):
         from django.core.cache import cache
+
         cache.clear()
         self.client = APIClient()
         self.user = _make_user()
@@ -213,23 +242,31 @@ class ExpenseOrderingTest(TestCase):
 
     def setUp(self):
         from django.core.cache import cache
+
         cache.clear()
         self.client = APIClient()
         self.user = _make_user()
         _auth(self.client, self.user)
         self.vehicle = Vehicle.objects.create(
-            model="T", manufacturer=ManufacturerChoices.TOYOTA,
-            year=2022, cost="20000", vin_number="ORDVIN0000000001",
-            car_number="OR0001XX", color="#FFF", status=VehicleStatus.AUCTION,
+            model="T",
+            manufacturer=ManufacturerChoices.TOYOTA,
+            year=2022,
+            cost="20000",
+            vin_number="ORDVIN0000000001",
+            car_number="OR0001XX",
+            color="#FFF",
+            status=VehicleStatus.AUCTION,
         )
         cat = ExpenseCategory.objects.get_or_create(
             code="OTHER", defaults={"name": "Other", "is_system": True, "order": 7}
         )[0]
         for i, amt in enumerate([300, 100, 500, 200]):
             Expense.objects.create(
-                vehicle=self.vehicle, category=cat,
+                vehicle=self.vehicle,
+                category=cat,
                 expense_date=f"2026-0{i + 1}-15T12:00:00Z",
-                amount=Decimal(str(amt)), payer_type="COMPANY",
+                amount=Decimal(str(amt)),
+                payer_type="COMPANY",
                 created_by=self.user,
             )
 

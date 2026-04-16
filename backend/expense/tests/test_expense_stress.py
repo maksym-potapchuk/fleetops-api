@@ -15,9 +15,22 @@ from expense.tests.helpers import authenticate, make_user, make_vehicle
 # ── Test data generators ─────────────────────────────────────────────────────
 
 EDGE_AMOUNTS = [
-    "0", "0.00", "0.01", "0.10", "1", "9.99", "10", "99.99",
-    "100", "999.99", "1000", "9999.99", "10000", "99999.99",
-    "12345.67", "0.001",  # 3 decimals — may fail
+    "0",
+    "0.00",
+    "0.01",
+    "0.10",
+    "1",
+    "9.99",
+    "10",
+    "99.99",
+    "100",
+    "999.99",
+    "1000",
+    "9999.99",
+    "10000",
+    "99999.99",
+    "12345.67",
+    "0.001",  # 3 decimals — may fail
     "-1",  # negative — must fail
     "-0.01",  # negative — must fail
     "99999999.99",  # max 10 digits
@@ -48,8 +61,11 @@ EDGE_DATES = [
 EDGE_PAYMENT_METHODS = ["CASH", "CASHLESS", "CRYPTO", "", "cash", None]
 EDGE_PAYER_TYPES = ["COMPANY", "CLIENT", "BOTH", "", None]
 EDGE_EXPENSE_FOR = [
-    "", "a" * 500, "a" * 501,  # max_length=500
-    "Normal expense", "Витрата на ремонт",  # unicode
+    "",
+    "a" * 500,
+    "a" * 501,  # max_length=500
+    "Normal expense",
+    "Витрата на ремонт",  # unicode
     "<script>alert('xss')</script>",  # XSS attempt
     "DROP TABLE expense;",  # SQL injection attempt
     "\n\r\t",  # whitespace chars
@@ -98,17 +114,18 @@ class ExpenseStressTest(TestCase):
         # Negative amounts MUST be rejected
         neg_results = [r for r in results["pass"] if r[0].lstrip().startswith("-")]
         self.assertEqual(
-            neg_results, [],
+            neg_results,
+            [],
             f"Negative amounts should be rejected but passed: {neg_results}",
         )
 
         # Non-numeric MUST be rejected
         non_numeric_passed = [
-            r for r in results["pass"]
-            if r[0] in ("abc", "not-a-date", "")
+            r for r in results["pass"] if r[0] in ("abc", "not-a-date", "")
         ]
         self.assertEqual(
-            non_numeric_passed, [],
+            non_numeric_passed,
+            [],
             f"Non-numeric amounts should be rejected: {non_numeric_passed}",
         )
 
@@ -126,7 +143,8 @@ class ExpenseStressTest(TestCase):
         must_fail = ["", "not-a-date", "2026-13-01T00:00:00Z", "2026-02-30T00:00:00Z"]
         invalid_passed = [r for r in results["pass"] if r[0] in must_fail]
         self.assertEqual(
-            invalid_passed, [],
+            invalid_passed,
+            [],
             f"Invalid dates should be rejected: {invalid_passed}",
         )
 
@@ -142,9 +160,12 @@ class ExpenseStressTest(TestCase):
             results[bucket].append((pm, res.status_code))
 
         # Invalid methods MUST be rejected
-        invalid_passed = [r for r in results["pass"] if r[0] not in ("CASH", "CASHLESS", None)]
+        invalid_passed = [
+            r for r in results["pass"] if r[0] not in ("CASH", "CASHLESS", None)
+        ]
         self.assertEqual(
-            invalid_passed, [],
+            invalid_passed,
+            [],
             f"Invalid payment methods should be rejected: {invalid_passed}",
         )
 
@@ -156,19 +177,24 @@ class ExpenseStressTest(TestCase):
         for pt in EDGE_PAYER_TYPES:
             kwargs = {"payer_type": pt} if pt is not None else {}
             if pt == "CLIENT":
-                kwargs.update({
-                    "company_amount": "50.00",
-                    "client_amount": "50.00",
-                })
+                kwargs.update(
+                    {
+                        "company_amount": "50.00",
+                        "client_amount": "50.00",
+                    }
+                )
                 kwargs.pop("amount", None)
             res = self._post(**kwargs)
             bucket = "pass" if res.status_code == 201 else "fail"
             results[bucket].append((pt, res.status_code))
 
         # Invalid payer types MUST be rejected
-        invalid_passed = [r for r in results["pass"] if r[0] not in ("COMPANY", "CLIENT", None)]
+        invalid_passed = [
+            r for r in results["pass"] if r[0] not in ("COMPANY", "CLIENT", None)
+        ]
         self.assertEqual(
-            invalid_passed, [],
+            invalid_passed,
+            [],
             f"Invalid payer types should be rejected: {invalid_passed}",
         )
 
@@ -183,7 +209,9 @@ class ExpenseStressTest(TestCase):
             results[bucket].append((ef[:50], res.status_code))
 
         # 501 chars MUST be rejected (max_length=500)
-        over_500_passed = [r for r in results["pass"] if len(r[0]) > 50 and "a" * 50 in r[0]]  # noqa: F841
+        over_500_passed = [
+            r for r in results["pass"] if len(r[0]) > 50 and "a" * 50 in r[0]
+        ]  # noqa: F841
         # Check in DB that XSS is stored as-is (not executed)
         xss_expenses = Expense.objects.filter(expense_for__contains="<script>")
         if xss_expenses.exists():
@@ -214,7 +242,8 @@ class ExpenseStressTest(TestCase):
             res = self._post(**payload)
             passed = res.status_code == 201
             self.assertEqual(
-                passed, should_pass,
+                passed,
+                should_pass,
                 f"CLIENT split {split}: expected {'pass' if should_pass else 'fail'}, "
                 f"got {res.status_code} {str(res.data)[:200]}",
             )
@@ -226,15 +255,17 @@ class ExpenseStressTest(TestCase):
         t0 = time.time()
         expenses = []
         for i in range(10000):
-            expenses.append(Expense(
-                vehicle=self.vehicle,
-                category=self.fuel_cat if i % 2 == 0 else self.other_cat,
-                expense_date=f"2026-{(i % 12) + 1:02d}-{(i % 28) + 1:02d}T12:00:00Z",
-                amount=Decimal(str(round(i * 1.37, 2))),
-                payment_method="CASH" if i % 3 == 0 else "CASHLESS",
-                payer_type="COMPANY",
-                created_by=self.user,
-            ))
+            expenses.append(
+                Expense(
+                    vehicle=self.vehicle,
+                    category=self.fuel_cat if i % 2 == 0 else self.other_cat,
+                    expense_date=f"2026-{(i % 12) + 1:02d}-{(i % 28) + 1:02d}T12:00:00Z",
+                    amount=Decimal(str(round(i * 1.37, 2))),
+                    payment_method="CASH" if i % 3 == 0 else "CASHLESS",
+                    payer_type="COMPANY",
+                    created_by=self.user,
+                )
+            )
         Expense.objects.bulk_create(expenses)
         elapsed = time.time() - t0
 
@@ -245,17 +276,19 @@ class ExpenseStressTest(TestCase):
 
     def test_list_expenses_with_10000_records(self):
         """GET /expense/ with 10000 records — must paginate and respond fast."""
-        Expense.objects.bulk_create([
-            Expense(
-                vehicle=self.vehicle,
-                category=self.other_cat,
-                expense_date=f"2026-01-{(i % 28) + 1:02d}T12:00:00Z",
-                amount=Decimal("100.00"),
-                payer_type="COMPANY",
-                created_by=self.user,
-            )
-            for i in range(10000)
-        ])
+        Expense.objects.bulk_create(
+            [
+                Expense(
+                    vehicle=self.vehicle,
+                    category=self.other_cat,
+                    expense_date=f"2026-01-{(i % 28) + 1:02d}T12:00:00Z",
+                    amount=Decimal("100.00"),
+                    payer_type="COMPANY",
+                    created_by=self.user,
+                )
+                for i in range(10000)
+            ]
+        )
 
         t0 = time.time()
         res = self.client.get(self.BASE_URL)
@@ -268,17 +301,19 @@ class ExpenseStressTest(TestCase):
     def test_vehicle_expense_summary_with_10000_records(self):
         """GET /vehicle/{id}/expenses/summary/ with 10000 records."""
         cats = [self.fuel_cat, self.other_cat]
-        Expense.objects.bulk_create([
-            Expense(
-                vehicle=self.vehicle,
-                category=cats[i % 2],
-                expense_date=f"2026-01-{(i % 28) + 1:02d}T12:00:00Z",
-                amount=Decimal(str(round(50 + i * 0.01, 2))),
-                payer_type="COMPANY",
-                created_by=self.user,
-            )
-            for i in range(10000)
-        ])
+        Expense.objects.bulk_create(
+            [
+                Expense(
+                    vehicle=self.vehicle,
+                    category=cats[i % 2],
+                    expense_date=f"2026-01-{(i % 28) + 1:02d}T12:00:00Z",
+                    amount=Decimal(str(round(50 + i * 0.01, 2))),
+                    payer_type="COMPANY",
+                    created_by=self.user,
+                )
+                for i in range(10000)
+            ]
+        )
 
         t0 = time.time()
         res = self.client.get(f"/api/v1/vehicle/{self.vehicle.id}/expenses/summary/")

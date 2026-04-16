@@ -2,7 +2,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("fleet_management", "0010_regulation_mile_fields"),
     ]

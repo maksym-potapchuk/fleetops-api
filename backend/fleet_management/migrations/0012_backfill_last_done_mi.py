@@ -42,7 +42,6 @@ def reverse_mi(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("fleet_management", "0011_entry_last_done_mi"),
         ("vehicle", "0012_vehicle_distance_unit"),
