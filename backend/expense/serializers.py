@@ -501,6 +501,10 @@ class ExpenseSerializer(serializers.ModelSerializer):
 
         # ── Amount & cost splitting validation ──
         payer_type = data.get("payer_type")
+        if self.instance and payer_type and payer_type != self.instance.payer_type:
+            raise serializers.ValidationError(
+                {"payer_type": "Cannot change payer type after creation."}
+            )
         if payer_type is None and self.instance:
             payer_type = self.instance.payer_type
 
