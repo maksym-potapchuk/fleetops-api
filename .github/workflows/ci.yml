@@ -240,6 +240,13 @@ jobs:
           $SSH_CMD "cd $PROJECT_DIR && $COMPOSE ps"
           echo "=== Deploy successful ==="
 
+      - name: Cleanup Docker
+        run: |
+          $SSH_CMD "docker image prune -f"
+          $SSH_CMD "docker builder prune -f --keep-storage=2GB"
+          FREED=$($SSH_CMD "docker system df --format '{{.Reclaimable}}'" | head -1)
+          echo "Dangling images and old build cache removed"
+
       - name: Cleanup SSH
         if: always()
         run: rm -rf ~/.ssh/deploy_key
