@@ -283,9 +283,11 @@ class ExpenseSerializer(serializers.ModelSerializer):
 
     # Payment & payer — reject empty string
     payment_method = serializers.ChoiceField(
-        choices=["CASH", "CASHLESS"], required=False
+        choices=["CASH", "CASHLESS"], required=False, allow_blank=False
     )
-    payer_type = serializers.ChoiceField(choices=["COMPANY", "CLIENT"], required=False)
+    payer_type = serializers.ChoiceField(
+        choices=["COMPANY", "CLIENT"], required=False, allow_blank=False
+    )
 
     # Cost splitting (CLIENT payer only)
     company_amount = serializers.DecimalField(
@@ -443,14 +445,16 @@ class ExpenseSerializer(serializers.ModelSerializer):
 
     # ── Validation ──
 
-    def validate(self, data):
-        # Reject empty-string payment_method / payer_type (multipart sends "" not null)
+    def to_internal_value(self, data):
+        # Multipart sends "" for empty fields — reject for choice fields
         for choice_field in ("payment_method", "payer_type"):
             if choice_field in data and data[choice_field] == "":
                 raise serializers.ValidationError(
                     {choice_field: "This field may not be blank."}
                 )
+        return super().to_internal_value(data)
 
+    def validate(self, data):
         code = self._get_category_code(data)
 
         # Type-specific required fields
