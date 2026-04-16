@@ -8,10 +8,9 @@ import time
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from expense.tests.helpers import authenticate, make_user, make_vehicle
 from vehicle.constants import ManufacturerChoices, VehicleStatus
 from vehicle.models import Vehicle
-
-from expense.tests.helpers import authenticate, make_user, make_vehicle
 
 
 class VINEdgeCasesTest(TestCase):
@@ -291,7 +290,7 @@ class VehicleBulkPerformanceTest(TestCase):
         self.assertLess(elapsed, 5, f"List 1k vehicles took {elapsed:.1f}s")
 
     def test_filter_by_status_with_1000_vehicles(self):
-        vehicles = Vehicle.objects.bulk_create([
+        Vehicle.objects.bulk_create([
             Vehicle(
                 model="Car",
                 manufacturer=ManufacturerChoices.TOYOTA,

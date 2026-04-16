@@ -281,6 +281,14 @@ class ExpenseSerializer(serializers.ModelSerializer):
     # SERVICE items — read-only nested output
     service_items = ServiceItemSerializer(many=True, read_only=True)
 
+    # Payment & payer — reject empty string
+    payment_method = serializers.ChoiceField(
+        choices=["CASH", "CASHLESS"], required=False
+    )
+    payer_type = serializers.ChoiceField(
+        choices=["COMPANY", "CLIENT"], required=False
+    )
+
     # Cost splitting (CLIENT payer only)
     company_amount = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True

@@ -131,8 +131,8 @@ class CostSplittingTest(TestCase):
 
     # --- Payer type switching clears fields (using OTHER to avoid detail validation) ---
 
-    def test_switch_from_client_to_company_clears_client_fields(self):
-        """VULNERABILITY: switching payer type must clear approval status to prevent bypass."""
+    def test_switch_payer_type_blocked_on_patch(self):
+        """Changing payer_type after creation is blocked to prevent approval bypass."""
         payload = self._other_payload(
             payer_type="CLIENT",
             company_amount="120.00",
@@ -147,14 +147,8 @@ class CostSplittingTest(TestCase):
             {"payer_type": "COMPANY"},
             format=FMT,
         )
-        self.assertEqual(patch.status_code, 200)
-        expense = Expense.objects.get(id=expense_id)
-        # amount preserved, split fields cleared
-        self.assertEqual(expense.amount, Decimal("200.00"))
-        self.assertIsNone(expense.company_amount)
-        self.assertIsNone(expense.client_amount)
-        self.assertIsNone(expense.client_driver)
-        self.assertIsNone(expense.approval_status)
+        self.assertEqual(patch.status_code, 400)
+        self.assertIn("payer_type", patch.data)
 
 
 class ApprovalWorkflowTest(TestCase):
