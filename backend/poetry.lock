@@ -381,18 +381,18 @@ drf = ["djangorestframework"]
 
 [[package]]
 name = "django-prometheus"
-version = "2.4.1"
+version = "2.5.0.dev12"
 description = "Django middlewares to monitor your application with Prometheus.io."
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "django_prometheus-2.4.1-py2.py3-none-any.whl", hash = "sha256:7fe5af7f7c9ad9cd8a429fe0f3f1bf651f0e244f77162147869eab7ec09cc5e7"},
-    {file = "django_prometheus-2.4.1.tar.gz", hash = "sha256:073628243d2a6de6a8a8c20e5b512872dfb85d66e1b60b28bcf1eca0155dad95"},
+    {file = "django_prometheus-2.5.0.dev12-py2.py3-none-any.whl", hash = "sha256:e0215f06deb543134421718ce59b0e98a417691d8500cfd4427cb2fa387b17fc"},
+    {file = "django_prometheus-2.5.0.dev12.tar.gz", hash = "sha256:0d070e296d074f44d4db6c24370195ab0de3898deecdc43e8599ec68ea5a3c73"},
 ]
 
 [package.dependencies]
-Django = ">=4.2,<6.0"
+Django = ">=4.2,<5.0.dev0 || >=5.1.dev0,<6.1"
 prometheus-client = ">=0.7"
 
 [[package]]

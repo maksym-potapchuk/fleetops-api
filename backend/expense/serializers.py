@@ -281,6 +281,14 @@ class ExpenseSerializer(serializers.ModelSerializer):
     # SERVICE items — read-only nested output
     service_items = ServiceItemSerializer(many=True, read_only=True)
 
+    # Payment & payer — reject empty string
+    payment_method = serializers.ChoiceField(
+        choices=["CASH", "CASHLESS"], required=False, allow_blank=False
+    )
+    payer_type = serializers.ChoiceField(
+        choices=["COMPANY", "CLIENT"], required=False, allow_blank=False
+    )
+
     # Cost splitting (CLIENT payer only)
     company_amount = serializers.DecimalField(
         max_digits=10, decimal_places=2, required=False, allow_null=True
@@ -437,6 +445,15 @@ class ExpenseSerializer(serializers.ModelSerializer):
 
     # ── Validation ──
 
+    def to_internal_value(self, data):
+        # Multipart sends "" for empty fields — reject for choice fields
+        for choice_field in ("payment_method", "payer_type"):
+            if choice_field in data and data[choice_field] == "":
+                raise serializers.ValidationError(
+                    {choice_field: "This field may not be blank."}
+                )
+        return super().to_internal_value(data)
+
     def validate(self, data):
         code = self._get_category_code(data)
 
@@ -501,6 +518,10 @@ class ExpenseSerializer(serializers.ModelSerializer):
 
         # ── Amount & cost splitting validation ──
         payer_type = data.get("payer_type")
+        if self.instance and payer_type and payer_type != self.instance.payer_type:
+            raise serializers.ValidationError(
+                {"payer_type": "Cannot change payer type after creation."}
+            )
         if payer_type is None and self.instance:
             payer_type = self.instance.payer_type
 

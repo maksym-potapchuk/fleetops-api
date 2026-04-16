@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   backend-lint:
-    name: Backend Lint
+    name: "Backend · Ruff lint & format"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -38,7 +38,7 @@ jobs:
         run: ruff format --check .
 
   backend-test:
-    name: Backend Test
+    name: "Backend · Django tests"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -93,6 +93,13 @@ jobs:
       - name: Configure Poetry
         run: poetry config virtualenvs.create false
 
+      - name: Cache Python packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('backend/poetry.lock') }}
+          restore-keys: pip-
+
       - name: Install dependencies
         run: poetry install --no-root
 
@@ -100,10 +107,10 @@ jobs:
         run: python manage.py migrate --settings=config.test_settings
 
       - name: Run tests
-        run: python manage.py test --settings=config.test_settings --verbosity=2
+        run: python manage.py test --settings=config.test_settings --verbosity=2 --noinput
 
   frontend-lint:
-    name: Frontend Lint
+    name: "Frontend · ESLint & TypeScript"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -128,7 +135,7 @@ jobs:
         run: npm run typecheck
 
   frontend-test:
-    name: Frontend Test
+    name: "Frontend · Vitest"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -150,7 +157,7 @@ jobs:
         run: npm run test:run
 
   build:
-    name: Build
+    name: "Docker · Build images"
     runs-on: ubuntu-latest
     needs: [backend-lint, backend-test, frontend-lint, frontend-test]
 

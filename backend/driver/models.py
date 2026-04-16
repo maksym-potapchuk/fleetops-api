@@ -19,13 +19,16 @@ class Driver(models.Model):
         return f"{self.first_name} {self.last_name}"
 
 
-class Deal(models.Model):
+class Deal(models.Model):  # noqa: DJ008 — unmanaged external table
     id = models.UUIDField(primary_key=True)
     status = models.CharField(max_length=50)
 
     class Meta:
         managed = False
         db_table = "deal"
+
+    def __str__(self) -> str:
+        return f"Deal {self.id} ({self.status})"
 
 
 class DriverVehicleDeal(models.Model):
