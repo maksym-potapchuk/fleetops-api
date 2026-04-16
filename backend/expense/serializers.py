@@ -444,6 +444,13 @@ class ExpenseSerializer(serializers.ModelSerializer):
     # ── Validation ──
 
     def validate(self, data):
+        # Reject empty-string payment_method / payer_type (multipart sends "" not null)
+        for choice_field in ("payment_method", "payer_type"):
+            if choice_field in data and data[choice_field] == "":
+                raise serializers.ValidationError(
+                    {choice_field: "This field may not be blank."}
+                )
+
         code = self._get_category_code(data)
 
         # Type-specific required fields
