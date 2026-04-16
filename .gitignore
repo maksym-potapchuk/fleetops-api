@@ -1,6 +1,9 @@
 .claude*
 .claude\worktrees\awesome-gates
 
+# Generated files
+dbdiagram.dbml
+
 # Environment secrets
 .env
 backend/.env
