@@ -63,6 +63,7 @@ class FleetVehicleRegulationSchema(models.Model):
 
     # DJ012: Meta → __str__ → custom methods
     class Meta:
+        ordering = ["-is_default", "title"]
         constraints = [
             models.UniqueConstraint(
                 fields=["is_default"],
@@ -194,6 +195,7 @@ class FleetVehicleRegulationEntry(models.Model):
 
     class Meta:
         unique_together = [("regulation", "item")]
+        ordering = ["item__id"]
 
     def __str__(self) -> str:
         return f"{self.item.title} → next at {self.next_due_km} km"
