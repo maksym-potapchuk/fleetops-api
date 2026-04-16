@@ -391,8 +391,6 @@ class LastDoneMiDisplayTest(RegulationCalcBaseTest):
 
     def test_assign_with_last_done_mi(self):
         """assign_regulation_to_vehicle stores last_done_mi."""
-        # Clean up existing regulation first
-        self.regulation.delete()
         result = assign_regulation_to_vehicle(
             vehicle_pk=self.vehicle.id,
             schema_id=self.schema.id,
