@@ -215,17 +215,13 @@ class MarkDoneNonStandardTest(RegulationCalcBaseTest):
 class OverrideNonStandardTest(RegulationCalcBaseTest):
     def test_override_256980_stored_exactly(self):
         self._assign(last_done_km=250_000)
-        self.client.patch(
-            self.url, {"next_due_km_override": 256_980}, format="json"
-        )
+        self.client.patch(self.url, {"next_due_km_override": 256_980}, format="json")
         self.entry.refresh_from_db()
         self.assertEqual(self.entry.next_due_km, 256_980)
 
     def test_override_13579_stored_exactly(self):
         self._assign(last_done_km=10_000)
-        self.client.patch(
-            self.url, {"next_due_km_override": 13_579}, format="json"
-        )
+        self.client.patch(self.url, {"next_due_km_override": 13_579}, format="json")
         self.entry.refresh_from_db()
         self.assertEqual(self.entry.next_due_km, 13_579)
 
@@ -240,9 +236,7 @@ class OverrideNonStandardTest(RegulationCalcBaseTest):
 
     def test_override_777777(self):
         self._assign(last_done_km=0)
-        self.client.patch(
-            self.url, {"next_due_km_override": 777_777}, format="json"
-        )
+        self.client.patch(self.url, {"next_due_km_override": 777_777}, format="json")
         self.entry.refresh_from_db()
         self.assertEqual(self.entry.next_due_km, 777_777)
 
@@ -305,3 +299,127 @@ class APIPrecisionNonStandardTest(RegulationCalcBaseTest):
         self.entry.refresh_from_db()
         self.assertEqual(self.entry.last_done_km, 314_159)
         self.assertEqual(self.entry.next_due_km, 324_159)
+
+
+# ---------------------------------------------------------------------------
+# last_done_mi display-only field (vehicle in miles)
+# ---------------------------------------------------------------------------
+
+
+class LastDoneMiDisplayTest(RegulationCalcBaseTest):
+    """last_done_mi stores user's mi input to avoid km↔mi rounding drift."""
+
+    def test_mark_done_with_mi_stores_both(self):
+        self._assign(last_done_km=0)
+        self.client.patch(
+            self.url,
+            {"last_done_km": 413_247, "last_done_mi": 256_780},
+            format="json",
+        )
+        self.entry.refresh_from_db()
+        self.assertEqual(self.entry.last_done_km, 413_247)
+        self.assertEqual(self.entry.last_done_mi, 256_780)
+
+    def test_mark_done_without_mi_clears_it(self):
+        """When km-unit vehicle marks done, last_done_mi should be null."""
+        self._assign(last_done_km=0)
+        self.client.patch(self.url, {"last_done_km": 256_980}, format="json")
+        self.entry.refresh_from_db()
+        self.assertIsNone(self.entry.last_done_mi)
+
+    def test_mi_value_256780_survives_round_trip(self):
+        """User enters 256780 mi → API returns last_done_mi=256780 (no drift)."""
+        self._assign(last_done_km=0)
+        response = self.client.patch(
+            self.url,
+            {"last_done_km": 413_247, "last_done_mi": 256_780},
+            format="json",
+        )
+        self.assertEqual(response.data["last_done_mi"], 256_780)
+
+    def test_next_due_mi_computed_from_mi_fields(self):
+        """next_due_mi = last_done_mi + effective_every_mi."""
+        self._assign(last_done_km=0)
+        # Set every_mi on the entry
+        self.client.patch(
+            self.url,
+            {
+                "last_done_km": 413_247,
+                "last_done_mi": 256_780,
+                "every_km": 20_000,
+                "every_mi": 12_427,
+            },
+            format="json",
+        )
+        self.entry.refresh_from_db()
+        self.assertEqual(self.entry.next_due_mi, 256_780 + 12_427)
+
+    def test_next_due_mi_is_none_without_every_mi(self):
+        """When every_mi is not set, next_due_mi falls back to None."""
+        self._assign(last_done_km=0)
+        self.client.patch(
+            self.url,
+            {"last_done_km": 100_000, "last_done_mi": 62_137},
+            format="json",
+        )
+        self.entry.refresh_from_db()
+        self.assertIsNone(self.entry.next_due_mi)
+
+    def test_plan_response_includes_mi_fields(self):
+        self._assign(last_done_km=0)
+        self.client.patch(
+            self.url,
+            {
+                "last_done_km": 413_247,
+                "last_done_mi": 256_780,
+                "every_km": 20_000,
+                "every_mi": 12_427,
+            },
+            format="json",
+        )
+        url = f"/api/v1/fleet/vehicles/{self.vehicle.id}/regulation/"
+        response = self.client.get(url)
+        entry = response.data["entries"][0]
+        self.assertEqual(entry["last_done_mi"], 256_780)
+        self.assertEqual(entry["next_due_mi"], 256_780 + 12_427)
+
+    def test_assign_with_last_done_mi(self):
+        """assign_regulation_to_vehicle stores last_done_mi."""
+        result = assign_regulation_to_vehicle(
+            vehicle_pk=self.vehicle.id,
+            schema_id=self.schema.id,
+            entries_data=[
+                {
+                    "item_id": self.item.id,
+                    "last_done_km": 413_247,
+                    "last_done_mi": 256_780,
+                }
+            ],
+            user=self.user,
+        )
+        self.assertEqual(result["entries_created"], 1)
+        entry = FleetVehicleRegulationEntry.objects.get(
+            regulation__vehicle=self.vehicle
+        )
+        self.assertEqual(entry.last_done_mi, 256_780)
+
+    def test_non_standard_mi_values_stored_exactly(self):
+        """Various non-standard mi values stored without drift."""
+        self._assign(last_done_km=0)
+        test_cases = [
+            (16_093, 9_999),
+            (80_467, 49_999),
+            (160_934, 100_000),
+            (321_868, 199_999),
+            (804_670, 500_000),
+        ]
+        for km, mi in test_cases:
+            self.client.patch(
+                self.url,
+                {"last_done_km": km, "last_done_mi": mi},
+                format="json",
+            )
+            self.entry.refresh_from_db()
+            self.assertEqual(
+                self.entry.last_done_mi, mi, f"last_done_mi={mi} not stored correctly"
+            )

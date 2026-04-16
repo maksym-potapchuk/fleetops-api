@@ -63,6 +63,7 @@ class FleetVehicleRegulationSchema(models.Model):
 
     # DJ012: Meta → __str__ → custom methods
     class Meta:
+        ordering = ["-is_default", "title"]
         constraints = [
             models.UniqueConstraint(
                 fields=["is_default"],
@@ -160,6 +161,11 @@ class FleetVehicleRegulationEntry(models.Model):
         related_name="entries",
     )
     last_done_km = models.PositiveIntegerField(default=0)
+    last_done_mi = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Display-only mile value. Stored to avoid km↔mi rounding drift.",
+    )
     every_km = models.PositiveIntegerField(
         null=True,
         blank=True,
@@ -189,6 +195,7 @@ class FleetVehicleRegulationEntry(models.Model):
 
     class Meta:
         unique_together = [("regulation", "item")]
+        ordering = ["item__id"]
 
     def __str__(self) -> str:
         return f"{self.item.title} → next at {self.next_due_km} km"
@@ -222,6 +229,13 @@ class FleetVehicleRegulationEntry(models.Model):
         if self.next_due_km_override is not None:
             return self.next_due_km_override
         return self.last_done_km + self.effective_every_km
+
+    @property
+    def next_due_mi(self):
+        """Display-only: last_done_mi + effective_every_mi when both are set."""
+        if self.last_done_mi is not None and self.effective_every_mi is not None:
+            return self.last_done_mi + self.effective_every_mi
+        return None
 
     def is_due(self, current_km: int) -> bool:
         return current_km >= self.next_due_km

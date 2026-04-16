@@ -1,6 +1,9 @@
 .claude*
 .claude\worktrees\awesome-gates
 
+# Generated files
+dbdiagram.dbml
+
 # Environment secrets
 .env
 backend/.env
@@ -22,3 +25,8 @@ import_report.json
 
 # Database backups
 backups/
+
+# Playwright
+frontend/e2e/.auth/
+frontend/test-results/
+frontend/playwright-report/
