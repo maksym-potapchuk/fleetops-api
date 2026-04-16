@@ -208,10 +208,6 @@ class ExpenseStressTest(TestCase):
             bucket = "pass" if res.status_code == 201 else "fail"
             results[bucket].append((ef[:50], res.status_code))
 
-        # 501 chars MUST be rejected (max_length=500)
-        over_500_passed = [
-            r for r in results["pass"] if len(r[0]) > 50 and "a" * 50 in r[0]
-        ]  # noqa: F841
         # Check in DB that XSS is stored as-is (not executed)
         xss_expenses = Expense.objects.filter(expense_for__contains="<script>")
         if xss_expenses.exists():
