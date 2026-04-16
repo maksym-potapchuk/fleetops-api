@@ -29,9 +29,9 @@ DEFAULT_EQUIPMENT = [
 
 DEFAULT_REGULATION_SCHEMA = {
     "title": "РЕГЛАМЕНТ ОБСЛУГОВУВАННЯ",
-    "title_pl": "REGULAMIN SERWISOWY",
+    "title_pl": "HARMONOGRAM OBSŁUGI TECHNICZNEJ",
     "title_uk": "РЕГЛАМЕНТ ОБСЛУГОВУВАННЯ",
-    "title_en": "MAINTENANCE REGULATION",
+    "title_en": "MAINTENANCE SCHEDULE",
     "items": [
         {
             "title": "Заміна моторного масла та масляного фільтра",
