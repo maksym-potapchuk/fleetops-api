@@ -91,6 +91,7 @@ class FleetVehicleRegulationSchemaSerializer(serializers.ModelSerializer):
 class RegulationEntryInitialSerializer(serializers.Serializer):
     item_id = serializers.IntegerField()
     last_done_km = serializers.IntegerField(min_value=0)
+    last_done_mi = serializers.IntegerField(min_value=0, required=False, default=None)
     every_km = serializers.IntegerField(min_value=1, required=False, default=None)
     notify_before_km = serializers.IntegerField(
         min_value=0, required=False, default=None
@@ -144,6 +145,7 @@ class AddRegulationEntrySerializer(serializers.Serializer):
         min_value=0, required=False, default=None
     )
     last_done_km = serializers.IntegerField(min_value=0, default=0)
+    last_done_mi = serializers.IntegerField(min_value=0, required=False, default=None)
 
 
 class FleetVehicleRegulationSchemaUpdateSerializer(serializers.ModelSerializer):
@@ -260,6 +262,7 @@ class EquipmentListSerializer(serializers.ModelSerializer):
 class VehicleRegulationPlanEntrySerializer(serializers.ModelSerializer):
     item = FleetVehicleRegulationItemSerializer(read_only=True)
     next_due_km = serializers.IntegerField(read_only=True)
+    next_due_mi = serializers.IntegerField(read_only=True)
     effective_every_km = serializers.IntegerField(read_only=True)
     effective_every_mi = serializers.IntegerField(read_only=True)
     effective_notify_before_km = serializers.IntegerField(read_only=True)
@@ -271,6 +274,7 @@ class VehicleRegulationPlanEntrySerializer(serializers.ModelSerializer):
             "id",
             "item",
             "last_done_km",
+            "last_done_mi",
             "every_km",
             "every_mi",
             "notify_before_km",
@@ -281,6 +285,7 @@ class VehicleRegulationPlanEntrySerializer(serializers.ModelSerializer):
             "effective_notify_before_km",
             "effective_notify_before_mi",
             "next_due_km",
+            "next_due_mi",
             "updated_at",
         ]
 
