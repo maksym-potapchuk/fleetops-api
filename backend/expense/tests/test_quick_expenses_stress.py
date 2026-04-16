@@ -3,13 +3,13 @@ Quick expenses stress test — all category types via vehicle expense endpoint,
 CLIENT/COMPANY payer, 1000 expenses to 1 vehicle, edge-case amounts/dates.
 """
 
-import time
 from decimal import Decimal
+import time
 
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from expense.models import Expense, ExpenseCategory, FuelExpenseDetail, ServiceExpenseDetail
+from expense.models import Expense, ExpenseCategory, FuelExpenseDetail
 from expense.tests.helpers import authenticate, make_user, make_vehicle
 from fleet_management.models import FleetService
 
