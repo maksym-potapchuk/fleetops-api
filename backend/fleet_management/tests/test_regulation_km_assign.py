@@ -73,9 +73,11 @@ class KmVehicleRegulationTest(TestCase):
         self.assertEqual(self._entry().effective_every_km, 10000)
 
     def test_entry_override_every_km(self):
-        self._assign(entries=[
-            {"item_id": self.item.id, "last_done_km": 50000, "every_km": 15000},
-        ])
+        self._assign(
+            entries=[
+                {"item_id": self.item.id, "last_done_km": 50000, "every_km": 15000},
+            ]
+        )
         entry = self._entry()
         self.assertEqual(entry.effective_every_km, 15000)
         self.assertEqual(entry.next_due_km, 65000)
@@ -83,11 +85,13 @@ class KmVehicleRegulationTest(TestCase):
     def test_assign_multiple_entries(self):
         item2 = make_item(self.schema, title="Brake Fluid", every_km=20000)
         item3 = make_item(self.schema, title="Air Filter", every_km=30000)
-        self._assign(entries=[
-            {"item_id": self.item.id, "last_done_km": 50000},
-            {"item_id": item2.id, "last_done_km": 40000},
-            {"item_id": item3.id, "last_done_km": 30000},
-        ])
+        self._assign(
+            entries=[
+                {"item_id": self.item.id, "last_done_km": 50000},
+                {"item_id": item2.id, "last_done_km": 40000},
+                {"item_id": item3.id, "last_done_km": 30000},
+            ]
+        )
         entries = FleetVehicleRegulationEntry.objects.all()
         self.assertEqual(entries.count(), 3)
         due_values = sorted(e.next_due_km for e in entries)
@@ -95,10 +99,12 @@ class KmVehicleRegulationTest(TestCase):
 
     def test_history_created_for_each_entry(self):
         item2 = make_item(self.schema, title="Coolant", every_km=15000)
-        self._assign(entries=[
-            {"item_id": self.item.id, "last_done_km": 50000},
-            {"item_id": item2.id, "last_done_km": 45000},
-        ])
+        self._assign(
+            entries=[
+                {"item_id": self.item.id, "last_done_km": 50000},
+                {"item_id": item2.id, "last_done_km": 45000},
+            ]
+        )
         history_count = FleetVehicleRegulationHistory.objects.filter(
             event_type="km_updated"
         ).count()

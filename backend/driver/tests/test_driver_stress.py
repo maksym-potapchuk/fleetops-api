@@ -147,9 +147,7 @@ class NameValidationEdgeCasesTest(TestCase):
             )
             passed = res.status_code == 201
             if passed != should_pass:
-                bugs.append(
-                    f"{desc}: got {res.status_code} {str(res.data)[:200]}"
-                )
+                bugs.append(f"{desc}: got {res.status_code} {str(res.data)[:200]}")
 
         self.assertEqual(bugs, [], f"Name validation bugs: {bugs}")
 
@@ -171,6 +169,7 @@ class DriverFilterAndPaginationTest(TestCase):
 
     def setUp(self):
         from django.core.cache import cache
+
         cache.clear()
         self.client = APIClient()
         self.user = make_user(email="filter@test.com", username="filteruser")
@@ -241,27 +240,31 @@ class DriverBulkPerformanceTest(TestCase):
 
     def test_bulk_create_1000_drivers(self):
         t0 = time.time()
-        Driver.objects.bulk_create([
-            Driver(
-                first_name=f"Driver{i}",
-                last_name=f"Bulk{i}",
-                phone_number=f"48400{i:06d}",
-            )
-            for i in range(1000)
-        ])
+        Driver.objects.bulk_create(
+            [
+                Driver(
+                    first_name=f"Driver{i}",
+                    last_name=f"Bulk{i}",
+                    phone_number=f"48400{i:06d}",
+                )
+                for i in range(1000)
+            ]
+        )
         elapsed = time.time() - t0
         self.assertEqual(Driver.objects.count(), 1000)
         self.assertLess(elapsed, 5, f"1000 drivers took {elapsed:.1f}s")
 
     def test_list_1000_drivers_response_time(self):
-        Driver.objects.bulk_create([
-            Driver(
-                first_name=f"D{i}",
-                last_name=f"L{i}",
-                phone_number=f"48500{i:06d}",
-            )
-            for i in range(1000)
-        ])
+        Driver.objects.bulk_create(
+            [
+                Driver(
+                    first_name=f"D{i}",
+                    last_name=f"L{i}",
+                    phone_number=f"48500{i:06d}",
+                )
+                for i in range(1000)
+            ]
+        )
         t0 = time.time()
         res = self.client.get(self.BASE_URL)
         elapsed = time.time() - t0
@@ -270,14 +273,16 @@ class DriverBulkPerformanceTest(TestCase):
         self.assertLess(elapsed, 3, f"List 1k drivers took {elapsed:.1f}s")
 
     def test_search_among_1000_drivers(self):
-        Driver.objects.bulk_create([
-            Driver(
-                first_name="UniqueTarget" if i == 500 else f"Normal{i}",
-                last_name=f"Search{i}",
-                phone_number=f"48600{i:06d}",
-            )
-            for i in range(1000)
-        ])
+        Driver.objects.bulk_create(
+            [
+                Driver(
+                    first_name="UniqueTarget" if i == 500 else f"Normal{i}",
+                    last_name=f"Search{i}",
+                    phone_number=f"48600{i:06d}",
+                )
+                for i in range(1000)
+            ]
+        )
         t0 = time.time()
         res = self.client.get(f"{self.BASE_URL}?search=UniqueTarget")
         elapsed = time.time() - t0
