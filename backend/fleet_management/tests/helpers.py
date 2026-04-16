@@ -38,12 +38,13 @@ def make_schema(title="Basic", is_default=False, user=None):
     )
 
 
-def make_item(schema, title="Oil Change", every_km=10_000, notify_before_km=500):
+def make_item(schema, title="Oil Change", every_km=10_000, notify_before_km=500, **kwargs):
     return FleetVehicleRegulationItem.objects.create(
         schema=schema,
         title=title,
         every_km=every_km,
         notify_before_km=notify_before_km,
+        **kwargs,
     )
 
 
