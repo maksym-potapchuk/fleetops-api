@@ -83,6 +83,8 @@ def assign_regulation_to_vehicle(vehicle_pk, schema_id, entries_data, user):
             "item_id": entry_data["item_id"],
             "last_done_km": entry_data["last_done_km"],
         }
+        if entry_data.get("last_done_mi") is not None:
+            create_kwargs["last_done_mi"] = entry_data["last_done_mi"]
         if entry_data.get("every_km") is not None:
             create_kwargs["every_km"] = entry_data["every_km"]
         if entry_data.get("notify_before_km") is not None:

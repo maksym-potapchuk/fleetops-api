@@ -267,6 +267,7 @@ class VehicleRegulationEntryUpdate(APIView):
         )
 
         km_raw = request.data.get("last_done_km")
+        mi_raw = request.data.get("last_done_mi")
         new_every = request.data.get("every_km")
         new_every_mi = request.data.get("every_mi")
         new_notify = request.data.get("notify_before_km")
@@ -300,6 +301,12 @@ class VehicleRegulationEntryUpdate(APIView):
                 )
             entry.last_done_km = int(km_raw)
             update_fields.append("last_done_km")
+            # Store display-only mile value to avoid km↔mi rounding drift
+            if mi_raw is not None and str(mi_raw).isdigit():
+                entry.last_done_mi = int(mi_raw)
+            else:
+                entry.last_done_mi = None
+            update_fields.append("last_done_mi")
             # Reset one-time override on mark-done
             if entry.next_due_km_override is not None:
                 entry.next_due_km_override = None
@@ -434,6 +441,8 @@ class VehicleRegulationEntryAddView(APIView):
             "every_km": d["every_km"],
             "notify_before_km": d["notify_before_km"],
         }
+        if d.get("last_done_mi") is not None:
+            entry_defaults["last_done_mi"] = d["last_done_mi"]
         if d.get("every_mi") is not None:
             entry_defaults["every_mi"] = d["every_mi"]
         if d.get("notify_before_mi") is not None:
