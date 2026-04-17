@@ -9,6 +9,7 @@ class RegulationNotificationStatus(models.TextChoices):
 
 class EventType(models.TextChoices):
     PERFORMED = "performed", "Service Performed"
+    EDITED = "edited", "Entry Edited"
     KM_UPDATED = "km_updated", "KM Updated"
     NOTIFIED = "notified", "Notification Sent"
 
@@ -29,7 +30,7 @@ DEFAULT_EQUIPMENT = [
 
 DEFAULT_REGULATION_SCHEMA = {
     "title": "РЕГЛАМЕНТ ОБСЛУГОВУВАННЯ",
-    "title_pl": "HARMONOGRAM OBSŁUGI TECHNICZNEJ",
+    "title_pl": "REGULAMIN OBSŁUGI TECHNICZNEJ",
     "title_uk": "РЕГЛАМЕНТ ОБСЛУГОВУВАННЯ",
     "title_en": "MAINTENANCE SCHEDULE",
     "items": [

@@ -370,12 +370,16 @@ class VehicleRegulationEntryUpdate(APIView):
         # ── History event ──
         if has_km:
             km = int(km_raw)
+            is_edit = request.data.get("action") == "edit"
+            note = request.data.get("note", "")
+            if is_edit and history_parts:
+                note = "; ".join(history_parts) + (f"; {note}" if note else "")
             FleetVehicleRegulationHistory.objects.create(
                 entry=entry,
-                event_type=EventType.PERFORMED,
+                event_type=EventType.EDITED if is_edit else EventType.PERFORMED,
                 km_at_event=km,
                 km_remaining=entry.next_due_km - km,
-                note=request.data.get("note", ""),
+                note=note,
                 created_by=request.user,
             )
         elif history_parts:
