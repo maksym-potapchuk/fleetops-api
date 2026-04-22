@@ -260,3 +260,31 @@ class TechnicalInspection(models.Model):
 
     def __str__(self) -> str:
         return f"{self.vehicle} — inspection {self.inspection_date}"
+
+
+class VehicleDocument(models.Model):
+    class DocumentType(models.TextChoices):
+        PHOTO = "photo", "Photo"
+        PDF = "pdf", "PDF"
+
+    vehicle = models.ForeignKey(
+        "vehicle.Vehicle",
+        on_delete=models.CASCADE,
+        related_name="documents",
+    )
+    file = models.FileField(upload_to="vehicles/documents/")
+    document_type = models.CharField(max_length=10, choices=DocumentType.choices)
+    created_by = models.ForeignKey(
+        "account.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uploaded_vehicle_documents",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["document_type", "created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.vehicle} — {self.document_type}"

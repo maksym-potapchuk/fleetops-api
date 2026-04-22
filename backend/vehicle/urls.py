@@ -52,6 +52,16 @@ urlpatterns = [
         name="vehicle-photo-cover",
     ),
     path(
+        "<uuid:pk>/documents/",
+        views.VehicleDocumentListCreateView.as_view(),
+        name="vehicle-documents",
+    ),
+    path(
+        "<uuid:pk>/documents/<int:document_pk>/",
+        views.VehicleDocumentDestroyView.as_view(),
+        name="vehicle-document-delete",
+    ),
+    path(
         "<uuid:pk>/inspections/",
         views.TechnicalInspectionListCreateView.as_view(),
         name="vehicle-inspections",

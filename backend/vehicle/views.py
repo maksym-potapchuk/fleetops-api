@@ -18,12 +18,14 @@ from .models import (
     MileageLog,
     TechnicalInspection,
     Vehicle,
+    VehicleDocument,
     VehiclePhoto,
     VehicleStatusHistory,
 )
 from .serializers import (
     MileageLogSerializer,
     TechnicalInspectionSerializer,
+    VehicleDocumentSerializer,
     VehiclePhotoSerializer,
     VehicleSerializer,
 )
@@ -73,6 +75,7 @@ class VehicleListCreateView(generics.ListCreateAPIView):
     queryset = (
         Vehicle.objects.prefetch_related(
             "photos",
+            "documents",
             "inspections",
             "equipment_list",
             Prefetch(
@@ -141,6 +144,7 @@ class VehicleRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
     queryset = (
         Vehicle.objects.prefetch_related(
             "photos",
+            "documents",
             "inspections",
             "equipment_list",
             Prefetch(
@@ -310,6 +314,7 @@ class VehicleArchiveListView(generics.ListAPIView):
     queryset = (
         Vehicle.objects.prefetch_related(
             "photos",
+            "documents",
             "inspections",
             Prefetch(
                 "deals",
@@ -503,6 +508,54 @@ class VehiclePhotoCoverView(generics.GenericAPIView):
         photo.save(update_fields=["is_cover"])
         cache_utils.invalidate_vehicle(pk)
         return Response(VehiclePhotoSerializer(photo).data)
+
+
+class VehicleDocumentListCreateView(generics.ListCreateAPIView):
+    """
+    GET  /vehicle/<pk>/documents/  -- list registration documents for a vehicle.
+    POST /vehicle/<pk>/documents/  -- upload a new document (multipart, field: file).
+
+    Document type (photo/pdf) is auto-detected from file extension/mimetype.
+    Hard limit: max 2 files per document type per vehicle.
+    """
+
+    serializer_class = VehicleDocumentSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    def get_queryset(self):
+        return VehicleDocument.objects.filter(vehicle_id=self.kwargs["pk"])
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["vehicle_id"] = self.kwargs["pk"]
+        return ctx
+
+    def perform_create(self, serializer):
+        serializer.save(
+            vehicle_id=self.kwargs["pk"],
+            created_by=self.request.user,
+        )
+        cache_utils.invalidate_vehicle(self.kwargs["pk"])
+
+
+class VehicleDocumentDestroyView(generics.DestroyAPIView):
+    """DELETE /vehicle/<pk>/documents/<document_pk>/ -- remove a document."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return VehicleDocument.objects.filter(vehicle_id=self.kwargs["pk"])
+
+    def get_object(self):
+        return generics.get_object_or_404(
+            self.get_queryset(), pk=self.kwargs["document_pk"]
+        )
+
+    def perform_destroy(self, instance):
+        instance.file.delete(save=False)
+        instance.delete()
+        cache_utils.invalidate_vehicle(self.kwargs["pk"])
 
 
 class TechnicalInspectionListCreateView(generics.ListCreateAPIView):

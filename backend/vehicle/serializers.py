@@ -10,8 +10,11 @@ from .models import (
     MileageLog,
     TechnicalInspection,
     Vehicle,
+    VehicleDocument,
     VehiclePhoto,
 )
+
+MAX_DOCUMENTS_PER_TYPE = 2
 
 
 class VehiclePhotoSerializer(serializers.ModelSerializer):
@@ -28,6 +31,55 @@ class VehiclePhotoSerializer(serializers.ModelSerializer):
         if image_url:
             rep["image"] = media_url(image_url)
         return rep
+
+
+class VehicleDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VehicleDocument
+        fields = ["id", "file", "document_type", "created_at", "created_by"]
+        read_only_fields = ["id", "document_type", "created_at", "created_by"]
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        file_url = rep.get("file") or ""
+        if file_url:
+            rep["file"] = media_url(file_url)
+        return rep
+
+    def validate_file(self, value):
+        name = (getattr(value, "name", "") or "").lower()
+        content_type = (getattr(value, "content_type", "") or "").lower()
+        is_pdf = name.endswith(".pdf") or content_type == "application/pdf"
+        is_image = content_type.startswith("image/") or name.endswith(
+            (".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif")
+        )
+        if not (is_pdf or is_image):
+            raise serializers.ValidationError("Only images or PDF files are allowed.")
+        self.context["_detected_type"] = (
+            VehicleDocument.DocumentType.PDF
+            if is_pdf
+            else VehicleDocument.DocumentType.PHOTO
+        )
+        return value
+
+    def validate(self, attrs):
+        vehicle_id = self.context.get("vehicle_id")
+        doc_type = self.context.get("_detected_type")
+        if vehicle_id and doc_type:
+            existing = VehicleDocument.objects.filter(
+                vehicle_id=vehicle_id, document_type=doc_type
+            ).count()
+            if existing >= MAX_DOCUMENTS_PER_TYPE:
+                raise serializers.ValidationError(
+                    {
+                        "file": (
+                            f"Limit reached: max {MAX_DOCUMENTS_PER_TYPE} "
+                            f"{doc_type} files per vehicle."
+                        )
+                    }
+                )
+            attrs["document_type"] = doc_type
+        return attrs
 
 
 class LinkedExpenseSerializer(serializers.Serializer):
@@ -124,6 +176,7 @@ class TechnicalInspectionSerializer(serializers.ModelSerializer):
 
 class VehicleSerializer(serializers.ModelSerializer):
     photos = VehiclePhotoSerializer(many=True, read_only=True)
+    documents = VehicleDocumentSerializer(many=True, read_only=True)
     last_inspection_date = serializers.DateField(read_only=True, default=None)
     next_inspection_date = serializers.DateField(read_only=True, default=None)
     days_until_inspection = serializers.IntegerField(read_only=True, default=None)
@@ -153,6 +206,7 @@ class VehicleSerializer(serializers.ModelSerializer):
             "is_selected",
             "status",
             "photos",
+            "documents",
             "last_inspection_date",
             "next_inspection_date",
             "days_until_inspection",
@@ -172,6 +226,7 @@ class VehicleSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "photos",
+            "documents",
             "last_inspection_date",
             "next_inspection_date",
             "days_until_inspection",
