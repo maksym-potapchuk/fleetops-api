@@ -380,10 +380,10 @@ class TechnicalInspectionSerializer(serializers.ModelSerializer):
                 existing = RegistrationCertificate.objects.get(
                     pk=cert_id, vehicle=inspection.vehicle
                 )
-            except RegistrationCertificate.DoesNotExist:
+            except RegistrationCertificate.DoesNotExist as err:
                 raise serializers.ValidationError(
                     {"certificate_id": "Certificate not found for this vehicle."}
-                )
+                ) from err
             inspection.registration_certificate = existing
             inspection.save(update_fields=["registration_certificate"])
             return inspection
