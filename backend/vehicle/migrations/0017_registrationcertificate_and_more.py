@@ -8,55 +8,120 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('vehicle', '0016_alter_vehicle_fuel_type'),
+        ("vehicle", "0016_alter_vehicle_fuel_type"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='RegistrationCertificate',
+            name="RegistrationCertificate",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('certificate_type', models.CharField(choices=[('permanent', 'Permanent'), ('temporary', 'Temporary')], default='permanent', max_length=10)),
-                ('issued_at', models.DateField()),
-                ('valid_until', models.DateField(blank=True, null=True)),
-                ('notes', models.TextField(blank=True)),
-                ('is_active', models.BooleanField(db_index=True, default=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('created_by', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='created_registration_certificates', to=settings.AUTH_USER_MODEL)),
-                ('vehicle', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='registration_certificates', to='vehicle.vehicle')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                (
+                    "certificate_type",
+                    models.CharField(
+                        choices=[
+                            ("permanent", "Permanent"),
+                            ("temporary", "Temporary"),
+                        ],
+                        default="permanent",
+                        max_length=10,
+                    ),
+                ),
+                ("issued_at", models.DateField()),
+                ("valid_until", models.DateField(blank=True, null=True)),
+                ("notes", models.TextField(blank=True)),
+                ("is_active", models.BooleanField(db_index=True, default=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "created_by",
+                    models.ForeignKey(
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="created_registration_certificates",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "vehicle",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="registration_certificates",
+                        to="vehicle.vehicle",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-issued_at', '-created_at'],
+                "ordering": ["-issued_at", "-created_at"],
             },
         ),
         migrations.AddField(
-            model_name='technicalinspection',
-            name='registration_certificate',
-            field=models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='inspection', to='vehicle.registrationcertificate'),
+            model_name="technicalinspection",
+            name="registration_certificate",
+            field=models.OneToOneField(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="inspection",
+                to="vehicle.registrationcertificate",
+            ),
         ),
         migrations.CreateModel(
-            name='RegistrationCertificatePhoto',
+            name="RegistrationCertificatePhoto",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('side', models.CharField(choices=[('front', 'Front'), ('back', 'Back')], max_length=5)),
-                ('image', models.ImageField(upload_to=vehicle.models.certificate_photo_path)),
-                ('uploaded_at', models.DateTimeField(auto_now_add=True)),
-                ('certificate', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='photos', to='vehicle.registrationcertificate')),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                (
+                    "side",
+                    models.CharField(
+                        choices=[("front", "Front"), ("back", "Back")], max_length=5
+                    ),
+                ),
+                (
+                    "image",
+                    models.ImageField(upload_to=vehicle.models.certificate_photo_path),
+                ),
+                ("uploaded_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "certificate",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="photos",
+                        to="vehicle.registrationcertificate",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['side'],
+                "ordering": ["side"],
             },
         ),
         migrations.AddIndex(
-            model_name='registrationcertificate',
-            index=models.Index(fields=['vehicle', 'is_active'], name='idx_cert_vehicle_active'),
+            model_name="registrationcertificate",
+            index=models.Index(
+                fields=["vehicle", "is_active"], name="idx_cert_vehicle_active"
+            ),
         ),
         migrations.AddConstraint(
-            model_name='registrationcertificatephoto',
-            constraint=models.UniqueConstraint(fields=('certificate', 'side'), name='uniq_certificate_side'),
+            model_name="registrationcertificatephoto",
+            constraint=models.UniqueConstraint(
+                fields=("certificate", "side"), name="uniq_certificate_side"
+            ),
         ),
     ]

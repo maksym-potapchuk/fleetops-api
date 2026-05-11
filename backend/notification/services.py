@@ -438,9 +438,7 @@ def check_certificate_notifications() -> list[Notification]:
         elif days_remaining <= CERTIFICATE_REMINDER_WINDOW_DAYS:
             # Weekly reminders: send up to N notifications, one per week,
             # while the temporary certificate is in the reminder window.
-            reminder_prefix = (
-                f"certificate_expiring:{cert.vehicle_id}:{cert.id}"
-            )
+            reminder_prefix = f"certificate_expiring:{cert.vehicle_id}:{cert.id}"
             should_send, reminder_num = _should_send_overdue_reminder(
                 reminder_prefix,
                 # `overdue_days` arg in helper is repurposed: any non-negative
