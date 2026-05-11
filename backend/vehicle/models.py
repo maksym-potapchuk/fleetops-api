@@ -27,6 +27,7 @@ class Vehicle(models.Model):
         choices=DistanceUnit.choices,
         default=DistanceUnit.KM,
     )
+    tire_rim_diameter = models.PositiveSmallIntegerField(null=True, blank=True)
     is_selected = models.BooleanField(default=True)
     status = models.CharField(
         max_length=20,
@@ -77,6 +78,8 @@ class Vehicle(models.Model):
             or self.equipment_list.exists()
             or self.mileage_logs.exists()
             or self.expenses.exists()
+            or self.registration_certificates.exists()
+            or self.documents.exists()
         )
 
 
@@ -233,6 +236,128 @@ class MileageLog(models.Model):
         return f"{self.vehicle} — {self.km} km ({self.recorded_at})"
 
 
+def vehicle_document_path(instance, filename):
+    return f"vehicles/documents/{instance.vehicle_id}/{filename}"
+
+
+class VehicleDocumentType(models.TextChoices):
+    TDT = "TDT", "TDT"
+    OTHER = "OTHER", "Other"
+
+
+class VehicleDocument(models.Model):
+    """Document attached to a vehicle with a coarse type (TDT / Other)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    vehicle = models.ForeignKey(
+        "vehicle.Vehicle",
+        on_delete=models.CASCADE,
+        related_name="documents",
+    )
+    doc_type = models.CharField(
+        max_length=10,
+        choices=VehicleDocumentType.choices,
+        default=VehicleDocumentType.OTHER,
+    )
+    title = models.CharField(max_length=120, blank=True)
+    file = models.FileField(upload_to=vehicle_document_path)
+    created_by = models.ForeignKey(
+        "account.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="created_vehicle_documents",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return self.title or f"Document ({self.vehicle})"
+
+
+class CertificateType(models.TextChoices):
+    PERMANENT = "permanent", "Permanent"
+    TEMPORARY = "temporary", "Temporary"
+
+
+class RegistrationCertificate(models.Model):
+    """Vehicle registration certificate (dowód rejestracyjny / тех паспорт).
+
+    A vehicle has at most one active certificate; new certificates supersede
+    the previous one. Temporary certificates carry a mandatory expiry date
+    and trigger expiry notifications.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    vehicle = models.ForeignKey(
+        "vehicle.Vehicle",
+        on_delete=models.CASCADE,
+        related_name="registration_certificates",
+    )
+    certificate_type = models.CharField(
+        max_length=10,
+        choices=CertificateType.choices,
+        default=CertificateType.PERMANENT,
+    )
+    issued_at = models.DateField()
+    valid_until = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_by = models.ForeignKey(
+        "account.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="created_registration_certificates",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-issued_at", "-created_at"]
+        indexes = [
+            models.Index(
+                fields=["vehicle", "is_active"],
+                name="idx_cert_vehicle_active",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.vehicle} — {self.certificate_type} ({self.issued_at})"
+
+
+def certificate_photo_path(instance, filename):
+    return f"vehicles/certificates/{instance.certificate_id}/{instance.side}_{filename}"
+
+
+class RegistrationCertificatePhoto(models.Model):
+    class Side(models.TextChoices):
+        FRONT = "front", "Front"
+        BACK = "back", "Back"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    certificate = models.ForeignKey(
+        RegistrationCertificate,
+        on_delete=models.CASCADE,
+        related_name="photos",
+    )
+    side = models.CharField(max_length=5, choices=Side.choices)
+    image = models.ImageField(upload_to=certificate_photo_path)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["side"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["certificate", "side"],
+                name="uniq_certificate_side",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.certificate} — {self.side}"
+
+
 class TechnicalInspection(models.Model):
     vehicle = models.ForeignKey(
         "vehicle.Vehicle",
@@ -245,6 +370,13 @@ class TechnicalInspection(models.Model):
         upload_to="vehicles/inspections/",
         blank=True,
         null=True,
+    )
+    registration_certificate = models.OneToOneField(
+        RegistrationCertificate,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="inspection",
     )
     notes = models.TextField(blank=True)
     created_by = models.ForeignKey(
