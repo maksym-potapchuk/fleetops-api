@@ -17,7 +17,6 @@ MANAGERS_GROUP = "notifications_managers"
 # ── Default thresholds (used when no preferences exist) ──────────────────────
 DEFAULT_INSPECTION_DAYS = [7, 3, 1]
 DEFAULT_SERVICE_PLAN_DAYS = [3, 1]
-DEFAULT_CERTIFICATE_DAYS = [7, 3, 1]
 # Temporary certificate reminders: weekly cadence, up to 5 reminders.
 CERTIFICATE_REMINDER_WINDOW_DAYS = 30
 CERTIFICATE_REMINDER_INTERVAL_DAYS = 7
@@ -396,11 +395,6 @@ def check_certificate_notifications() -> list[Notification]:
     if prefs and not prefs.certificate_enabled:
         return []
 
-    threshold_days = (
-        prefs.certificate_notify_days
-        if prefs and prefs.certificate_notify_days
-        else DEFAULT_CERTIFICATE_DAYS
-    )
     overdue_interval = (
         prefs.overdue_reminder_interval if prefs else DEFAULT_OVERDUE_INTERVAL
     )
