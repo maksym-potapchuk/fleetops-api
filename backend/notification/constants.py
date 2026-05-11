@@ -8,6 +8,14 @@ class NotificationType(models.TextChoices):
     SERVICE_REPORT = "service_report", "Service Report"
     INSPECTION_EXPIRING = "inspection_expiring", "Technical Inspection Expiring"
     INSPECTION_EXPIRED = "inspection_expired", "Technical Inspection Expired"
+    CERTIFICATE_EXPIRING = (
+        "certificate_expiring",
+        "Registration Certificate Expiring",
+    )
+    CERTIFICATE_EXPIRED = (
+        "certificate_expired",
+        "Registration Certificate Expired",
+    )
     SERVICE_PLAN_DUE = "service_plan_due", "Service Plan Due"
     SERVICE_PLAN_OVERDUE = "service_plan_overdue", "Service Plan Overdue"
 

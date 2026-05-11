@@ -17,6 +17,11 @@ MANAGERS_GROUP = "notifications_managers"
 # ── Default thresholds (used when no preferences exist) ──────────────────────
 DEFAULT_INSPECTION_DAYS = [7, 3, 1]
 DEFAULT_SERVICE_PLAN_DAYS = [3, 1]
+DEFAULT_CERTIFICATE_DAYS = [7, 3, 1]
+# Temporary certificate reminders: weekly cadence, up to 5 reminders.
+CERTIFICATE_REMINDER_WINDOW_DAYS = 30
+CERTIFICATE_REMINDER_INTERVAL_DAYS = 7
+CERTIFICATE_REMINDER_MAX = 5
 DEFAULT_OVERDUE_INTERVAL = 7
 DEFAULT_OVERDUE_MAX = 3
 DEFAULT_REGULATION_NOTIFY_BEFORE_KM = 500
@@ -147,6 +152,9 @@ def check_regulation_notifications(vehicle) -> list[Notification]:
 
     prefs = _get_global_preferences()
     if prefs and not prefs.regulation_enabled:
+        return []
+    # Skip sold/archived vehicles — they shouldn't generate any reminders.
+    if vehicle.status == "SOLD" or vehicle.is_archived:
         return []
 
     # Global threshold overrides per-item settings
@@ -374,6 +382,103 @@ def check_service_plan_notifications() -> list[Notification]:
     return created
 
 
+# ── Registration certificate checks (date-based, temporary only) ───────────
+
+
+def check_certificate_notifications() -> list[Notification]:
+    """Notify about temporary registration certificates approaching/past expiry.
+
+    Only active temporary certificates with valid_until set are checked.
+    """
+    from vehicle.models import CertificateType, RegistrationCertificate
+
+    prefs = _get_global_preferences()
+    if prefs and not prefs.certificate_enabled:
+        return []
+
+    threshold_days = (
+        prefs.certificate_notify_days
+        if prefs and prefs.certificate_notify_days
+        else DEFAULT_CERTIFICATE_DAYS
+    )
+    overdue_interval = (
+        prefs.overdue_reminder_interval if prefs else DEFAULT_OVERDUE_INTERVAL
+    )
+    overdue_max = prefs.overdue_reminder_max if prefs else DEFAULT_OVERDUE_MAX
+    today = date.today()
+
+    certificates = (
+        RegistrationCertificate.objects.filter(
+            is_active=True,
+            certificate_type=CertificateType.TEMPORARY,
+            valid_until__isnull=False,
+            vehicle__is_archived=False,
+        )
+        .exclude(vehicle__status="SOLD")
+        .select_related("vehicle")
+    )
+
+    created = []
+    for cert in certificates:
+        days_remaining = (cert.valid_until - today).days
+
+        if days_remaining <= 0:
+            overdue_days = abs(days_remaining)
+            dedup_prefix = f"certificate_expired:{cert.vehicle_id}:{cert.id}"
+            should_send, reminder_num = _should_send_overdue_reminder(
+                dedup_prefix,
+                overdue_days,
+                overdue_interval,
+                overdue_max,
+            )
+            if not should_send:
+                continue
+            n_type = NotificationType.CERTIFICATE_EXPIRED
+            dedup = f"{dedup_prefix}:r{reminder_num}"
+            payload = {
+                "certificate_id": str(cert.id),
+                "valid_until": str(cert.valid_until),
+                "overdue_days": overdue_days,
+                "reminder_number": reminder_num,
+            }
+        elif days_remaining <= CERTIFICATE_REMINDER_WINDOW_DAYS:
+            # Weekly reminders: send up to N notifications, one per week,
+            # while the temporary certificate is in the reminder window.
+            reminder_prefix = (
+                f"certificate_expiring:{cert.vehicle_id}:{cert.id}"
+            )
+            should_send, reminder_num = _should_send_overdue_reminder(
+                reminder_prefix,
+                # `overdue_days` arg in helper is repurposed: any non-negative
+                # value enables the "first reminder always sends" path.
+                days_remaining,
+                CERTIFICATE_REMINDER_INTERVAL_DAYS,
+                CERTIFICATE_REMINDER_MAX,
+            )
+            if not should_send:
+                continue
+            n_type = NotificationType.CERTIFICATE_EXPIRING
+            dedup = f"{reminder_prefix}:r{reminder_num}"
+            payload = {
+                "certificate_id": str(cert.id),
+                "valid_until": str(cert.valid_until),
+                "days_remaining": days_remaining,
+                "reminder_number": reminder_num,
+            }
+        else:
+            continue
+
+        notification = create_notification(
+            notification_type=n_type,
+            vehicle=cert.vehicle,
+            payload=payload,
+            dedup_key=dedup,
+        )
+        if notification:
+            created.append(notification)
+    return created
+
+
 # ── Run all scheduled checks ────────────────────────────────────────────────
 
 
@@ -381,9 +486,11 @@ def check_all_scheduled_notifications() -> dict:
     """Run all date-based notification checks. Called by management command."""
     inspections = check_inspection_notifications()
     plans = check_service_plan_notifications()
+    certificates = check_certificate_notifications()
     return {
         "inspections": len(inspections),
         "service_plans": len(plans),
+        "certificates": len(certificates),
     }
 
 
