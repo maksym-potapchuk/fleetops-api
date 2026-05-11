@@ -455,7 +455,7 @@ class VehicleSerializer(serializers.ModelSerializer):
             "fuel_type",
             "initial_km",
             "distance_unit",
-            "tire_rim_diameter",
+            "tire_size",
             "is_selected",
             "status",
             "photos",
@@ -492,15 +492,6 @@ class VehicleSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-
-    def validate_tire_rim_diameter(self, value):
-        if value is None:
-            return value
-        if value < 10 or value > 24:
-            raise serializers.ValidationError(
-                "Rim diameter must be between 10 and 24 inches."
-            )
-        return value
 
     @staticmethod
     def _compute_expiry(inspection_date):
