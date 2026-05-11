@@ -493,6 +493,16 @@ class VehicleSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
+    def validate_year(self, value):
+        if value is None:
+            return value
+        max_year = date.today().year + 1
+        if value < 1900 or value > max_year:
+            raise serializers.ValidationError(
+                f"Year must be between 1900 and {max_year}."
+            )
+        return value
+
     @staticmethod
     def _compute_expiry(inspection_date):
         try:
