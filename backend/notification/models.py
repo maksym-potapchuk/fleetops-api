@@ -98,6 +98,7 @@ class NotificationPreferences(models.Model):
     regulation_enabled = models.BooleanField(default=True)
     service_plan_enabled = models.BooleanField(default=True)
     mileage_enabled = models.BooleanField(default=True)
+    certificate_enabled = models.BooleanField(default=True)
 
     # ── Thresholds ───────────────────────────────────────────────────────────
     inspection_notify_days = models.JSONField(
@@ -107,6 +108,10 @@ class NotificationPreferences(models.Model):
     service_plan_notify_days = models.JSONField(
         default=list,
         help_text="Days before service plan to notify, e.g. [7, 3, 1]",
+    )
+    certificate_notify_days = models.JSONField(
+        default=list,
+        help_text="Days before temporary certificate expiry to notify, e.g. [7, 3, 1]",
     )
 
     # ── Regulation threshold ─────────────────────────────────────────────────
@@ -135,4 +140,6 @@ class NotificationPreferences(models.Model):
             self.inspection_notify_days = [7, 3, 1]
         if not self.service_plan_notify_days:
             self.service_plan_notify_days = [3, 1]
+        if not self.certificate_notify_days:
+            self.certificate_notify_days = [7, 3, 1]
         super().save(*args, **kwargs)

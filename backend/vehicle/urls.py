@@ -62,6 +62,31 @@ urlpatterns = [
         name="vehicle-inspection-detail",
     ),
     path(
+        "<uuid:pk>/registration-certificates/",
+        views.RegistrationCertificateListCreateView.as_view(),
+        name="vehicle-registration-certificates",
+    ),
+    path(
+        "<uuid:pk>/registration-certificates/<uuid:cert_pk>/",
+        views.RegistrationCertificateDetailView.as_view(),
+        name="vehicle-registration-certificate-detail",
+    ),
+    path(
+        "<uuid:pk>/registration-certificates/<uuid:cert_pk>/photos/<str:side>/",
+        views.RegistrationCertificatePhotoReplaceView.as_view(),
+        name="vehicle-registration-certificate-photo-replace",
+    ),
+    path(
+        "<uuid:pk>/documents/",
+        views.VehicleDocumentListCreateView.as_view(),
+        name="vehicle-documents",
+    ),
+    path(
+        "<uuid:pk>/documents/<uuid:doc_pk>/",
+        views.VehicleDocumentDetailView.as_view(),
+        name="vehicle-document-detail",
+    ),
+    path(
         "<uuid:pk>/mileage/",
         views.MileageLogListCreateView.as_view(),
         name="vehicle-mileage",

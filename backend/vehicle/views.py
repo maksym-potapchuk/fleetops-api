@@ -16,14 +16,20 @@ from driver.models import DriverVehicleDeal
 
 from .models import (
     MileageLog,
+    RegistrationCertificate,
+    RegistrationCertificatePhoto,
     TechnicalInspection,
     Vehicle,
+    VehicleDocument,
     VehiclePhoto,
     VehicleStatusHistory,
 )
 from .serializers import (
     MileageLogSerializer,
+    RegistrationCertificatePhotoSerializer,
+    RegistrationCertificateSerializer,
     TechnicalInspectionSerializer,
+    VehicleDocumentSerializer,
     VehiclePhotoSerializer,
     VehicleSerializer,
 )
@@ -75,6 +81,7 @@ class VehicleListCreateView(generics.ListCreateAPIView):
             "photos",
             "inspections",
             "equipment_list",
+            "registration_certificates__photos",
             Prefetch(
                 "regulations__entries__item",
             ),
@@ -143,6 +150,7 @@ class VehicleRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
             "photos",
             "inspections",
             "equipment_list",
+            "registration_certificates__photos",
             Prefetch(
                 "regulations__entries__item",
             ),
@@ -590,3 +598,134 @@ class MileageLogListCreateView(generics.ListCreateAPIView):
         from notification.services import check_regulation_notifications
 
         check_regulation_notifications(instance.vehicle)
+
+
+class RegistrationCertificateListCreateView(generics.ListCreateAPIView):
+    """GET/POST /vehicle/<pk>/registration-certificates/."""
+
+    serializer_class = RegistrationCertificateSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    def get_queryset(self):
+        return (
+            RegistrationCertificate.objects.filter(vehicle_id=self.kwargs["pk"])
+            .prefetch_related("photos")
+            .order_by("-is_active", "-issued_at")
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(
+            vehicle_id=self.kwargs["pk"], created_by=self.request.user
+        )
+        cache_utils.invalidate_vehicle(self.kwargs["pk"])
+
+
+class RegistrationCertificateDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """GET/PATCH/DELETE /vehicle/<pk>/registration-certificates/<cert_pk>/."""
+
+    serializer_class = RegistrationCertificateSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+    http_method_names = ["get", "patch", "delete"]
+
+    def get_queryset(self):
+        return RegistrationCertificate.objects.filter(
+            vehicle_id=self.kwargs["pk"]
+        ).prefetch_related("photos")
+
+    def get_object(self):
+        return generics.get_object_or_404(
+            self.get_queryset(), pk=self.kwargs["cert_pk"]
+        )
+
+    def perform_update(self, serializer):
+        serializer.save()
+        cache_utils.invalidate_vehicle(self.kwargs["pk"])
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        cache_utils.invalidate_vehicle(self.kwargs["pk"])
+
+
+class RegistrationCertificatePhotoReplaceView(generics.GenericAPIView):
+    """PUT /vehicle/<pk>/registration-certificates/<cert_pk>/photos/<side>/.
+
+    Replace either the front or back photo of a certificate. Side must be
+    'front' or 'back'.
+    """
+
+    serializer_class = RegistrationCertificatePhotoSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+    http_method_names = ["put"]
+
+    def put(self, request, pk, cert_pk, side):
+        if side not in dict(RegistrationCertificatePhoto.Side.choices):
+            return Response(
+                {"detail": "Invalid side. Must be 'front' or 'back'."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        certificate = generics.get_object_or_404(
+            RegistrationCertificate.objects.filter(vehicle_id=pk), pk=cert_pk
+        )
+        image = request.data.get("image")
+        if not image:
+            return Response(
+                {"image": "This field is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        photo, created = RegistrationCertificatePhoto.objects.get_or_create(
+            certificate=certificate,
+            side=side,
+            defaults={"image": image},
+        )
+        if not created:
+            photo.image.delete(save=False)
+            photo.image = image
+            photo.save(update_fields=["image", "uploaded_at"])
+        cache_utils.invalidate_vehicle(pk)
+        return Response(RegistrationCertificatePhotoSerializer(photo).data)
+
+
+class VehicleDocumentListCreateView(generics.ListCreateAPIView):
+    """GET/POST /vehicle/<pk>/documents/."""
+
+    serializer_class = VehicleDocumentSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    def get_queryset(self):
+        return VehicleDocument.objects.filter(vehicle_id=self.kwargs["pk"])
+
+    def perform_create(self, serializer):
+        serializer.save(
+            vehicle_id=self.kwargs["pk"], created_by=self.request.user
+        )
+        cache_utils.invalidate_vehicle(self.kwargs["pk"])
+
+
+class VehicleDocumentDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """GET/PATCH/DELETE /vehicle/<pk>/documents/<doc_pk>/."""
+
+    serializer_class = VehicleDocumentSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+    http_method_names = ["get", "patch", "delete"]
+
+    def get_queryset(self):
+        return VehicleDocument.objects.filter(vehicle_id=self.kwargs["pk"])
+
+    def get_object(self):
+        return generics.get_object_or_404(
+            self.get_queryset(), pk=self.kwargs["doc_pk"]
+        )
+
+    def perform_update(self, serializer):
+        serializer.save()
+        cache_utils.invalidate_vehicle(self.kwargs["pk"])
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        cache_utils.invalidate_vehicle(self.kwargs["pk"])

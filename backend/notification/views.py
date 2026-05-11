@@ -144,6 +144,12 @@ class MileageSubmitView(APIView):
         data = serializer.validated_data
 
         vehicle = get_object_or_404(Vehicle, pk=data["vehicle_id"])
+        # Don't accept mileage / generate reminders for sold or archived vehicles.
+        if vehicle.status == "SOLD" or vehicle.is_archived:
+            return Response(
+                {"detail": "Vehicle is sold or archived; no submissions accepted."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         driver = Driver.objects.filter(telegram_id=data["driver_telegram_id"]).first()
         if not driver:
             return Response(
