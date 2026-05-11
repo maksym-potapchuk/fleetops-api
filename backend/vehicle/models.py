@@ -27,7 +27,7 @@ class Vehicle(models.Model):
         choices=DistanceUnit.choices,
         default=DistanceUnit.KM,
     )
-    tire_rim_diameter = models.PositiveSmallIntegerField(null=True, blank=True)
+    tire_size = models.CharField(max_length=20, blank=True)
     is_selected = models.BooleanField(default=True)
     status = models.CharField(
         max_length=20,
