@@ -112,9 +112,7 @@ class RegistrationCertificateAPITest(TestCase):
         )
         self.assertEqual(back_after.id, back_id_before)
         self.assertEqual(
-            RegistrationCertificatePhoto.objects.filter(
-                certificate=cert
-            ).count(),
+            RegistrationCertificatePhoto.objects.filter(certificate=cert).count(),
             2,
         )
 
@@ -122,9 +120,7 @@ class RegistrationCertificateAPITest(TestCase):
         self.client.post(self.url, self._payload(), format="multipart")
         cert = RegistrationCertificate.objects.get(vehicle=self.vehicle)
         bad_url = f"{self.url}{cert.id}/photos/sideways/"
-        response = self.client.put(
-            bad_url, {"image": _img()}, format="multipart"
-        )
+        response = self.client.put(bad_url, {"image": _img()}, format="multipart")
         self.assertEqual(response.status_code, 400)
 
     def test_inspection_create_with_certificate_links_them(self):
@@ -147,9 +143,7 @@ class RegistrationCertificateAPITest(TestCase):
 
     def test_inspection_create_with_existing_certificate_id_links_it(self):
         # First, create a certificate
-        cert_response = self.client.post(
-            self.url, self._payload(), format="multipart"
-        )
+        cert_response = self.client.post(self.url, self._payload(), format="multipart")
         cert_id = cert_response.data["id"]
 
         # Then create an inspection that references it

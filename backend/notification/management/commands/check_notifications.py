@@ -13,14 +13,10 @@ class Command(BaseCommand):
         self.stdout.write(
             f"Service plans: {results['service_plans']} new notifications"
         )
-        self.stdout.write(
-            f"Certificates: {results['certificates']} new notifications"
-        )
+        self.stdout.write(f"Certificates: {results['certificates']} new notifications")
 
         total = (
-            results["inspections"]
-            + results["service_plans"]
-            + results["certificates"]
+            results["inspections"] + results["service_plans"] + results["certificates"]
         )
         if total:
             self.stdout.write(self.style.SUCCESS(f"Created {total} notifications."))

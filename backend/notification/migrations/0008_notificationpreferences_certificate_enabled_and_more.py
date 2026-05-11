@@ -4,25 +4,42 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('notification', '0007_sync_service_plan_days_jsonfield'),
+        ("notification", "0007_sync_service_plan_days_jsonfield"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='notificationpreferences',
-            name='certificate_enabled',
+            model_name="notificationpreferences",
+            name="certificate_enabled",
             field=models.BooleanField(default=True),
         ),
         migrations.AddField(
-            model_name='notificationpreferences',
-            name='certificate_notify_days',
-            field=models.JSONField(default=list, help_text='Days before temporary certificate expiry to notify, e.g. [7, 3, 1]'),
+            model_name="notificationpreferences",
+            name="certificate_notify_days",
+            field=models.JSONField(
+                default=list,
+                help_text="Days before temporary certificate expiry to notify, e.g. [7, 3, 1]",
+            ),
         ),
         migrations.AlterField(
-            model_name='notification',
-            name='type',
-            field=models.CharField(choices=[('regulation_approaching', 'Regulation Approaching'), ('regulation_overdue', 'Regulation Overdue'), ('mileage_submitted', 'Mileage Submitted'), ('service_report', 'Service Report'), ('inspection_expiring', 'Technical Inspection Expiring'), ('inspection_expired', 'Technical Inspection Expired'), ('certificate_expiring', 'Registration Certificate Expiring'), ('certificate_expired', 'Registration Certificate Expired'), ('service_plan_due', 'Service Plan Due'), ('service_plan_overdue', 'Service Plan Overdue')], db_index=True, max_length=30),
+            model_name="notification",
+            name="type",
+            field=models.CharField(
+                choices=[
+                    ("regulation_approaching", "Regulation Approaching"),
+                    ("regulation_overdue", "Regulation Overdue"),
+                    ("mileage_submitted", "Mileage Submitted"),
+                    ("service_report", "Service Report"),
+                    ("inspection_expiring", "Technical Inspection Expiring"),
+                    ("inspection_expired", "Technical Inspection Expired"),
+                    ("certificate_expiring", "Registration Certificate Expiring"),
+                    ("certificate_expired", "Registration Certificate Expired"),
+                    ("service_plan_due", "Service Plan Due"),
+                    ("service_plan_overdue", "Service Plan Overdue"),
+                ],
+                db_index=True,
+                max_length=30,
+            ),
         ),
     ]

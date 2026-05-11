@@ -324,8 +324,7 @@ class TechnicalInspectionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {
                     "certificate_id": (
-                        "Pass either certificate_id OR certificate_* fields, "
-                        "not both."
+                        "Pass either certificate_id OR certificate_* fields, not both."
                     )
                 }
             )
@@ -356,9 +355,7 @@ class TechnicalInspectionSerializer(serializers.ModelSerializer):
                 and valid_until <= issued_at
             ):
                 raise serializers.ValidationError(
-                    {
-                        "certificate_valid_until": "Expiry must be after the issue date."
-                    }
+                    {"certificate_valid_until": "Expiry must be after the issue date."}
                 )
         return data
 
@@ -582,25 +579,27 @@ class VehicleSerializer(serializers.ModelSerializer):
         representation["total_cost"] = str(instance.cost + expenses_total)
 
         # Active registration certificate (тех паспорт)
-        active_cert = next(
-            (
-                c
-                for c in instance.registration_certificates.all()
-                if c.is_active
-            ),
-            None,
-        ) if "registration_certificates" in getattr(
-            instance, "_prefetched_objects_cache", {}
-        ) else (
-            instance.registration_certificates.filter(is_active=True)
-            .prefetch_related("photos")
-            .first()
+        active_cert = (
+            next(
+                (c for c in instance.registration_certificates.all() if c.is_active),
+                None,
+            )
+            if "registration_certificates"
+            in getattr(instance, "_prefetched_objects_cache", {})
+            else (
+                instance.registration_certificates.filter(is_active=True)
+                .prefetch_related("photos")
+                .first()
+            )
         )
         if active_cert:
-            representation["active_certificate"] = (
-                RegistrationCertificateSerializer(active_cert).data
-            )
-            if active_cert.certificate_type == CertificateType.TEMPORARY and active_cert.valid_until:
+            representation["active_certificate"] = RegistrationCertificateSerializer(
+                active_cert
+            ).data
+            if (
+                active_cert.certificate_type == CertificateType.TEMPORARY
+                and active_cert.valid_until
+            ):
                 representation["certificate_days_left"] = (
                     active_cert.valid_until - date.today()
                 ).days

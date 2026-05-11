@@ -615,9 +615,7 @@ class RegistrationCertificateListCreateView(generics.ListCreateAPIView):
         )
 
     def perform_create(self, serializer):
-        serializer.save(
-            vehicle_id=self.kwargs["pk"], created_by=self.request.user
-        )
+        serializer.save(vehicle_id=self.kwargs["pk"], created_by=self.request.user)
         cache_utils.invalidate_vehicle(self.kwargs["pk"])
 
 
@@ -700,9 +698,7 @@ class VehicleDocumentListCreateView(generics.ListCreateAPIView):
         return VehicleDocument.objects.filter(vehicle_id=self.kwargs["pk"])
 
     def perform_create(self, serializer):
-        serializer.save(
-            vehicle_id=self.kwargs["pk"], created_by=self.request.user
-        )
+        serializer.save(vehicle_id=self.kwargs["pk"], created_by=self.request.user)
         cache_utils.invalidate_vehicle(self.kwargs["pk"])
 
 
@@ -718,9 +714,7 @@ class VehicleDocumentDetailView(generics.RetrieveUpdateDestroyAPIView):
         return VehicleDocument.objects.filter(vehicle_id=self.kwargs["pk"])
 
     def get_object(self):
-        return generics.get_object_or_404(
-            self.get_queryset(), pk=self.kwargs["doc_pk"]
-        )
+        return generics.get_object_or_404(self.get_queryset(), pk=self.kwargs["doc_pk"])
 
     def perform_update(self, serializer):
         serializer.save()
