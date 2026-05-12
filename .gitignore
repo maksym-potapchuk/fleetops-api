@@ -30,3 +30,4 @@ backups/
 frontend/e2e/.auth/
 frontend/test-results/
 frontend/playwright-report/
+test-results/
