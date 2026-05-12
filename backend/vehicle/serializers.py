@@ -310,8 +310,11 @@ class TechnicalInspectionSerializer(serializers.ModelSerializer):
                     inspection_date
                 )
 
-        # If any certificate field is provided on create, require both photos.
-        # If certificate_id is provided, photos are not required.
+        # Certificate fields are accepted both at create (POST) and update
+        # (PATCH) — same rules either way:
+        #   - cannot pass certificate_id together with the inline fields
+        #   - if any inline field is set, photos + issued_at are required
+        #   - for temporary type, valid_until is auto-filled or validated
         cert_fields = (
             "certificate_type",
             "certificate_issued_at",
@@ -328,7 +331,7 @@ class TechnicalInspectionSerializer(serializers.ModelSerializer):
                     )
                 }
             )
-        if has_any_cert_field and not self.instance:
+        if has_any_cert_field:
             errors = {}
             if not data.get("certificate_photo_front"):
                 errors["certificate_photo_front"] = "This field is required."
@@ -359,18 +362,10 @@ class TechnicalInspectionSerializer(serializers.ModelSerializer):
                 )
         return data
 
-    @transaction.atomic
-    def create(self, validated_data):
-        cert_type = validated_data.pop("certificate_type", None)
-        cert_issued_at = validated_data.pop("certificate_issued_at", None)
-        cert_valid_until = validated_data.pop("certificate_valid_until", None)
-        cert_photo_front = validated_data.pop("certificate_photo_front", None)
-        cert_photo_back = validated_data.pop("certificate_photo_back", None)
-        cert_notes = validated_data.pop("certificate_notes", "")
-        cert_id = validated_data.pop("certificate_id", None)
-
-        inspection = TechnicalInspection.objects.create(**validated_data)
-
+    def _attach_certificate(self, inspection, *, cert_id, cert_type, cert_issued_at,
+                            cert_valid_until, cert_photo_front, cert_photo_back,
+                            cert_notes, created_by):
+        """Shared create/update path for linking or creating a certificate."""
         # Branch 1: link an existing certificate
         if cert_id:
             try:
@@ -383,7 +378,7 @@ class TechnicalInspectionSerializer(serializers.ModelSerializer):
                 ) from err
             inspection.registration_certificate = existing
             inspection.save(update_fields=["registration_certificate"])
-            return inspection
+            return
 
         # Branch 2: create a fresh certificate inline
         if cert_photo_front and cert_photo_back and cert_issued_at:
@@ -396,9 +391,9 @@ class TechnicalInspectionSerializer(serializers.ModelSerializer):
                 certificate_type=cert_type or CertificateType.PERMANENT,
                 issued_at=cert_issued_at,
                 valid_until=cert_valid_until,
-                notes=cert_notes,
+                notes=cert_notes or "",
                 is_active=True,
-                created_by=validated_data.get("created_by"),
+                created_by=created_by,
             )
             RegistrationCertificatePhoto.objects.create(
                 certificate=certificate,
@@ -412,7 +407,46 @@ class TechnicalInspectionSerializer(serializers.ModelSerializer):
             )
             inspection.registration_certificate = certificate
             inspection.save(update_fields=["registration_certificate"])
+
+    @staticmethod
+    def _pop_certificate_fields(validated_data):
+        return dict(
+            cert_type=validated_data.pop("certificate_type", None),
+            cert_issued_at=validated_data.pop("certificate_issued_at", None),
+            cert_valid_until=validated_data.pop("certificate_valid_until", None),
+            cert_photo_front=validated_data.pop("certificate_photo_front", None),
+            cert_photo_back=validated_data.pop("certificate_photo_back", None),
+            cert_notes=validated_data.pop("certificate_notes", ""),
+            cert_id=validated_data.pop("certificate_id", None),
+        )
+
+    @transaction.atomic
+    def create(self, validated_data):
+        cert = self._pop_certificate_fields(validated_data)
+        inspection = TechnicalInspection.objects.create(**validated_data)
+        self._attach_certificate(
+            inspection,
+            **cert,
+            created_by=validated_data.get("created_by"),
+        )
         return inspection
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        cert = self._pop_certificate_fields(validated_data)
+        instance = super().update(instance, validated_data)
+        # If any certificate fields were provided, (re)attach the certificate.
+        if cert["cert_id"] or any(
+            cert[k] for k in ("cert_issued_at", "cert_photo_front", "cert_photo_back")
+        ):
+            self._attach_certificate(
+                instance,
+                **cert,
+                created_by=self.context["request"].user
+                if "request" in self.context
+                else None,
+            )
+        return instance
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)
