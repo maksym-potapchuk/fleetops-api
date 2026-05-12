@@ -362,9 +362,19 @@ class TechnicalInspectionSerializer(serializers.ModelSerializer):
                 )
         return data
 
-    def _attach_certificate(self, inspection, *, cert_id, cert_type, cert_issued_at,
-                            cert_valid_until, cert_photo_front, cert_photo_back,
-                            cert_notes, created_by):
+    def _attach_certificate(
+        self,
+        inspection,
+        *,
+        cert_id,
+        cert_type,
+        cert_issued_at,
+        cert_valid_until,
+        cert_photo_front,
+        cert_photo_back,
+        cert_notes,
+        created_by,
+    ):
         """Shared create/update path for linking or creating a certificate."""
         # Branch 1: link an existing certificate
         if cert_id:
