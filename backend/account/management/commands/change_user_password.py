@@ -16,8 +16,8 @@ class Command(BaseCommand):
 
         try:
             user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            raise CommandError(f"No user found with email {email}")
+        except User.DoesNotExist as err:
+            raise CommandError(f"No user found with email {email}") from err
 
         password = getpass("New password: ")
         if not password:
