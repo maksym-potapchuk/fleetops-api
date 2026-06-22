@@ -28,6 +28,4 @@ class Command(BaseCommand):
         user.set_password(password)
         user.save(update_fields=["password"])
 
-        self.stdout.write(
-            self.style.SUCCESS(f"Password updated for {user.email}")
-        )
+        self.stdout.write(self.style.SUCCESS(f"Password updated for {user.email}"))
