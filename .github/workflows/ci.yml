@@ -22,7 +22,7 @@ jobs:
         working-directory: backend
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v6
         with:
@@ -81,7 +81,7 @@ jobs:
       ALLOWED_HOSTS: "*"
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v6
         with:
@@ -115,7 +115,7 @@ jobs:
     needs: [backend-lint, backend-test]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Build backend image
         run: docker build backend/
